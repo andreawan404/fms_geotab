@@ -4,10 +4,10 @@
   "version": "1.0.0",
   "items": [
     {
-      "url": "https://YOUR_HOST/tms/addin.html",
+      "url": "https://fms-geotab.vercel.app/addin.html",
       "path": "ActivityLink/",
       "menuName": { "en": "TMS Routes", "id": "TMS Rute" },
-      "icon": "https://YOUR_HOST/tms/icon.svg"
+      "icon": "https://fms-geotab.vercel.app/icon.svg"
     }
   ],
   "isSigned": false

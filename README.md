@@ -47,6 +47,11 @@ ADDIN_ID=<id> HOST_URL=https://host.kamu.com/tms npm run build
 Hasil di `dist/`: `tms.js`, `addin.html`, `config.json`, `icon.svg`. Upload seluruh isi `dist/` ke
 `https://host.kamu.com/tms/` (semua file satu folder).
 
+**Deploy via Vercel (dipakai di repo ini):** `vercel.json` sudah mengatur build (`npm ci` + `npm run build`), folder output
+`dist`, dan header CORS. Host: `https://fms-geotab.vercel.app` (root domain, tanpa subfolder), jadi URL add-in adalah
+`https://fms-geotab.vercel.app/addin.html`. Setiap push ke `main` men-deploy ulang. Jika domain Vercel berubah, ubah
+`HOST_URL` di `vercel.json` dan URL di `public/config.json`.
+
 Pasang di MyGeotab: **Administration → System → System Settings → Add-Ins → New Add-In → tab Configuration**, tempel
 isi `config.json` (URL sudah diganti oleh `HOST_URL`), simpan, lalu muat ulang MyGeotab. Menu **TMS Rute** muncul di
 bagian Activity. Setelah tempel, buka halaman TMS → **Pengaturan** untuk memilih routing.
