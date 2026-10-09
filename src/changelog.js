@@ -2,6 +2,20 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '1.4.0',
+    date: '2026-10-09',
+    id: [
+      'Monitor > detail penugasan: kartu Engine hour, Fuel used, dan Fuel economy untuk seluruh penugasan.',
+      'Daftar deviasi: kolom Engine hour, Fuel used, dan Fuel economy per segmen deviasi (pakai jarak di luar koridor); "~" = perkiraan, "-" = tidak ada sensor / data kurang.',
+      'Detail penugasan kini juga membaca log GPS sejak 30 menit sebelum jadwal sehingga fase "Di titik awal" akurat.',
+    ],
+    en: [
+      'Monitor > assignment detail: Engine hour, Fuel used and Fuel economy cards for the whole assignment.',
+      'Deviation list: Engine hour, Fuel used and Fuel economy columns per deviation segment (uses distance outside the corridor); "~" = estimate, "-" = no sensor / not enough data.',
+      'Assignment detail now also reads GPS logs from 30 minutes before the schedule so the "At start point" phase is accurate.',
+    ],
+  },
+  {
     v: '1.3.0',
     date: '2026-10-09',
     id: [

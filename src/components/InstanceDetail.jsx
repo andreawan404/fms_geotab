@@ -3,13 +3,14 @@ import { useApp } from '../AppContext.jsx';
 import { L, MapBox, drawRoute, esc, fitTo, useMap } from './mapkit.jsx';
 import { Kpi, Modal, PhaseBadge, Spinner, StatusBadge, download } from './ui.jsx';
 import { engineRoute } from '../lib/engineRoute.js';
+import { fmtEconomy, fmtHours, fmtLiters } from '../core/sensor.js';
 import { fmtDateTime, fmtDur, fmtKm, fmtTime } from '../core/time.js';
 import { toCSV } from '../core/csv.js';
 import { errMessage } from '../services/geotab.js';
 
 /** Detail satu penugasan (instance harian): status, checkpoint, deviasi, dan replay rencana vs aktual. */
 export default function InstanceDetail({ inst, onClose, footerExtra }) {
-  const { t, lang, routeMap, deviceMap, driverMap, evaluate, settings } = useApp();
+  const { t, lang, routeMap, deviceMap, driverMap, evaluate, sensorWindows, settings } = useApp();
   const route = routeMap.get(inst.routeId);
   const [data, setData] = useState(null);
   const [err, setErr] = useState('');
@@ -18,6 +19,7 @@ export default function InstanceDetail({ inst, onClose, footerExtra }) {
   const marker = useRef(null);
   const [pos, setPos] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [sens, setSens] = useState(null); // { hasHours, hasFuel, items:[overall, ...deviasi] }
 
   useEffect(() => {
     let dead = false;
@@ -31,6 +33,25 @@ export default function InstanceDetail({ inst, onClose, footerExtra }) {
 
   const logs = data?.logs || [];
   const res = data?.result;
+
+  // engine hour / fuel / economy: jendela 0 = seluruh penugasan, jendela berikutnya = tiap deviasi
+  useEffect(() => {
+    if (!res) return undefined;
+    let dead = false;
+    const to = Math.min(Date.now(), inst.endMs);
+    const windows = [{ from: inst.startMs, to, distKm: res.totalDistM / 1000 }, ...res.deviations.map((d) => ({ from: d.startMs, to: d.endMs, distKm: (d.travelM || 0) / 1000 }))];
+    sensorWindows(inst.deviceId, windows)
+      .then((r) => !dead && setSens(r))
+      .catch(() => !dead && setSens({ hasHours: false, hasFuel: false, items: [] }));
+    return () => {
+      dead = true;
+    };
+  }, [res, inst, sensorWindows]);
+  const unit = settings.units?.fuelEcon || 'kmpl';
+  const ap = (x, txt) => (x && x.approx && txt !== '-' ? `~${txt}` : txt);
+  const sh = (x) => ap(x, fmtHours(x?.engineSec));
+  const sf = (x) => ap(x, fmtLiters(x?.fuelL));
+  const se = (x) => ap(x, fmtEconomy(x, unit));
 
   useEffect(() => {
     if (!map || !res || !route) return;
@@ -130,6 +151,11 @@ export default function InstanceDetail({ inst, onClose, footerExtra }) {
                 {fmtTime(inst.startMs)}–{fmtTime(inst.endMs)} · {drv || t('noDriver')}
               </span>
             </div>
+            <div className="tms-kpis" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 8 }} title={sens && !sens.hasHours && !sens.hasFuel ? t('sensor.na') : ''}>
+              <Kpi label={t('col.engineHours')} value={sens ? sh(sens.items[0]) : '…'} />
+              <Kpi label={t('col.fuelUsed')} value={sens ? sf(sens.items[0]) : '…'} />
+              <Kpi label={t('col.fuelEcon')} value={sens ? se(sens.items[0]) : '…'} />
+            </div>
             <div className="tms-kpis" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
               <Kpi label={t('detail.compliance')} value={res.compliancePct == null ? '-' : `${res.compliancePct.toFixed(0)}%`} tone={res.compliancePct != null && res.compliancePct < 90 ? 'bad' : 'good'} />
               <Kpi label={t('detail.deviations')} value={res.deviations.length} tone={res.deviations.length ? 'bad' : ''} />
@@ -164,7 +190,7 @@ export default function InstanceDetail({ inst, onClose, footerExtra }) {
                 <h4 style={{ margin: '14px 0 6px' }}>{t('detail.deviationList')}</h4>
                 <table>
                   <thead>
-                    <tr><th>{t('detail.start')}</th><th>{t('detail.end')}</th><th className="num">{t('detail.maxOff')}</th><th className="num">{t('detail.outKm')}</th></tr>
+                    <tr><th>{t('detail.start')}</th><th>{t('detail.end')}</th><th className="num">{t('detail.maxOff')}</th><th className="num">{t('detail.outKm')}</th><th className="num">{t('col.engineHours')}</th><th className="num">{t('col.fuelUsed')}</th><th className="num">{t('col.fuelEcon')}</th></tr>
                   </thead>
                   <tbody>
                     {res.deviations.map((d, i) => (
@@ -173,10 +199,14 @@ export default function InstanceDetail({ inst, onClose, footerExtra }) {
                         <td>{d.ongoing ? <span className="tms-badge red">{t('detail.ongoing')}</span> : fmtTime(d.endMs)}</td>
                         <td className="num">{Math.round(d.maxDistM)} m</td>
                         <td className="num">{fmtKm(d.travelM, 2)}</td>
+                        <td className="num">{sens ? sh(sens.items[i + 1]) : '…'}</td>
+                        <td className="num">{sens ? sf(sens.items[i + 1]) : '…'}</td>
+                        <td className="num">{sens ? se(sens.items[i + 1]) : '…'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                <p className="tms-sm tms-muted" style={{ margin: '6px 0 0' }}>{t('sensor.note')}</p>
               </>
             )}
           </>

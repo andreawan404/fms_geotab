@@ -2,7 +2,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { createGeotab, errMessage } from './services/geotab.js';
 import { createStore, DEFAULT_SETTINGS } from './services/store.js';
 import { Monitor } from './services/monitor.js';
-import { evaluateInstance } from './core/tracking.js';
+import { evaluateInstance, DEFAULT_PARAMS } from './core/tracking.js';
+import { SENSOR_DEFAULTS, summarizeWindow } from './core/sensor.js';
 import { engineRoute, routeVersion } from './lib/engineRoute.js';
 import { makeT } from './i18n.js';
 import { eventText } from './lib/eventText.js';
@@ -249,11 +250,32 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
       const finished = inst.endMs < Date.now() - 5 * 60000;
       if (!withLogs && finished && evalCache.current.has(key)) return { result: evalCache.current.get(key) };
       const to = Math.min(Date.now(), inst.endMs);
-      const logs = inst.startMs < to ? await geotab.getLogs(inst.deviceId, inst.startMs, to) : [];
+      const preMs = (route.params?.preStartMin ?? DEFAULT_PARAMS.preStartMin) * 60000; // titik awal bisa tercapai sebelum jadwal mulai
+      const logs = inst.startMs - preMs < to ? await geotab.getLogs(inst.deviceId, inst.startMs - preMs, to) : [];
       const result = evaluateInstance({ route: engineRoute(route, dataRef.current.settings), window: { startMs: inst.startMs, endMs: inst.endMs }, logs, nowMs: Date.now() });
       delete result.events;
       if (finished) evalCache.current.set(key, result);
       return { result, logs };
+    },
+    [geotab],
+  );
+
+  /** Engine hour / fuel / economy untuk beberapa jendela waktu satu kendaraan. windows: [{from,to,distKm}] */
+  const sensorWindows = useCallback(
+    async (deviceId, windows) => {
+      const sens = dataRef.current.settings.sensors || SENSOR_DEFAULTS;
+      const pad = 2 * 3600e3;
+      const fromMs = Math.min(...windows.map((w) => w.from)) - pad;
+      const toMs = Math.max(...windows.map((w) => w.to)) + pad;
+      const [hs, fs] = await geotab.getSensorSeriesMulti([
+        { deviceId, kind: 'engineHours', ids: sens.engineHours, fromMs, toMs },
+        { deviceId, kind: 'fuel', ids: sens.fuel, fromMs, toMs },
+      ]);
+      return {
+        hasHours: hs.length > 1,
+        hasFuel: fs.length > 1,
+        items: windows.map((w) => summarizeWindow({ hoursSeries: hs, fuelSeries: fs, distKm: w.distKm, from: w.from, to: w.to })),
+      };
     },
     [geotab],
   );
@@ -298,6 +320,7 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
     deleteAssignment,
     saveSettings,
     evaluate,
+    sensorWindows,
     getRules,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
