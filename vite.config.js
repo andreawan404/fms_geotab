@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [react(), cssInjectedByJs()],
   // Bundle 100% ASCII: tidak rusak walau server hosting tidak mengirim charset UTF-8 untuk file .js
   esbuild: { charset: 'ascii' },
-  define: { 'process.env.NODE_ENV': JSON.stringify('production') },
+  define: { 'process.env.NODE_ENV': JSON.stringify('production'), __TMS_BUILD__: JSON.stringify(new Date().toISOString()) },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
