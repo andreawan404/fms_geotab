@@ -20,7 +20,7 @@ export default function App({ addInId }) {
     <div>
       <div className="tms-head">
         <div className="tms-brand">
-          <svg width="22" height="22" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#0b5ea8" /><path d="M8 24c0-6 4-6 8-8s4-6 8-8" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" /><circle cx="8" cy="24" r="3" fill="#fff" /><circle cx="24" cy="8" r="3" fill="#ffb703" /></svg>
+          <img src={`${(window.TMS_CONFIG && window.TMS_CONFIG.hostUrl) || ''}/logo.svg`} alt="SMA" height="30" style={{ display: 'block' }} />
           TMS
         </div>
         <div className="tms-nav">

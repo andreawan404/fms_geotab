@@ -1,6 +1,6 @@
 {
   "name": "tms-geotab-addin",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "private": true,
   "description": "TMS (Transport Management System) add-in for MyGeotab",
   "type": "module",
@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build && node scripts/postbuild.mjs",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "changelog": "node scripts/gen-changelog.mjs"
   },
   "dependencies": {
     "@turf/buffer": "^7.1.0",

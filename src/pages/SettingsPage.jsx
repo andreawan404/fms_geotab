@@ -3,11 +3,12 @@ import { useApp } from '../AppContext.jsx';
 import { Field, Spinner } from '../components/ui.jsx';
 import { findRoutes } from '../services/routing.js';
 import { errMessage } from '../services/geotab.js';
+import { APP_VERSION, CHANGELOG } from '../changelog.js';
 
 const DEF_KEYS = ['widthM', 'radius', 'avgSpeedKmh', 'confirmSec', 'confirmMeters', 'gpsMarginM', 'recoverSec', 'graceMin'];
 
 export default function SettingsPage({ addInId }) {
-  const { t, settings, saveSettings, toast, loading, isMock } = useApp();
+  const { t, lang, settings, saveSettings, toast, loading, isMock } = useApp();
   const [s, setS] = useState(() => JSON.parse(JSON.stringify(settings)));
   const [busy, setBusy] = useState('');
   if (loading) return <Spinner text={t('loading')} />;
@@ -94,8 +95,20 @@ export default function SettingsPage({ addInId }) {
         <div className="tms-card-h">{t('set.about')}</div>
         <div className="tms-card-b tms-sm">
           <p style={{ margin: '0 0 6px' }}>{t('set.aboutBody')}</p>
-          <div className="tms-muted">addInId: <code>{addInId}</code>{isMock ? ` · ${t('set.demoMode')}` : ''}</div>
+          <div className="tms-muted">v{APP_VERSION} · addInId: <code>{addInId}</code>{isMock ? ` · ${t('set.demoMode')}` : ''}</div>
           <p style={{ margin: '10px 0 0' }}>{t('set.ruleGuide')}</p>
+        </div>
+      </div>
+
+      <div className="tms-card" style={{ marginTop: 16 }}>
+        <div className="tms-card-h">{t('set.changelog')}</div>
+        <div className="tms-card-b tms-sm">
+          {CHANGELOG.map((e) => (
+            <div key={e.v} style={{ marginBottom: 12 }}>
+              <b>v{e.v}</b> <span className="tms-muted">{e.date}</span>
+              <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{(lang === 'en' ? e.en : e.id).map((l, i) => <li key={i}>{l}</li>)}</ul>
+            </div>
+          ))}
         </div>
       </div>
     </div>

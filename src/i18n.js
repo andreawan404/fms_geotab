@@ -69,7 +69,7 @@ const id = {
   'rep.tab.summary': 'Ringkasan armada', 'rep.tab.trips': 'Trip', 'rep.tab.exceptions': 'Exception', 'rep.tab.compliance': 'Kepatuhan rute',
   'rep.col.km': 'km', 'rep.col.maxSpeed': 'Kec. maks', 'rep.col.runs': 'Penugasan', 'rep.col.outKm': 'km di luar rute', 'rep.col.stop': 'Berhenti', 'rep.col.excDur': 'Durasi exception', 'rep.col.lastDelay': 'Selisih akhir', 'rep.cpName': 'Checkpoint',
 
-  'set.title': 'Pengaturan', 'set.routing': 'Peta & routing', 'set.provider': 'Penyedia routing', 'set.country': 'Negara (ISO)', 'set.countryHint': 'Membatasi pencarian alamat, mis. ID',
+  'set.title': 'Pengaturan', 'set.changelog': 'Riwayat versi', 'set.routing': 'Peta & routing', 'set.provider': 'Penyedia routing', 'set.country': 'Negara (ISO)', 'set.countryHint': 'Membatasi pencarian alamat, mis. ID',
   'set.orsHint': 'Daftar gratis di openrouteservice.org. Mendukung rute alternatif dan profil truk.', 'set.osrmHint': 'Server demo publik hanya untuk uji coba. Gunakan server OSRM sendiri untuk produksi.',
   'set.tiles': 'URL tile peta', 'set.tilesHint': 'Tile OSM publik untuk penggunaan ringan. Ganti dengan penyedia tile berlangganan untuk produksi.', 'set.test': 'Tes routing', 'set.testOk': 'Routing OK ({km} km)',
   'set.keyWarn': 'Pengaturan (termasuk API key) disimpan di AddInData database Geotab dan dapat dibaca pengguna yang punya akses add-in. Gunakan key khusus dengan kuota terbatas.',
@@ -149,7 +149,7 @@ const en = {
   'rep.tab.summary': 'Fleet summary', 'rep.tab.trips': 'Trips', 'rep.tab.exceptions': 'Exceptions', 'rep.tab.compliance': 'Route compliance',
   'rep.col.km': 'km', 'rep.col.maxSpeed': 'Max speed', 'rep.col.runs': 'Assignments', 'rep.col.outKm': 'km off route', 'rep.col.stop': 'Stopped', 'rep.col.excDur': 'Exception duration', 'rep.col.lastDelay': 'Final delta', 'rep.cpName': 'Checkpoint',
 
-  'set.title': 'Settings', 'set.routing': 'Map & routing', 'set.provider': 'Routing provider', 'set.country': 'Country (ISO)', 'set.countryHint': 'Restricts address search, e.g. ID',
+  'set.title': 'Settings', 'set.changelog': 'Version history', 'set.routing': 'Map & routing', 'set.provider': 'Routing provider', 'set.country': 'Country (ISO)', 'set.countryHint': 'Restricts address search, e.g. ID',
   'set.orsHint': 'Free signup at openrouteservice.org. Supports route alternatives and truck profiles.', 'set.osrmHint': 'The public demo server is for testing only. Use your own OSRM server in production.',
   'set.tiles': 'Map tile URL', 'set.tilesHint': 'Public OSM tiles for light use. Switch to a subscription tile provider in production.', 'set.test': 'Test routing', 'set.testOk': 'Routing OK ({km} km)',
   'set.keyWarn': 'Settings (including API keys) are stored in Geotab AddInData and readable by users with add-in access. Use a dedicated key with a limited quota.',

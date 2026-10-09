@@ -2,9 +2,10 @@
 // Pakai: HOST_URL=https://cdn.perusahaan.com/tms npm run build
 import fs from 'node:fs';
 import path from 'node:path';
+import { APP_VERSION } from '../src/changelog.js';
 
 const dist = path.resolve('dist');
-for (const f of ['addin.html', 'config.json', 'icon.svg', 'probe.html', 'config-probe.json']) {
+for (const f of ['addin.html', 'config.json', 'icon.svg', 'logo.svg', 'probe.html', 'config-probe.json']) {
   const src = path.resolve('public', f);
   if (fs.existsSync(src)) fs.copyFileSync(src, path.join(dist, f));
 }
@@ -17,10 +18,16 @@ const addInId = process.env.ADDIN_ID || 'aK8zhRighKbsh06-NQBpHBQ';
   // geotab.addin.* sudah terdaftar begitu MyGeotab selesai menyuntik HTML.
   const bundle = fs.readFileSync(path.join(dist, 'tms.js'), 'utf8').replace(/<\/script/gi, '<\\/script');
   // split/join (bukan replace dgn string) agar pola "$&" di dalam bundle tidak ikut ditafsirkan
-  const html = fs.readFileSync(p, 'utf8').replaceAll('__ADDIN_ID__', addInId).split('__BUNDLE__').join(bundle);
+  const html = fs.readFileSync(p, 'utf8').replaceAll('__ADDIN_ID__', addInId).replaceAll('__HOST_URL__', (process.env.HOST_URL || '').replace(/\/$/, '')).split('__BUNDLE__').join(bundle);
   if (!/<body[\s>]/i.test(html)) throw new Error('addin.html harus punya tag <body> (syarat MyGeotab)');
   fs.writeFileSync(p, html);
   console.log('addInId =', addInId);
+}
+for (const f of ['config.json']) {
+  const cp = path.join(dist, f);
+  const c = JSON.parse(fs.readFileSync(cp, 'utf8'));
+  c.version = APP_VERSION;
+  fs.writeFileSync(cp, JSON.stringify(c, null, 2) + '\n');
 }
 const host = (process.env.HOST_URL || '').replace(/\/$/, '');
 if (host) {
