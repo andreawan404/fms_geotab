@@ -2,6 +2,11 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v1.3.0 - 2026-10-09
+
+- Layer data sensor: engine hour dan fuel dihitung dari selisih counter StatusData Geotab (interpolasi, penanda perkiraan "~", tahan counter reset).
+- Pengaturan > Sensor: ID diagnostik bisa diubah, satuan fuel economy (km/L atau L/100 km), dan tombol Cek sensor untuk melihat kendaraan mana yang punya data.
+
 ## v1.2.0 - 2026-10-09
 
 - Logo SMA baru (SVG) sebagai icon menu MyGeotab, header add-in, dan halaman host.

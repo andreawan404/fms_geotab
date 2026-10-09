@@ -8,9 +8,10 @@ import { APP_VERSION, CHANGELOG } from '../changelog.js';
 const DEF_KEYS = ['widthM', 'radius', 'avgSpeedKmh', 'confirmSec', 'confirmMeters', 'gpsMarginM', 'recoverSec', 'graceMin'];
 
 export default function SettingsPage({ addInId }) {
-  const { t, lang, settings, saveSettings, toast, loading, isMock } = useApp();
+  const { t, lang, settings, saveSettings, toast, loading, isMock, geotab, devices } = useApp();
   const [s, setS] = useState(() => JSON.parse(JSON.stringify(settings)));
   const [busy, setBusy] = useState('');
+  const [probe, setProbe] = useState(null);
   if (loading) return <Spinner text={t('loading')} />;
   const setRouting = (p) => setS((x) => ({ ...x, routing: { ...x.routing, ...p } }));
   const setDef = (k, v) => setS((x) => ({ ...x, defaults: { ...x.defaults, [k]: Number(v) } }));
@@ -20,6 +21,17 @@ export default function SettingsPage({ addInId }) {
     try {
       await saveSettings({ ...s, pollSec: Math.max(5, Number(s.pollSec) || 15) });
       toast(t('saved'));
+    } catch (e) {
+      toast(errMessage(e), 'err');
+    }
+    setBusy('');
+  };
+  const idList = (v) => String(v || '').split(',').map((x) => x.trim()).filter(Boolean);
+  const sensors = s.sensors || { engineHours: [], fuel: [] };
+  const checkSensors = async () => {
+    setBusy('probe');
+    try {
+      setProbe(await geotab.probeSensors(devices.map((d) => d.id), sensors));
     } catch (e) {
       toast(errMessage(e), 'err');
     }
@@ -84,6 +96,50 @@ export default function SettingsPage({ addInId }) {
               <input type="number" min="5" value={s.pollSec} onChange={(e) => setS({ ...s, pollSec: e.target.value })} />
             </Field>
           </div>
+        </div>
+      </div>
+
+      <div className="tms-card" style={{ marginBottom: 16 }}>
+        <div className="tms-card-h">{t('set.sensors')}</div>
+        <div className="tms-card-b">
+          <p className="tms-sm tms-muted" style={{ margin: '0 0 10px' }}>{t('set.sensorsHint')}</p>
+          <div className="tms-grid3">
+            <Field label={t('set.sensorHours')} hint={t('set.sensorIdsHint')}>
+              <input value={(sensors.engineHours || []).join(', ')} onChange={(e) => setS((x) => ({ ...x, sensors: { ...sensors, engineHours: idList(e.target.value) } }))} />
+            </Field>
+            <Field label={t('set.sensorFuel')} hint={t('set.sensorIdsHint')}>
+              <input value={(sensors.fuel || []).join(', ')} onChange={(e) => setS((x) => ({ ...x, sensors: { ...sensors, fuel: idList(e.target.value) } }))} />
+            </Field>
+            <Field label={t('set.unitEcon')}>
+              <select value={s.units?.fuelEcon || 'kmpl'} onChange={(e) => setS((x) => ({ ...x, units: { ...x.units, fuelEcon: e.target.value } }))}>
+                <option value="kmpl">km/L</option>
+                <option value="l100">L/100 km</option>
+              </select>
+            </Field>
+          </div>
+          <div className="tms-row" style={{ margin: '10px 0' }}>
+            <button className="tms-btn" onClick={checkSensors} disabled={busy === 'probe'}>{busy === 'probe' ? t('set.sensorChecking') : t('set.sensorCheck')}</button>
+            <span className="tms-sm tms-muted">{t('set.sensorSave')}</span>
+          </div>
+          {probe && (
+            <div className="tms-tablewrap">
+              <table>
+                <thead><tr><th>{t('asg.vehicle')}</th><th>{t('col.engineHours')}</th><th>{t('col.fuelUsed')}</th></tr></thead>
+                <tbody>
+                  {devices.map((d) => {
+                    const r = probe[d.id] || {};
+                    return (
+                      <tr key={d.id}>
+                        <td><b>{d.name}</b></td>
+                        <td>{r.engineHours ? <span className="tms-badge green">{'\u2713'} {r.engineHours}</span> : <span className="tms-badge gray">{t('set.sensorNone')}</span>}</td>
+                        <td>{r.fuel ? <span className="tms-badge green">{'\u2713'} {r.fuel}</span> : <span className="tms-badge gray">{t('set.sensorNone')}</span>}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 

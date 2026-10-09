@@ -9,6 +9,8 @@ export const DEFAULT_SETTINGS = {
   routing: { provider: 'osrm', orsKey: '', osrmUrl: 'https://router.project-osrm.org', profile: 'driving-car', country: 'ID' },
   tileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   pollSec: 15,
+  sensors: { engineHours: ['DiagnosticEngineHoursId'], fuel: ['DiagnosticDeviceTotalFuelId', 'DiagnosticTotalFuelUsedId'] },
+  units: { fuelEcon: 'kmpl' }, // 'kmpl' (km/L) atau 'l100' (L/100 km)
   defaults: { widthM: 60, avgSpeedKmh: 40, radius: 100, confirmSec: 30, confirmMeters: 150, gpsMarginM: 10, recoverSec: 15, graceMin: 15 },
 };
 

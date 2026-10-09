@@ -2,6 +2,18 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '1.3.0',
+    date: '2026-10-09',
+    id: [
+      'Layer data sensor: engine hour dan fuel dihitung dari selisih counter StatusData Geotab (interpolasi, penanda perkiraan "~", tahan counter reset).',
+      'Pengaturan > Sensor: ID diagnostik bisa diubah, satuan fuel economy (km/L atau L/100 km), dan tombol Cek sensor untuk melihat kendaraan mana yang punya data.',
+    ],
+    en: [
+      'Sensor data layer: engine hour and fuel computed from StatusData counter differences (interpolated, "~" approximate marker, counter-reset safe).',
+      'Settings > Sensors: editable diagnostic IDs, fuel economy unit (km/L or L/100 km), and a Check sensors button showing which vehicles have data.',
+    ],
+  },
+  {
     v: '1.2.0',
     date: '2026-10-09',
     id: ['Logo SMA baru (SVG) sebagai icon menu MyGeotab, header add-in, dan halaman host.', 'Riwayat versi tampil di Pengaturan > Tentang; CHANGELOG.md dibuat otomatis dari satu sumber.'],

@@ -79,6 +79,22 @@ function pointAlong(d) {
   return [PATH[i][0] + (PATH[i + 1][0] - PATH[i][0]) * t, PATH[i][1] + (PATH[i + 1][1] - PATH[i][1]) * t];
 }
 
+// ---- sensor tiruan: counter kumulatif engine hour (detik) dan fuel (liter) ----
+// b5 hanya punya engine hour, b6 tanpa sensor sama sekali (untuk menguji tampilan "tidak ada data").
+const HAS = { b5: { fuel: false }, b6: { fuel: false, hours: false } };
+const MOCK_FUEL = { engineHours: 'DiagnosticEngineHoursId', fuel: 'DiagnosticDeviceTotalFuelId' };
+function counterAt(dev, t, kind) {
+  const day = 864e5;
+  const dur = L / V;
+  const rel = t - MOCK_BASE;
+  const days = Math.floor(rel / day);
+  const into = (rel - days * day) / 1000;
+  const moving = dev.delay == null ? 900 * (days + into / day) : days * dur + Math.min(dur, Math.max(0, into - dev.delay));
+  const base = 5000 + (hash(dev.id) % 900);
+  if (kind === 'engineHours') return Math.round((base * 3600 + moving * 1.12) * 10) / 10; // detik
+  return Math.round((base * 4 + moving * (dev.mode === 'deviate' ? 0.0052 : 0.0042) + moving * 0.12 * 0.0006) * 100) / 100; // liter
+}
+
 const span = (sec) => `${pad(Math.floor(sec / 3600))}:${pad(Math.floor((sec % 3600) / 60))}:${pad(Math.floor(sec % 60))}`;
 const LS_KEY = 'tms.mock.addindata.v1';
 const loadLS = () => {
@@ -199,6 +215,20 @@ export function createMockApi() {
                   distance: r() * 2,
                 });
               }
+            }
+          }
+          return out;
+        }
+        case 'StatusData': {
+          const diag = s.diagnosticSearch?.id;
+          const kind = diag === MOCK_FUEL.engineHours ? 'engineHours' : diag === MOCK_FUEL.fuel ? 'fuel' : null;
+          if (!kind) return [];
+          const out = [];
+          const step = 60000;
+          for (const d of devs) {
+            if (d.mode === 'offline' || HAS[d.id]?.[kind === 'fuel' ? 'fuel' : 'hours'] === false) continue;
+            for (let t = Math.ceil(from / step) * step; t <= to && out.length < (p.resultsLimit || 50000); t += step) {
+              out.push({ dateTime: new Date(t).toISOString(), data: counterAt(d, t, kind), device: { id: d.id }, diagnostic: { id: diag } });
             }
           }
           return out;

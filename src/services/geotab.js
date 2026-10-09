@@ -20,6 +20,26 @@ export function createGeotab(api) {
     return out;
   }
 
+  // ID diagnostik yang ditolak server (tidak ada di database) diingat agar tidak dipanggil berulang.
+  const badDiag = new Set();
+  const picks = new Map(); // `${deviceId}:${kind}` -> ID diagnostik yang terbukti punya data
+  const normStatus = (r) => ({ t: new Date(r.dateTime).getTime(), v: Number(r.data) });
+  const validStatus = (r) => Number.isFinite(r.t) && Number.isFinite(r.v);
+  async function statusSeries(deviceId, diagId, fromMs, toMs, limit = 50000) {
+    if (badDiag.has(diagId)) return [];
+    try {
+      const rows = await call('Get', {
+        typeName: 'StatusData',
+        search: { fromDate: toIso(fromMs), toDate: toIso(toMs), deviceSearch: { id: deviceId }, diagnosticSearch: { id: diagId } },
+        resultsLimit: limit,
+      });
+      return rows.map(normStatus).filter(validStatus).sort((a, b) => a.t - b.t);
+    } catch (e) {
+      if (/diagnostic|not found|invalid/i.test(errMessage(e))) badDiag.add(diagId);
+      return [];
+    }
+  }
+
   const normLog = (r) => ({ t: new Date(r.dateTime).getTime(), lat: r.latitude, lng: r.longitude, speed: r.speed });
   const validLog = (r) => Number.isFinite(r.lat) && Number.isFinite(r.lng) && !(r.lat === 0 && r.lng === 0);
 
@@ -137,6 +157,59 @@ export function createGeotab(api) {
         25,
       );
       return res.map((rows) => rows.map(normLog).filter(validLog).sort((a, b) => a.t - b.t));
+    },
+
+    /**
+     * Deret counter engine hour / fuel per permintaan: reqs = [{deviceId, kind:'engineHours'|'fuel', ids:[diagId..], fromMs, toMs}]
+     * Mengembalikan array [{t,v}] sejajar dengan reqs ([] bila kendaraan tidak punya sensor). Dibatasi 6 panggilan paralel.
+     */
+    async getSensorSeriesMulti(reqs) {
+      const out = new Array(reqs.length).fill(null);
+      let next = 0;
+      const worker = async () => {
+        while (next < reqs.length) {
+          const i = next++;
+          const r = reqs[i];
+          const key = `${r.deviceId}:${r.kind}`;
+          const order = picks.has(key) ? [picks.get(key)] : r.ids;
+          let series = [];
+          for (const id of order) {
+            series = await statusSeries(r.deviceId, id, r.fromMs, r.toMs);
+            if (series.length) {
+              picks.set(key, id);
+              break;
+            }
+          }
+          out[i] = series;
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(6, reqs.length) }, worker));
+      return out;
+    },
+
+    /** Cek kendaraan mana yang punya data sensor dalam 3 hari terakhir. */
+    async probeSensors(deviceIds, sensors) {
+      const now = Date.now();
+      const res = {};
+      let next = 0;
+      const worker = async () => {
+        while (next < deviceIds.length) {
+          const id = deviceIds[next++];
+          const row = { engineHours: null, fuel: null };
+          for (const kind of ['engineHours', 'fuel']) {
+            for (const diag of sensors[kind] || []) {
+              const rows = await statusSeries(id, diag, now - 3 * 864e5, now, 1);
+              if (rows.length) {
+                row[kind] = diag;
+                break;
+              }
+            }
+          }
+          res[id] = row;
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(6, deviceIds.length) }, worker));
+      return res;
     },
 
     // ---- AddInData ----
