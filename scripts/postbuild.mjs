@@ -11,12 +11,13 @@ for (const f of ['addin.html', 'config.json', 'icon.svg']) {
 const addInId = process.env.ADDIN_ID || 'aK8zhRighKbsh06-NQBpHBQ';
 {
   const p = path.join(dist, 'addin.html');
-  // URL skrip absolut bila HOST_URL diisi (aman saat MyGeotab menyuntik HTML ke halamannya); jika tidak, relatif.
-  const hostForScript = (process.env.HOST_URL || '').replace(/\/$/, '');
-  fs.writeFileSync(
-    p,
-    fs.readFileSync(p, 'utf8').replaceAll('__ADDIN_ID__', addInId).replaceAll('__HOST_URL__/tms.js', hostForScript ? `${hostForScript}/tms.js` : 'tms.js'),
-  );
+  // Skrip diselipkan INLINE ke addin.html (satu file, tanpa <script src> asinkron) supaya
+  // geotab.addin.* sudah terdaftar begitu MyGeotab selesai menyuntik HTML.
+  const bundle = fs.readFileSync(path.join(dist, 'tms.js'), 'utf8').replace(/<\/script/gi, '<\\/script');
+  const html = fs.readFileSync(p, 'utf8').replaceAll('__ADDIN_ID__', addInId);
+  const marker = html.indexOf('<script src=');
+  const head = marker >= 0 ? html.slice(0, marker) : html;
+  fs.writeFileSync(p, head + '<script>\n' + bundle + '\n</script>\n');
   console.log('addInId =', addInId);
 }
 const host = (process.env.HOST_URL || '').replace(/\/$/, '');
