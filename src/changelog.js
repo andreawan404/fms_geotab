@@ -2,6 +2,20 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '1.11.0',
+    date: '2026-10-10',
+    id: [
+      'Panel Alert & kejadian di Monitor dirombak: hanya kejadian N menit terakhir (pilihan 5 / 10 / 30, default 10), terbaru di atas, dengan waktu relatif ("3 mnt lalu").',
+      'Bagian "Sedang berlangsung" selalu tampil di atas dan tidak kedaluwarsa: kendaraan yang masih di luar rute atau belum tiba di titik awal tetap terlihat sampai kondisinya selesai.',
+      'Setiap item: titik warna per tingkat keparahan, nama kendaraan tebal, ringkasan singkat; klik membuka detail penugasan. Tombol "Lihat semua alert" menampilkan daftar lengkap (diganti halaman Riwayat di v1.12.0).',
+    ],
+    en: [
+      'Alerts & events panel in Monitor redesigned: only events from the last N minutes (5 / 10 / 30, default 10), newest first, with relative time ("3 min ago").',
+      'An "Ongoing" section always stays on top and does not expire: vehicles still off route or not yet at the start point remain visible until resolved.',
+      'Each item: severity dot, bold vehicle name, short summary; click opens the assignment detail. "View all alerts" shows the full list (replaced by the History page in v1.12.0).',
+    ],
+  },
+  {
     v: '1.10.0',
     date: '2026-10-10',
     id: [

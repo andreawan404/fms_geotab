@@ -2,13 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { useApp } from '../AppContext.jsx';
 import { Empty, Kpi, PhaseBadge, Spinner, StatusBadge } from '../components/ui.jsx';
 import InstanceDetail from '../components/InstanceDetail.jsx';
-import { eventText } from '../lib/eventText.js';
+import AlertPanel from '../components/AlertPanel.jsx';
 import { fmtDateTime, fmtTime } from '../core/time.js';
 
 const ORDER = { deviated: 0, in_progress: 1, planned: 2, missed: 3, completed: 4 };
 
 export default function MonitorPage() {
-  const { t, results, deviceMap, driverMap, routeMap, feed, loading, lastTick, tick, sound, setSound, errors } = useApp();
+  const { t, results, deviceMap, driverMap, loading, lastTick, tick, sound, setSound, errors } = useApp();
   const [filter, setFilter] = useState('all');
   const [detail, setDetail] = useState(null);
 
@@ -85,24 +85,7 @@ export default function MonitorPage() {
           </div>
         </div>
 
-        <div className="tms-card" style={{ maxHeight: 'calc(100vh - 300px)', display: 'flex', flexDirection: 'column' }}>
-          <div className="tms-card-h">{t('mon.feed')}</div>
-          <div className="tms-scroll">
-            {feed.length === 0 && <Empty>{t('mon.noAlerts')}</Empty>}
-            {feed.slice(0, 150).map((it) => {
-              const target = results.get(it.instKey)?.inst;
-              return (
-                <div key={it.id} className="tms-feed-item" onClick={() => target && setDetail(target)}>
-                  <span className={`tms-feed-ico ${it.type}`} />
-                  <div>
-                    <div>{eventText(it, { t, deviceMap, routeMap })}</div>
-                    <div className="tms-sm tms-muted">{fmtDateTime(it.at)}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <AlertPanel onOpen={(inst) => inst && setDetail(inst)} />
       </div>
       {detail && <InstanceDetail inst={detail} onClose={() => setDetail(null)} />}
     </div>
