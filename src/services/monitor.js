@@ -1,7 +1,7 @@
 // Monitor penugasan hari ini: mengambil log GPS inkremental, menjalankan RouteRun per instance,
 // dan menghasilkan event (alert) baru. Berjalan selama add-in terbuka (opsi A); logika yang sama
 // bisa dipindah ke backend untuk alert 24/7 (fase C).
-import { RouteRun } from '../core/tracking.js';
+import { RouteRun, DEFAULT_PARAMS } from '../core/tracking.js';
 import { instancesBetween } from '../core/schedule.js';
 import { engineRoute, routeVersion } from '../lib/engineRoute.js';
 
@@ -28,12 +28,13 @@ export class Monitor {
       const route = routeMap.get(inst.routeId);
       if (!route || !route.path || route.path.length < 2) continue;
       const ver = routeVersion(route);
+      const preMs = (route.params?.preStartMin ?? DEFAULT_PARAMS.preStartMin) * 60000;
       let st = this.runs.get(inst.key);
       if (!st || st.ver !== ver) {
-        st = { run: new RouteRun(engineRoute(route, settings), { startMs: inst.startMs, endMs: inst.endMs }), lastT: inst.startMs - 1, done: false, ver };
+        st = { run: new RouteRun(engineRoute(route, settings), { startMs: inst.startMs, endMs: inst.endMs }), lastT: inst.startMs - preMs - 1, done: false, ver };
         this.runs.set(inst.key, st);
       }
-      if (!st.done && nowMs >= inst.startMs) {
+      if (!st.done && nowMs >= inst.startMs - preMs) {
         reqs.push({ deviceId: inst.deviceId, fromMs: st.lastT + 1, toMs: Math.min(nowMs, inst.endMs) });
         targets.push([inst, st]);
       }

@@ -5,6 +5,9 @@ import { Monitor } from './services/monitor.js';
 import { evaluateInstance } from './core/tracking.js';
 import { engineRoute, routeVersion } from './lib/engineRoute.js';
 import { makeT } from './i18n.js';
+import { eventText } from './lib/eventText.js';
+
+const NOTIFY_TYPES = new Set(['deviation_start', 'start_reached', 'route_completed']);
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -119,7 +122,7 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
     setDevices(dev);
     setDrivers(drv);
     setFeed(
-      loaded.alerts.map((a) => ({ id: a.key, type: 'deviation_start', t: a.startMs, at: a.ts, deviceId: a.deviceId, routeId: a.routeId, instKey: a.instKey, distM: a.distM, lat: a.lat, lng: a.lng, persisted: true })),
+      loaded.alerts.map((a) => ({ id: a.key, type: a.type || 'deviation_start', t: a.startMs, at: a.ts, deviceId: a.deviceId, routeId: a.routeId, instKey: a.instKey, distM: a.distM, lat: a.lat, lng: a.lng, persisted: true })),
     );
     monitor.reset();
     setErrors(errs);
@@ -143,25 +146,25 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
       setFeed((f) => [...fresh, ...f].sort((a, b) => b.at - a.at).slice(0, 400));
       const now = Date.now();
       for (const it of fresh) {
-        if (it.type !== 'deviation_start') continue;
+        if (!NOTIFY_TYPES.has(it.type)) continue;
         const device = devRef.current.find((d) => d.id === it.deviceId);
         const route = dataRef.current.routes.find((r) => r.id === it.routeId);
         if (now - it.at < 5 * 60000) {
-          const msg = `${device?.name || it.deviceId} keluar rute ${route?.name || ''} (${Math.round(it.distM || 0)} m)`;
+          const msg = eventText(it, { t, deviceMap: new Map(devRef.current.map((d) => [d.id, d])), routeMap: new Map(dataRef.current.routes.map((r) => [r.id, r])) });
           if (soundRef.current) beep();
           try {
             if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification('TMS Alert', { body: msg });
           } catch {
             /* ignore */
           }
-          toast(msg, 'err');
+          toast(msg, it.type === 'deviation_start' ? 'err' : 'ok');
         }
         store
-          .saveAlert({ key: it.id, ts: it.at, deviceId: it.deviceId, routeId: it.routeId, instKey: it.instKey, startMs: it.t, distM: Math.round(it.distM || 0), lat: it.lat, lng: it.lng })
+          .saveAlert({ key: it.id, type: it.type, cpName: it.cpName, ts: it.at, deviceId: it.deviceId, routeId: it.routeId, instKey: it.instKey, startMs: it.t, distM: Math.round(it.distM || 0), lat: it.lat, lng: it.lng })
           .catch(() => {});
       }
     },
-    [store, toast],
+    [store, toast, t],
   );
 
   const tick = useCallback(async () => {

@@ -8,6 +8,7 @@ export const DEFAULT_PARAMS = {
   confirmMeters: 150, // ATAU bergerak >= N meter di luar koridor
   recoverSec: 15, // kembali ke koridor selama >= N detik -> deviasi ditutup
   graceMin: 15, // setelah jadwal mulai, belum "di rute" selama N menit tidak dianggap deviasi
+  preStartMin: 30, // titik awal sudah dideteksi sejak N menit sebelum jadwal mulai (deviasi tetap baru dinilai setelah jadwal mulai)
 };
 
 export class RouteRun {
@@ -49,6 +50,7 @@ export class RouteRun {
     this.last = null;
     this.armed = false;
     this.finished = false;
+    this.finishedMs = null;
     this.hint = -1;
     this.pointCount = 0;
     this.totalDistM = 0;
@@ -62,7 +64,9 @@ export class RouteRun {
 
   push(p) {
     const ev = [];
-    if (p.t < this.startMs || p.t > this.endMs) return ev;
+    const preMs = (this.params.preStartMin || 0) * 60000;
+    if (p.t < this.startMs - preMs || p.t > this.endMs) return ev;
+    const live = p.t >= this.startMs; // sebelum jadwal mulai hanya dicek kedatangan di titik awal
     if (this.last && p.t <= this.last.t) return ev;
 
     const n = this.idx.nearest(p.lat, p.lng, { hint: this.hint });
@@ -72,17 +76,17 @@ export class RouteRun {
     const step = this.last ? haversine(this.last.lat, this.last.lng, p.lat, p.lng) : 0;
     const dt = this.last ? (p.t - this.last.t) / 1000 : 0;
     this.pointCount++;
-    this.totalDistM += step;
+    if (live) this.totalDistM += step;
     this.cur = { t: p.t, lat: p.lat, lng: p.lng, speed: p.speed, distM: dist, inside, along: n.along };
 
     // 1) arming: deviasi hanya dinilai setelah kendaraan "bergabung" ke rute atau masa tenggang habis
-    if (!this.armed) {
+    if (live && !this.armed) {
       const graceMs = this.params.graceMin * 60000;
       if (inside || !Number.isFinite(this.startMs) || p.t - this.startMs >= graceMs) this.armed = true;
     }
 
     // 2) deviasi
-    if (this.armed && !this.finished) {
+    if (live && this.armed && !this.finished) {
       this.trackedDistM += step;
       if (dist > this.maxDistM) this.maxDistM = dist;
       if (!inside) {
@@ -118,7 +122,7 @@ export class RouteRun {
       } else this.curCp = -1;
     }
     let matched = -1;
-    for (let i = this.next; i < this.cps.length; i++) {
+    for (let i = this.next; i < (live ? this.cps.length : Math.min(1, this.cps.length)); i++) {
       const c = this.cps[i];
       if (haversine(p.lat, p.lng, c.lat, c.lng) <= c.radius) {
         // loncat ke checkpoint berikutnya hanya sah jika posisi sepanjang rute memang sudah sampai situ
@@ -139,9 +143,10 @@ export class RouteRun {
       c.dwellSec = 0;
       this.next = matched + 1;
       this.curCp = matched;
-      ev.push({ type: 'checkpoint_arrived', index: matched, name: c.name, t: p.t });
-      if (matched === this.cps.length - 1 && !this.finished) {
+      ev.push({ type: matched === 0 ? 'start_reached' : 'checkpoint_arrived', index: matched, name: c.name, t: p.t });
+      if (matched === this.cps.length - 1 && !this.finished && (live || this.cps.length === 1)) {
         this.finished = true;
+        this.finishedMs = p.t;
         ev.push(...this._closeDev());
         ev.push({ type: 'route_completed', t: p.t });
       }
@@ -149,6 +154,10 @@ export class RouteRun {
 
     this.last = { t: p.t, lat: p.lat, lng: p.lng };
     return ev;
+  }
+
+  arrivedOnly() {
+    return this.cps.filter((c) => c.arrivedMs != null).length === 1;
   }
 
   _closeDev() {
@@ -183,7 +192,14 @@ export class RouteRun {
         delayMin: c.arrivedMs != null && plannedMs != null ? (c.arrivedMs - plannedMs) / 60000 : null,
       };
     });
+    const c0 = this.cps[0];
+    const atStartNow = !!(c0 && c0.arrivedMs != null && this.arrivedOnly() && this.last && haversine(this.last.lat, this.last.lng, c0.lat, c0.lng) <= c0.radius);
+    // fase kendaraan: to_start (menuju titik awal) | at_start (berada di titik awal) | en_route | finished
+    const phase = this.finished ? 'finished' : !c0 || c0.arrivedMs == null ? 'to_start' : atStartNow ? 'at_start' : 'en_route';
     const res = {
+      phase,
+      startedMs: c0 ? c0.arrivedMs : null,
+      finishedMs: this.finishedMs,
       pointCount: this.pointCount,
       totalDistM: this.totalDistM,
       trackedDistM: this.trackedDistM,

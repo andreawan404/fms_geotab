@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '../AppContext.jsx';
-import { Empty, Kpi, Spinner, StatusBadge } from '../components/ui.jsx';
+import { Empty, Kpi, PhaseBadge, Spinner, StatusBadge } from '../components/ui.jsx';
 import InstanceDetail from '../components/InstanceDetail.jsx';
 import { eventText } from '../lib/eventText.js';
 import { fmtDateTime, fmtTime } from '../core/time.js';
@@ -56,18 +56,19 @@ export default function MonitorPage() {
             <table>
               <thead>
                 <tr>
-                  <th>{t('mon.status')}</th><th>{t('asg.vehicle')}</th><th>{t('asg.driver')}</th><th>{t('asg.route')}</th><th>{t('mon.window')}</th>
+                  <th>{t('mon.status')}</th><th>{t('mon.phase')}</th><th>{t('asg.vehicle')}</th><th>{t('asg.driver')}</th><th>{t('asg.route')}</th><th>{t('mon.window')}</th>
                   <th className="num">{t('detail.checkpoints')}</th><th className="num">{t('mon.offRoute')}</th><th className="num">{t('detail.compliance')}</th><th>{t('mon.lastPos')}</th>
                 </tr>
               </thead>
               <tbody>
-                {shown.length === 0 && <tr><td colSpan={9}><Empty>{t('mon.empty')}</Empty></td></tr>}
+                {shown.length === 0 && <tr><td colSpan={10}><Empty>{t('mon.empty')}</Empty></td></tr>}
                 {shown.map(({ inst, route, result }) => {
                   const cur = result.current;
                   const next = result.checkpoints.find((c) => !c.arrivedMs && !c.skipped);
                   return (
                     <tr key={inst.key} className="click" onClick={() => setDetail(inst)}>
                       <td><StatusBadge status={result.status} /></td>
+                      <td><PhaseBadge phase={result.phase} ms={result.phase === 'finished' ? result.finishedMs : result.startedMs} /></td>
                       <td><b>{deviceMap.get(inst.deviceId)?.name || inst.deviceId}</b></td>
                       <td>{driverMap.get(inst.driverId)?.name || '—'}</td>
                       <td><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: route.color, marginRight: 6 }} />{route.name}</td>

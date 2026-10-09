@@ -28,6 +28,14 @@ export function StatusBadge({ status }) {
   return <span className={`tms-badge ${STATUS_CLS[status] || 'gray'}`}>{t(`status.${status}`)}</span>;
 }
 
+const PHASE_CLS = { to_start: 'gray', at_start: 'blue', en_route: 'blue', finished: 'green' };
+export function PhaseBadge({ phase, ms }) {
+  const { t } = useApp();
+  if (!phase) return <span className="tms-badge gray">-</span>;
+  const time = ms ? ` ${new Date(ms).toTimeString().slice(0, 5)}` : '';
+  return <span className={`tms-badge ${PHASE_CLS[phase] || 'gray'}`}>{phase === 'at_start' ? '\u25CF ' : phase === 'finished' ? '\u2713 ' : ''}{t(`phase.${phase}`)}{phase === 'at_start' || phase === 'finished' ? time : ''}</span>;
+}
+
 export function Field({ label, hint, children, className = '' }) {
   return (
     <label className={`tms-field ${className}`}>

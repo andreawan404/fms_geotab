@@ -55,7 +55,8 @@ const id = {
   'mon.openOnly': 'Alert real-time aktif selama halaman TMS terbuka. Untuk alert 24/7, simpan koridor sebagai Zone Geotab (di editor rute) lalu buat Rule "keluar zone".',
 
   'alert.deviation_start': '{device} keluar dari rute {route} ({dist} m dari jalur)', 'alert.deviation_end': '{device} kembali ke rute {route}',
-  'alert.checkpoint_arrived': '{device} tiba di {cp} ({route})', 'alert.checkpoint_skipped': '{device} melewati {cp} tanpa berhenti ({route})', 'alert.route_completed': '{device} menyelesaikan rute {route}',
+  'alert.checkpoint_arrived': '{device} tiba di {cp} ({route})', 'alert.checkpoint_skipped': '{device} melewati {cp} tanpa berhenti ({route})', 'alert.route_completed': '{device} menyelesaikan rute {route}', 'alert.start_reached': '{device} sudah berada di titik awal {cp} ({route})',
+  'phase.to_start': 'Menuju titik awal', 'phase.at_start': 'Di titik awal', 'phase.en_route': 'Dalam perjalanan', 'phase.finished': 'Selesai', 'mon.phase': 'Posisi tugas',
 
   'detail.compliance': 'Kepatuhan rute', 'detail.deviations': 'Deviasi', 'detail.outKm': 'Jarak di luar rute', 'detail.checkpoints': 'Checkpoint', 'detail.distance': 'Jarak tempuh', 'detail.maxOff': 'Simpangan maks',
   'detail.planned': 'Rencana', 'detail.arrived': 'Tiba', 'detail.delay': 'Selisih', 'detail.dwell': 'Berhenti', 'detail.skipped': 'Terlewat', 'detail.deviationList': 'Daftar deviasi',
@@ -134,7 +135,8 @@ const en = {
   'mon.openOnly': 'Real-time alerts run while the TMS page is open. For 24/7 alerts, save the corridor as a Geotab Zone (in the route editor) and create an "exiting zone" Rule.',
 
   'alert.deviation_start': '{device} left route {route} ({dist} m off path)', 'alert.deviation_end': '{device} is back on route {route}',
-  'alert.checkpoint_arrived': '{device} arrived at {cp} ({route})', 'alert.checkpoint_skipped': '{device} passed {cp} without stopping ({route})', 'alert.route_completed': '{device} completed route {route}',
+  'alert.checkpoint_arrived': '{device} arrived at {cp} ({route})', 'alert.checkpoint_skipped': '{device} passed {cp} without stopping ({route})', 'alert.route_completed': '{device} completed route {route}', 'alert.start_reached': '{device} is at the start point {cp} ({route})',
+  'phase.to_start': 'Heading to start', 'phase.at_start': 'At start point', 'phase.en_route': 'En route', 'phase.finished': 'Finished', 'mon.phase': 'Task phase',
 
   'detail.compliance': 'Route compliance', 'detail.deviations': 'Deviations', 'detail.outKm': 'Distance off route', 'detail.checkpoints': 'Checkpoints', 'detail.distance': 'Distance', 'detail.maxOff': 'Max offset',
   'detail.planned': 'Planned', 'detail.arrived': 'Arrived', 'detail.delay': 'Delta', 'detail.dwell': 'Dwell', 'detail.skipped': 'Skipped', 'detail.deviationList': 'Deviations',

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../AppContext.jsx';
 import { L, MapBox, drawRoute, esc, fitTo, useMap } from './mapkit.jsx';
-import { Kpi, Modal, Spinner, StatusBadge, download } from './ui.jsx';
+import { Kpi, Modal, PhaseBadge, Spinner, StatusBadge, download } from './ui.jsx';
 import { engineRoute } from '../lib/engineRoute.js';
 import { fmtDateTime, fmtDur, fmtKm, fmtTime } from '../core/time.js';
 import { toCSV } from '../core/csv.js';
@@ -125,6 +125,7 @@ export default function InstanceDetail({ inst, onClose, footerExtra }) {
           <>
             <div className="tms-row" style={{ marginBottom: 10 }}>
               <StatusBadge status={res.status} />
+              <PhaseBadge phase={res.phase} ms={res.phase === 'finished' ? res.finishedMs : res.startedMs} />
               <span className="tms-sm tms-muted">
                 {fmtTime(inst.startMs)}–{fmtTime(inst.endMs)} · {drv || t('noDriver')}
               </span>
