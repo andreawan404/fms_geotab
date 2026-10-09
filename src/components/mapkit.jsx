@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import L from 'leaflet';
+import L from '../vendor/leaflet-safe.js';
 import 'leaflet/dist/leaflet.css';
 import { corridorRings } from '../core/corridor.js';
 
