@@ -1,0 +1,13 @@
+{
+  "name": "TMSProbe",
+  "supportEmail": "support@example.com",
+  "version": "1.0.0",
+  "items": [
+    {
+      "url": "https://fms-geotab.vercel.app/probe.html",
+      "path": "ActivityLink/",
+      "menuName": { "en": "TMS Probe", "id": "TMS Probe" }
+    }
+  ],
+  "isSigned": false
+}

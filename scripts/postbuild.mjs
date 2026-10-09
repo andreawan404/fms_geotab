@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const dist = path.resolve('dist');
-for (const f of ['addin.html', 'config.json', 'icon.svg']) {
+for (const f of ['addin.html', 'config.json', 'icon.svg', 'probe.html', 'config-probe.json']) {
   const src = path.resolve('public', f);
   if (fs.existsSync(src)) fs.copyFileSync(src, path.join(dist, f));
 }
