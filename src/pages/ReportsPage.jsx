@@ -14,6 +14,13 @@ const MAX_ROWS = 1500;
 export default function ReportsPage() {
   const { t, lang, devices, deviceMap, driverMap, routeMap, assignments, geotab, evaluate, sensorWindows, getRules, toast, settings } = useApp();
   const unit = settings.units?.fuelEcon || 'kmpl';
+  const idleWarn = Number(settings.idleWarnPct ?? 20);
+  // Idle % = idle / (waktu jalan + idle); disorot merah bila >= batas di Pengaturan
+  const idlePct = (idle, drive) => (idle + drive > 0 ? (100 * idle) / (idle + drive) : null);
+  const IdleCell = ({ idle, drive }) => {
+    const v = idlePct(idle, drive);
+    return <td className="num" style={{ color: v != null && idleWarn > 0 && v >= idleWarn ? '#d63a3a' : undefined, fontWeight: v != null && idleWarn > 0 && v >= idleWarn ? 600 : undefined }}>{v == null ? '-' : `${v.toFixed(0)}%`}</td>;
+  };
   const today = ymd(new Date());
   const [from, setFrom] = useState(ymd(addDays(new Date(), -6)));
   const [to, setTo] = useState(today);
@@ -193,18 +200,18 @@ export default function ReportsPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>{t('asg.vehicle')}</th><th className="num">{t('rep.kpi.trips')}</th><th className="num">{t('rep.col.km')}</th><th className="num">{t('rep.kpi.driving')}</th><th className="num">{t('rep.kpi.idle')}</th>
+                    <th>{t('asg.vehicle')}</th><th className="num">{t('rep.kpi.trips')}</th><th className="num">{t('rep.col.km')}</th><th className="num">{t('rep.kpi.driving')}</th><th className="num">{t('rep.kpi.idle')}</th><th className="num">{t('rep.col.idlePct')}</th>
                     <th className="num">{t('col.engineHours')}</th><th className="num">{t('col.fuelUsed')}</th><th className="num">{t('col.fuelEcon')}</th>
                     <th className="num">{t('rep.col.maxSpeed')}</th><th className="num">{t('rep.kpi.exceptions')}</th><th className="num">{t('rep.col.runs')}</th><th className="num">{t('status.deviated')}</th><th className="num">{t('status.missed')}</th>
                     <th className="num">{t('detail.compliance')}</th><th className="num">{t('rep.col.outKm')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {model.summary.length === 0 && <tr><td colSpan={15}><Empty>{t('rep.empty')}</Empty></td></tr>}
+                  {model.summary.length === 0 && <tr><td colSpan={16}><Empty>{t('rep.empty')}</Empty></td></tr>}
                   {model.summary.map((r) => (
                     <tr key={r.id}>
                       <td><b>{name(r.id)}</b> <span className="tms-muted tms-sm">{deviceMap.get(r.id)?.plate}</span></td>
-                      <td className="num">{r.trips}</td><td className="num">{r.distanceKm.toFixed(1)}</td><td className="num">{fmtDur(r.drivingSec)}</td><td className="num">{fmtDur(r.idleSec)}</td>
+                      <td className="num">{r.trips}</td><td className="num">{r.distanceKm.toFixed(1)}</td><td className="num">{fmtDur(r.drivingSec)}</td><td className="num">{fmtDur(r.idleSec)}</td><IdleCell idle={r.idleSec} drive={r.drivingSec} />
                       <td className="num">{withApprox(r.sens, fmtHours(r.sens?.engineSec))}</td><td className="num">{withApprox(r.sens, fmtLiters(r.sens?.fuelL))}</td><td className="num">{withApprox(r.sens, fmtEconomy(r.sens, unit))}</td>
                       <td className="num">{r.maxSpeed ? Math.round(r.maxSpeed) : '-'}</td><td className="num">{r.exceptions}</td><td className="num">{r.runs}</td>
                       <td className="num" style={{ color: r.deviated ? '#d63a3a' : undefined }}>{r.deviated}</td><td className="num">{r.missed}</td>
@@ -219,13 +226,13 @@ export default function ReportsPage() {
           {tab === 'trips' && (
             <div className="tms-tablewrap">
               <table>
-                <thead><tr><th>{t('asg.vehicle')}</th><th>{t('asg.driver')}</th><th>{t('detail.start')}</th><th>{t('detail.end')}</th><th className="num">{t('rep.col.km')}</th><th className="num">{t('rep.kpi.driving')}</th><th className="num">{t('rep.kpi.idle')}</th><th className="num">{t('rep.col.stop')}</th><th className="num">{t('col.engineHours')}</th><th className="num">{t('col.fuelUsed')}</th><th className="num">{t('col.fuelEcon')}</th><th className="num">{t('rep.col.maxSpeed')}</th></tr></thead>
+                <thead><tr><th>{t('asg.vehicle')}</th><th>{t('asg.driver')}</th><th>{t('detail.start')}</th><th>{t('detail.end')}</th><th className="num">{t('rep.col.km')}</th><th className="num">{t('rep.kpi.driving')}</th><th className="num">{t('rep.kpi.idle')}</th><th className="num">{t('rep.col.idlePct')}</th><th className="num">{t('rep.col.stop')}</th><th className="num">{t('col.engineHours')}</th><th className="num">{t('col.fuelUsed')}</th><th className="num">{t('col.fuelEcon')}</th><th className="num">{t('rep.col.maxSpeed')}</th></tr></thead>
                 <tbody>
-                  {rep.trips.length === 0 && <tr><td colSpan={12}><Empty>{t('rep.empty')}</Empty></td></tr>}
+                  {rep.trips.length === 0 && <tr><td colSpan={13}><Empty>{t('rep.empty')}</Empty></td></tr>}
                   {rep.trips.slice(0, MAX_ROWS).map((r, i) => (
                     <tr key={i}>
                       <td>{name(r.deviceId)}</td><td>{driverMap.get(r.driverId)?.name || '—'}</td><td>{fmtDateTime(r.startMs)}</td><td>{fmtDateTime(r.stopMs)}</td>
-                      <td className="num">{r.distanceKm.toFixed(1)}</td><td className="num">{fmtDur(r.drivingSec)}</td><td className="num">{fmtDur(r.idleSec)}</td><td className="num">{fmtDur(r.stopSec)}</td>
+                      <td className="num">{r.distanceKm.toFixed(1)}</td><td className="num">{fmtDur(r.drivingSec)}</td><td className="num">{fmtDur(r.idleSec)}</td><IdleCell idle={r.idleSec} drive={r.drivingSec} /><td className="num">{fmtDur(r.stopSec)}</td>
                       {(() => {
                         const x = rep.sensors?.trip.get(i);
                         return (
@@ -353,7 +360,7 @@ export default function ReportsPage() {
       csv('ringkasan_armada', model.summary, [
         { label: t('asg.vehicle'), get: (r) => name(r.id) }, { label: 'Plate', get: (r) => deviceMap.get(r.id)?.plate || '' },
         { label: t('rep.kpi.trips'), key: 'trips' }, { label: 'km', get: (r) => r.distanceKm.toFixed(1) }, { label: `${t('rep.kpi.driving')} (s)`, get: (r) => Math.round(r.drivingSec) },
-        { label: `${t('rep.kpi.idle')} (s)`, get: (r) => Math.round(r.idleSec) },
+        { label: `${t('rep.kpi.idle')} (s)`, get: (r) => Math.round(r.idleSec) }, { label: t('rep.col.idlePct'), get: (r) => { const v = idlePct(r.idleSec, r.drivingSec); return v == null ? '' : v.toFixed(1); } },
         ...sensorCols((r) => r.sens),
         { label: t('rep.col.maxSpeed'), get: (r) => Math.round(r.maxSpeed) }, { label: t('rep.kpi.exceptions'), key: 'exceptions' },
         { label: t('rep.col.runs'), key: 'runs' }, { label: t('status.completed'), key: 'completed' }, { label: t('status.deviated'), key: 'deviated' }, { label: t('status.missed'), key: 'missed' },
@@ -364,7 +371,7 @@ export default function ReportsPage() {
       csv('trip', rep.trips, [
         { label: t('asg.vehicle'), get: (r) => name(r.deviceId) }, { label: t('asg.driver'), get: (r) => driverMap.get(r.driverId)?.name || '' }, { label: t('detail.start'), get: (r) => fmtDateTime(r.startMs) },
         { label: t('detail.end'), get: (r) => fmtDateTime(r.stopMs) }, { label: 'km', get: (r) => r.distanceKm.toFixed(2) }, { label: `${t('rep.kpi.driving')} (s)`, get: (r) => Math.round(r.drivingSec) },
-        { label: `${t('rep.kpi.idle')} (s)`, get: (r) => Math.round(r.idleSec) }, { label: `${t('rep.col.stop')} (s)`, get: (r) => Math.round(r.stopSec) },
+        { label: `${t('rep.kpi.idle')} (s)`, get: (r) => Math.round(r.idleSec) }, { label: t('rep.col.idlePct'), get: (r) => { const v = idlePct(r.idleSec, r.drivingSec); return v == null ? '' : v.toFixed(1); } }, { label: `${t('rep.col.stop')} (s)`, get: (r) => Math.round(r.stopSec) },
         ...sensorCols((r) => rep.sensors?.trip.get(tripIdx.get(r))),
         { label: t('rep.col.maxSpeed'), get: (r) => Math.round(r.maxSpeed) },
       ]);

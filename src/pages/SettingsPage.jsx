@@ -19,7 +19,7 @@ export default function SettingsPage({ addInId }) {
   const save = async () => {
     setBusy('save');
     try {
-      await saveSettings({ ...s, pollSec: Math.max(5, Number(s.pollSec) || 15) });
+      await saveSettings({ ...s, pollSec: Math.max(5, Number(s.pollSec) || 15), idleWarnPct: Math.min(100, Math.max(0, Number(s.idleWarnPct) || 0)) });
       toast(t('saved'));
     } catch (e) {
       toast(errMessage(e), 'err');
@@ -92,6 +92,9 @@ export default function SettingsPage({ addInId }) {
                 <input type="number" min="0" value={s.defaults[k]} onChange={(e) => setDef(k, e.target.value)} />
               </Field>
             ))}
+            <Field label={t('set.idleWarn')} hint={t('set.idleWarnHint')}>
+              <input type="number" min="0" max="100" value={s.idleWarnPct ?? 20} onChange={(e) => setS({ ...s, idleWarnPct: e.target.value })} />
+            </Field>
             <Field label={t('set.poll')} hint={t('set.pollHint')}>
               <input type="number" min="5" value={s.pollSec} onChange={(e) => setS({ ...s, pollSec: e.target.value })} />
             </Field>

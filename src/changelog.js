@@ -2,6 +2,18 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '1.8.0',
+    date: '2026-10-09',
+    id: [
+      'Laporan: kolom Idle % (idle / (waktu jalan + idle)) di Ringkasan armada dan Trip, ikut ke CSV.',
+      'Idle % di atas batas (Pengaturan, default 20%) disorot merah untuk menemukan kendaraan/trip yang boros karena mesin menyala saat diam.',
+    ],
+    en: [
+      'Reports: Idle % column (idle / (driving time + idle)) in Fleet summary and Trips, included in CSV.',
+      'Idle % above the limit (Settings, default 20%) is highlighted red to spot vehicles/trips wasting fuel with the engine on while stationary.',
+    ],
+  },
+  {
     v: '1.7.0',
     date: '2026-10-09',
     id: [

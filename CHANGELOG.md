@@ -2,6 +2,11 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v1.8.0 - 2026-10-09
+
+- Laporan: kolom Idle % (idle / (waktu jalan + idle)) di Ringkasan armada dan Trip, ikut ke CSV.
+- Idle % di atas batas (Pengaturan, default 20%) disorot merah untuk menemukan kendaraan/trip yang boros karena mesin menyala saat diam.
+
 ## v1.7.0 - 2026-10-09
 
 - Laporan > tab Benchmark: fuel economy per rute dan per sopir, dibandingkan dengan rata-rata armada (selisih %), penanda boros/hemat (>= 15% dan jarak >= 20 km).
