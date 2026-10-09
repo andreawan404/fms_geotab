@@ -2,6 +2,20 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '1.10.0',
+    date: '2026-10-10',
+    id: [
+      'Penugasan: kalender baru. Judul rentang tanggal + nomor minggu, header hari dua baris dengan penanda hari ini dan akhir pekan, tombol Hari ini, panah, dan loncat ke tanggal.',
+      'Kolom kendaraan: nama dipotong rapi (tooltip lengkap), nopol hanya tampil bila belum ada di dalam nama sehingga tidak dobel/bertumpuk. Blok penugasan menampilkan jam dan rute dengan tooltip sopir/status.',
+      'Tampilan Bulan baru (klik hari untuk membuka mingguannya), legenda warna rute, kolom kendaraan dan header tetap terlihat saat digulir.',
+    ],
+    en: [
+      'Assignments: new calendar. Date-range title + week number, two-line day headers with today and weekend highlighting, Today button, arrows and jump-to-date.',
+      'Vehicle column: name is truncated neatly (full tooltip); the plate shows only when it is not already in the name, so nothing is duplicated or overlapping. Blocks show time and route with a driver/status tooltip.',
+      'New Month view (click a day to open its week), route colour legend, vehicle column and header stay visible when scrolling.',
+    ],
+  },
+  {
     v: '1.9.0',
     date: '2026-10-10',
     id: [

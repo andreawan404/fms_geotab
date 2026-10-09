@@ -5,21 +5,39 @@ import InstanceDetail from '../components/InstanceDetail.jsx';
 import { addDays, fmtTime, parseYmd, startOfWeek, ymd } from '../core/time.js';
 import { expand, findConflicts, planCopy } from '../core/schedule.js';
 import { uid } from '../services/store.js';
+import { vehicleLabel } from '../lib/vehicle.js';
 import { errMessage } from '../services/geotab.js';
 
 const SYMBOL = { completed: '✓', deviated: '⚠', in_progress: '▶', missed: '✗', planned: '' };
 
 export default function AssignmentsPage() {
-  const { t, lang, assignments, routes, routeMap, devices, deviceMap, results, loading } = useApp();
-  const [week, setWeek] = useState(() => startOfWeek(new Date()));
+  const { t, lang, assignments, routes, routeMap, devices, driverMap, results, loading } = useApp();
+  const [anchor, setAnchor] = useState(() => new Date());
+  const [view, setView] = useState('week'); // 'week' | 'month'
   const [q, setQ] = useState('');
   const [onlyScheduled, setOnlyScheduled] = useState(true);
   const [form, setForm] = useState(null);
   const [detail, setDetail] = useState(null);
   const [copyDay, setCopyDay] = useState(false);
+  const locale = lang === 'id' ? 'id-ID' : 'en-GB';
+  const todayStr = ymd(new Date());
 
+  const week = useMemo(() => startOfWeek(anchor), [anchor]);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(week, i)), [week]);
-  const instances = useMemo(() => expand(assignments, ymd(days[0]), ymd(days[6])), [assignments, days]);
+  // grid bulan: mulai Senin dari minggu yang memuat tanggal 1, sampai minggu yang memuat tanggal terakhir
+  const monthDays = useMemo(() => {
+    const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+    const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+    const start = startOfWeek(first);
+    const n = Math.ceil((((startOfWeek(last).getTime() - start.getTime()) / 864e5) + 7) / 7) * 7;
+    return Array.from({ length: n }, (_, i) => addDays(start, i));
+  }, [anchor]);
+  const range = view === 'week' ? [days[0], days[6]] : [monthDays[0], monthDays[monthDays.length - 1]];
+  const instances = useMemo(() => expand(assignments, ymd(range[0]), ymd(range[1])), [assignments, range[0].getTime(), range[1].getTime()]); // eslint-disable-line react-hooks/exhaustive-deps
+  const devById = useMemo(() => new Map(devices.map((d) => [d.id, d])), [devices]);
+  const qn = q.trim().toLowerCase();
+  const matchDev = (d) => !qn || `${d.name} ${d.plate}`.toLowerCase().includes(qn);
+
   const byCell = useMemo(() => {
     const m = new Map();
     for (const i of instances) {
@@ -29,12 +47,36 @@ export default function AssignmentsPage() {
     }
     return m;
   }, [instances]);
+  const byDay = useMemo(() => {
+    const m = new Map();
+    for (const i of instances) {
+      if (!matchDev(devById.get(i.deviceId) || { name: i.deviceId, plate: '' })) continue;
+      if (!m.has(i.date)) m.set(i.date, []);
+      m.get(i.date).push(i);
+    }
+    return m;
+  }, [instances, qn, devById]); // eslint-disable-line react-hooks/exhaustive-deps
   const scheduledDevices = useMemo(() => new Set(instances.map((i) => i.deviceId)), [instances]);
-  const rows = devices.filter((d) => (!onlyScheduled || scheduledDevices.has(d.id)) && (!q || `${d.name} ${d.plate}`.toLowerCase().includes(q.toLowerCase())));
-  const todayStr = ymd(new Date());
-  const locale = lang === 'id' ? 'id-ID' : 'en-GB';
+  const rows = devices.filter((d) => (!onlyScheduled || scheduledDevices.has(d.id)) && matchDev(d));
 
   if (loading) return <Spinner text={t('loading')} />;
+
+  const fmtD = (d, o) => d.toLocaleDateString(locale, o);
+  const title =
+    view === 'month'
+      ? fmtD(anchor, { month: 'long', year: 'numeric' })
+      : days[0].getMonth() === days[6].getMonth()
+        ? `${days[0].getDate()} – ${days[6].getDate()} ${fmtD(days[6], { month: 'long', year: 'numeric' })}`
+        : days[0].getFullYear() === days[6].getFullYear()
+          ? `${days[0].getDate()} ${fmtD(days[0], { month: 'short' })} – ${days[6].getDate()} ${fmtD(days[6], { month: 'short', year: 'numeric' })}`
+          : `${fmtD(days[0], { day: 'numeric', month: 'short', year: 'numeric' })} – ${fmtD(days[6], { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  const weekNo = (() => {
+    // nomor minggu ISO dari hari Kamis pada minggu tersebut
+    const th = addDays(week, 3);
+    const jan1 = new Date(th.getFullYear(), 0, 1);
+    return Math.floor(((th - jan1) / 864e5 + ((jan1.getDay() + 6) % 7)) / 7) + 1;
+  })();
+  const step = (dir) => setAnchor((a) => (view === 'week' ? addDays(a, 7 * dir) : new Date(a.getFullYear(), a.getMonth() + dir, 1)));
 
   const openNew = (deviceId = '', date = todayStr) =>
     setForm({
@@ -54,6 +96,15 @@ export default function AssignmentsPage() {
 
   const openEdit = (a) => setForm({ ...a, kind: a.recur ? 'recur' : 'once', date: a.date || a.recur?.from || todayStr, recur: a.recur ? { until: '', ...a.recur } : { days: [1, 2, 3, 4, 5], from: todayStr, until: '' }, isNew: false });
 
+  const tip = (inst) => {
+    const r = routeMap.get(inst.routeId);
+    const d = devById.get(inst.deviceId);
+    const st = results.get(inst.key)?.result.status;
+    return [`${fmtTime(inst.startMs)}–${fmtTime(inst.endMs)}  ${r?.name || '?'}`, d?.name, driverMap.get(inst.driverId)?.name, st ? t(`status.${st}`) : '', inst.note].filter(Boolean).join('\n');
+  };
+  const weekend = (d) => d.getDay() === 0 || d.getDay() === 6;
+  const usedRoutes = [...new Set(instances.map((i) => i.routeId))].map((id) => routeMap.get(id)).filter(Boolean);
+
   return (
     <div className="tms-page">
       <div className="tms-row" style={{ marginBottom: 10 }}>
@@ -62,55 +113,123 @@ export default function AssignmentsPage() {
         <button className="tms-btn pri" onClick={() => openNew()} disabled={!routes.length}>+ {t('asg.new')}</button>
       </div>
       {!routes.length && <div className="tms-banner warn" style={{ margin: '0 0 10px' }}>{t('asg.needRoute')}</div>}
-      <div className="tms-row" style={{ marginBottom: 10 }}>
-        <button className="tms-btn sm" onClick={() => setWeek(addDays(week, -7))}>‹</button>
-        <button className="tms-btn sm" onClick={() => setWeek(startOfWeek(new Date()))}>{t('asg.thisWeek')}</button>
-        <button className="tms-btn sm" onClick={() => setWeek(addDays(week, 7))}>›</button>
-        <b>{days[0].toLocaleDateString(locale, { day: 'numeric', month: 'short' })} – {days[6].toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}</b>
+
+      <div className="tms-cal-bar">
+        <button className="tms-btn sm" onClick={() => setAnchor(new Date())}>{t('asg.today')}</button>
+        <div className="tms-seg">
+          <button onClick={() => step(-1)} aria-label="prev">‹</button>
+          <button onClick={() => step(1)} aria-label="next">›</button>
+        </div>
+        <div className="tms-cal-title">
+          {title}
+          {view === 'week' && <span className="tms-cal-sub">{t('asg.weekNo', { n: weekNo })}</span>}
+        </div>
+        <label className="tms-cal-jump" title={t('asg.jump')}>
+          {'\u{1F4C5}'}
+          <input type="date" value={ymd(anchor)} onChange={(e) => e.target.value && setAnchor(parseYmd(e.target.value))} />
+        </label>
         <span className="tms-grow" />
-        <label className="tms-row tms-sm"><input type="checkbox" checked={onlyScheduled} onChange={(e) => setOnlyScheduled(e.target.checked)} /> {t('asg.onlyScheduled')}</label>
+        <div className="tms-seg">
+          <button className={view === 'week' ? 'on' : ''} onClick={() => setView('week')}>{t('asg.viewWeek')}</button>
+          <button className={view === 'month' ? 'on' : ''} onClick={() => setView('month')}>{t('asg.viewMonth')}</button>
+        </div>
+        {view === 'week' && <label className="tms-row tms-sm"><input type="checkbox" checked={onlyScheduled} onChange={(e) => setOnlyScheduled(e.target.checked)} /> {t('asg.onlyScheduled')}</label>}
         <input style={{ width: 180 }} placeholder={t('fleet.search')} value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
 
-      <div className="tms-week">
-        <table>
-          <thead>
-            <tr>
-              <th style={{ width: 150 }}>{t('asg.vehicle')}</th>
-              {days.map((d) => (
-                <th key={d} className={ymd(d) === todayStr ? 'today' : ''}>{d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric' })}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && (
-              <tr><td colSpan={8}><Empty>{t('asg.empty')}</Empty></td></tr>
-            )}
-            {rows.map((dev) => (
-              <tr key={dev.id}>
-                <td className="veh">{dev.name}<div className="tms-sm tms-muted" style={{ fontWeight: 400 }}>{dev.plate}</div></td>
-                {days.map((d) => {
-                  const ds = ymd(d);
-                  const list = byCell.get(`${dev.id}|${ds}`) || [];
-                  return (
-                    <td key={ds} className="cell" onClick={() => openNew(dev.id, ds)}>
-                      {list.map((inst) => {
-                        const r = routeMap.get(inst.routeId);
-                        const st = results.get(inst.key)?.result.status;
-                        return (
-                          <div key={inst.key} className="tms-block" style={{ background: r?.color || '#888' }} title={r?.name} onClick={(e) => { e.stopPropagation(); setDetail(inst); }}>
-                            {SYMBOL[st] || ''} {fmtTime(inst.startMs)}–{fmtTime(inst.endMs)} {r?.name || '?'}
-                          </div>
-                        );
-                      })}
-                    </td>
-                  );
-                })}
+      {view === 'week' && (
+        <div className="tms-week">
+          <table>
+            <thead>
+              <tr>
+                <th className="vh">{t('asg.vehicle')}</th>
+                {days.map((d) => (
+                  <th key={d} className={`${ymd(d) === todayStr ? 'today' : ''} ${weekend(d) ? 'wk' : ''}`}>
+                    <div className="dow">{fmtD(d, { weekday: 'short' })}</div>
+                    <div className="dnum">{d.getDate()}</div>
+                    {(d.getDate() === 1 || d.getTime() === days[0].getTime()) && <div className="dmon">{fmtD(d, { month: 'short' })}</div>}
+                  </th>
+                ))}
               </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 && (
+                <tr><td colSpan={8}><Empty>{t('asg.empty')}</Empty></td></tr>
+              )}
+              {rows.map((dev) => {
+                const lb = vehicleLabel(dev);
+                return (
+                  <tr key={dev.id}>
+                    <td className="veh" title={`${dev.name}${dev.plate ? ` · ${dev.plate}` : ''}`}>
+                      <div className="vname">{lb.name}</div>
+                      {lb.plate && <div className="vplate">{lb.plate}</div>}
+                    </td>
+                    {days.map((d) => {
+                      const ds = ymd(d);
+                      const list = byCell.get(`${dev.id}|${ds}`) || [];
+                      return (
+                        <td key={ds} className={`cell ${ds === todayStr ? 'today' : ''} ${weekend(d) ? 'wk' : ''}`} onClick={() => openNew(dev.id, ds)}>
+                          {list.map((inst) => {
+                            const r = routeMap.get(inst.routeId);
+                            const st = results.get(inst.key)?.result.status;
+                            return (
+                              <div key={inst.key} className="tms-block" style={{ background: r?.color || '#888' }} title={tip(inst)} onClick={(e) => { e.stopPropagation(); setDetail(inst); }}>
+                                <b>{SYMBOL[st] ? `${SYMBOL[st]} ` : ''}{fmtTime(inst.startMs)}–{fmtTime(inst.endMs)}</b>
+                                <span>{r?.name || '?'}</span>
+                              </div>
+                            );
+                          })}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {view === 'month' && (
+        <div className="tms-month">
+          <div className="tms-month-h">
+            {days.map((d) => (
+              <div key={d} className={weekend(d) ? 'wk' : ''}>{fmtD(d, { weekday: 'short' })}</div>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+          <div className="tms-month-g">
+            {monthDays.map((d) => {
+              const ds = ymd(d);
+              const list = byDay.get(ds) || [];
+              const other = d.getMonth() !== anchor.getMonth();
+              return (
+                <div key={ds} className={`tms-mday ${other ? 'other' : ''} ${weekend(d) ? 'wk' : ''} ${ds === todayStr ? 'today' : ''}`} onClick={() => { setAnchor(d); setView('week'); }}>
+                  <div className="mnum">{d.getDate() === 1 ? `${d.getDate()} ${fmtD(d, { month: 'short' })}` : d.getDate()}</div>
+                  {list.slice(0, 3).map((inst) => {
+                    const r = routeMap.get(inst.routeId);
+                    const dv = devById.get(inst.deviceId);
+                    return (
+                      <div key={inst.key} className="tms-chip-ev" title={tip(inst)} onClick={(e) => { e.stopPropagation(); setDetail(inst); }}>
+                        <i style={{ background: r?.color || '#888' }} />
+                        <span>{fmtTime(inst.startMs)} {dv ? vehicleLabel(dv).name : inst.deviceId}</span>
+                      </div>
+                    );
+                  })}
+                  {list.length > 3 && <div className="tms-more">{t('asg.more', { n: list.length - 3 })}</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {usedRoutes.length > 0 && (
+        <div className="tms-legend">
+          {usedRoutes.map((r) => (
+            <span key={r.id}><i style={{ background: r.color || '#888' }} />{r.name}</span>
+          ))}
+        </div>
+      )}
 
       {copyDay && <CopyDialog onClose={() => setCopyDay(false)} />}
       {form && <AssignmentForm initial={form} onClose={() => setForm(null)} />}

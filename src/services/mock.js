@@ -23,7 +23,7 @@ const L = IDX.length;
 const V = 14; // m/s ≈ 50 km/h
 
 export const MOCK_DEVICES = [
-  { id: 'b1', name: 'TRK-001', licensePlate: 'B 9001 SMA', delay: 0, mode: 'ok' },
+  { id: 'b1', name: 'Mitsubishi SMA B 9001 SMA (unit uji coba panjang)', licensePlate: 'B 9001 SMA', delay: 0, mode: 'ok' },
   { id: 'b2', name: 'TRK-002', licensePlate: 'B 9002 SMA', delay: 300, mode: 'deviate' },
   { id: 'b3', name: 'TRK-003', licensePlate: 'B 9003 SMA', delay: null, mode: 'idle' },
   { id: 'b4', name: 'TRK-004', licensePlate: 'D 4004 SMA', delay: null, mode: 'offline' },
