@@ -50,6 +50,13 @@ export class Monitor {
       if (nowMs >= inst.endMs + 5 * 60000) st.done = true;
     });
 
+    // event berbasis waktu (mis. terlambat ke titik awal) tidak butuh titik GPS baru, jadi dicek untuk semua penugasan aktif
+    for (const inst of insts) {
+      const st = this.runs.get(inst.key);
+      if (!st || st.done) continue;
+      for (const e of st.run.tickTime(nowMs)) events.push({ ...e, instKey: inst.key, deviceId: inst.deviceId, routeId: inst.routeId, driverId: inst.driverId });
+    }
+
     for (const inst of insts) {
       const st = this.runs.get(inst.key);
       const route = routeMap.get(inst.routeId);

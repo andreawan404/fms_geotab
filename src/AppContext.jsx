@@ -8,7 +8,8 @@ import { engineRoute, routeVersion } from './lib/engineRoute.js';
 import { makeT } from './i18n.js';
 import { eventText } from './lib/eventText.js';
 
-const NOTIFY_TYPES = new Set(['deviation_start', 'start_reached', 'route_completed']);
+const NOTIFY_TYPES = new Set(['deviation_start', 'late_start', 'start_reached', 'route_completed']);
+const WARN_TYPES = new Set(['deviation_start', 'late_start']);
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -123,7 +124,7 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
     setDevices(dev);
     setDrivers(drv);
     setFeed(
-      loaded.alerts.map((a) => ({ id: a.key, type: a.type || 'deviation_start', t: a.startMs, at: a.ts, deviceId: a.deviceId, routeId: a.routeId, instKey: a.instKey, distM: a.distM, lat: a.lat, lng: a.lng, persisted: true })),
+      loaded.alerts.map((a) => ({ id: a.key, type: a.type || 'deviation_start', cpName: a.cpName, min: a.min, t: a.startMs, at: a.ts, deviceId: a.deviceId, routeId: a.routeId, instKey: a.instKey, distM: a.distM, lat: a.lat, lng: a.lng, persisted: true })),
     );
     monitor.reset();
     setErrors(errs);
@@ -141,7 +142,7 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
         const id = `${e.instKey}:${e.type}:${e.t}`;
         if (seen.current.has(id)) continue;
         seen.current.add(id);
-        fresh.push({ id, type: e.type, t: e.t, at: e.detectedAt || e.t, deviceId: e.deviceId, routeId: e.routeId, instKey: e.instKey, cpName: e.name, distM: e.distM, lat: e.lat, lng: e.lng });
+        fresh.push({ id, type: e.type, t: e.t, at: e.detectedAt || e.t, deviceId: e.deviceId, routeId: e.routeId, instKey: e.instKey, cpName: e.name, min: e.min, distM: e.distM, lat: e.lat, lng: e.lng });
       }
       if (!fresh.length) return;
       setFeed((f) => [...fresh, ...f].sort((a, b) => b.at - a.at).slice(0, 400));
@@ -158,10 +159,10 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
           } catch {
             /* ignore */
           }
-          toast(msg, it.type === 'deviation_start' ? 'err' : 'ok');
+          toast(msg, WARN_TYPES.has(it.type) ? 'err' : 'ok');
         }
         store
-          .saveAlert({ key: it.id, type: it.type, cpName: it.cpName, ts: it.at, deviceId: it.deviceId, routeId: it.routeId, instKey: it.instKey, startMs: it.t, distM: Math.round(it.distM || 0), lat: it.lat, lng: it.lng })
+          .saveAlert({ key: it.id, type: it.type, cpName: it.cpName, min: it.min, ts: it.at, deviceId: it.deviceId, routeId: it.routeId, instKey: it.instKey, startMs: it.t, distM: Math.round(it.distM || 0), lat: it.lat, lng: it.lng })
           .catch(() => {});
       }
     },

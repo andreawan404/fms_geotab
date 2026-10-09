@@ -219,3 +219,33 @@ describe('util', () => {
     expect(csv).toContain('"x;y";"say ""hi"""');
   });
 });
+
+describe('terlambat ke titik awal', () => {
+  const W = { startMs: T0 + 600e3, endMs: T0 + 7200e3 }; // jadwal mulai +10 menit
+  const mk = (late) => new RouteRun(route({ params: { lateStartMin: late } }), W);
+
+  it('tickTime memberi event sekali bila belum tiba di titik awal melewati batas', () => {
+    const run = mk(10);
+    expect(run.tickTime(W.startMs + 5 * 60e3)).toEqual([]);
+    const ev = run.tickTime(W.startMs + 11 * 60e3);
+    expect(ev).toHaveLength(1);
+    expect(ev[0]).toMatchObject({ type: 'late_start', t: W.startMs + 10 * 60e3, name: 'A' });
+    expect(run.tickTime(W.startMs + 12 * 60e3)).toEqual([]); // hanya sekali
+    expect(run.result(W.startMs + 12 * 60e3).phase).toBe('late_start');
+  });
+  it('tiba terlambat melewati batas: late_start lalu start_reached, id event sama dengan tickTime', () => {
+    const run = mk(10);
+    const ev = run.push(pt(600 + 15 * 60, 107.0));
+    expect(ev.map((e) => e.type)).toEqual(['late_start', 'start_reached']);
+    expect(ev[0].t).toBe(W.startMs + 10 * 60e3);
+    expect(ev[0].min).toBe(15);
+    expect(run.tickTime(W.startMs + 20 * 60e3)).toEqual([]);
+  });
+  it('tiba tepat waktu atau dinonaktifkan: tidak ada late_start', () => {
+    const ok = mk(10);
+    expect(ok.push(pt(600 + 3 * 60, 107.0)).map((e) => e.type)).toEqual(['start_reached']);
+    expect(ok.tickTime(W.startMs + 30 * 60e3)).toEqual([]);
+    const off = mk(0);
+    expect(off.tickTime(W.startMs + 60 * 60e3)).toEqual([]);
+  });
+});

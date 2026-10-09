@@ -10,6 +10,7 @@ export function engineRoute(route, settings) {
       confirmMeters: d.confirmMeters,
       recoverSec: d.recoverSec,
       graceMin: d.graceMin,
+      lateStartMin: d.lateStartMin ?? 10,
       ...(route.params || {}),
     },
     checkpoints: (route.checkpoints || []).map((c) => ({ ...c, radius: c.radius || d.radius })),

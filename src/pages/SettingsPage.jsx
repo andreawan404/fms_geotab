@@ -5,7 +5,7 @@ import { findRoutes } from '../services/routing.js';
 import { errMessage } from '../services/geotab.js';
 import { APP_VERSION, CHANGELOG } from '../changelog.js';
 
-const DEF_KEYS = ['widthM', 'radius', 'avgSpeedKmh', 'confirmSec', 'confirmMeters', 'gpsMarginM', 'recoverSec', 'graceMin'];
+const DEF_KEYS = ['widthM', 'radius', 'avgSpeedKmh', 'confirmSec', 'confirmMeters', 'gpsMarginM', 'recoverSec', 'graceMin', 'lateStartMin'];
 
 export default function SettingsPage({ addInId }) {
   const { t, lang, settings, saveSettings, toast, loading, isMock, geotab, devices } = useApp();

@@ -28,7 +28,7 @@ export function StatusBadge({ status }) {
   return <span className={`tms-badge ${STATUS_CLS[status] || 'gray'}`}>{t(`status.${status}`)}</span>;
 }
 
-const PHASE_CLS = { to_start: 'gray', at_start: 'blue', en_route: 'blue', finished: 'green' };
+const PHASE_CLS = { late_start: 'red', to_start: 'gray', at_start: 'blue', en_route: 'blue', finished: 'green' };
 export function PhaseBadge({ phase, ms }) {
   const { t } = useApp();
   if (!phase) return <span className="tms-badge gray">-</span>;

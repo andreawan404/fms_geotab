@@ -2,6 +2,18 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '1.6.0',
+    date: '2026-10-09',
+    id: [
+      'Alert baru: kendaraan terlambat ke titik awal (belum tiba N menit setelah jadwal mulai). Batas diatur di Pengaturan (default 10 menit, 0 = nonaktif) dan bisa per rute.',
+      'Alert juga muncul bila kendaraan offline / tidak mengirim posisi, serta saat kendaraan tiba terlambat. Fase Monitor menampilkan "Terlambat ke titik awal"; notifikasi tersimpan seperti alert lain.',
+    ],
+    en: [
+      'New alert: vehicle late to the start point (not arrived N minutes after the scheduled start). Limit set in Settings (default 10 min, 0 = off) and overridable per route.',
+      'The alert also fires when a vehicle is offline / not reporting, and when it arrives late. Monitor phase shows "Late to start"; notifications are persisted like other alerts.',
+    ],
+  },
+  {
     v: '1.5.0',
     date: '2026-10-09',
     id: [

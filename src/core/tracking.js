@@ -8,6 +8,7 @@ export const DEFAULT_PARAMS = {
   confirmMeters: 150, // ATAU bergerak >= N meter di luar koridor
   recoverSec: 15, // kembali ke koridor selama >= N detik -> deviasi ditutup
   graceMin: 15, // setelah jadwal mulai, belum "di rute" selama N menit tidak dianggap deviasi
+  lateStartMin: 10, // belum tiba di titik awal N menit setelah jadwal mulai -> alert terlambat (0 = nonaktif)
   preStartMin: 30, // titik awal sudah dideteksi sejak N menit sebelum jadwal mulai (deviasi tetap baru dinilai setelah jadwal mulai)
 };
 
@@ -51,6 +52,7 @@ export class RouteRun {
     this.armed = false;
     this.finished = false;
     this.finishedMs = null;
+    this.lateFlag = false;
     this.hint = -1;
     this.pointCount = 0;
     this.totalDistM = 0;
@@ -143,6 +145,13 @@ export class RouteRun {
       c.dwellSec = 0;
       this.next = matched + 1;
       this.curCp = matched;
+      if (matched === 0 && live && !this.lateFlag) {
+        const lateMs = (this.params.lateStartMin || 0) * 60000;
+        if (lateMs > 0 && p.t >= this.startMs + lateMs) {
+          this.lateFlag = true; // tiba di titik awal tetapi sudah terlambat melewati batas
+          ev.push({ type: 'late_start', index: 0, name: c.name, t: this.startMs + lateMs, detectedAt: p.t, min: Math.round((p.t - this.startMs) / 60000) });
+        }
+      }
       ev.push({ type: matched === 0 ? 'start_reached' : 'checkpoint_arrived', index: matched, name: c.name, t: p.t });
       if (matched === this.cps.length - 1 && !this.finished && (live || this.cps.length === 1)) {
         this.finished = true;
@@ -158,6 +167,16 @@ export class RouteRun {
 
   arrivedOnly() {
     return this.cps.filter((c) => c.arrivedMs != null).length === 1;
+  }
+
+  /** Event berbasis waktu (tanpa titik GPS baru): terlambat ke titik awal. Dipanggil tiap siklus monitor. */
+  tickTime(nowMs) {
+    const lateMs = (this.params.lateStartMin || 0) * 60000;
+    const c0 = this.cps[0];
+    if (lateMs <= 0 || this.lateFlag || this.finished || !c0 || c0.arrivedMs != null || !Number.isFinite(this.startMs)) return [];
+    if (nowMs < this.startMs + lateMs || nowMs > this.endMs) return [];
+    this.lateFlag = true;
+    return [{ type: 'late_start', index: 0, name: c0.name, t: this.startMs + lateMs, detectedAt: nowMs, min: this.params.lateStartMin }];
   }
 
   _closeDev() {
@@ -194,8 +213,10 @@ export class RouteRun {
     });
     const c0 = this.cps[0];
     const atStartNow = !!(c0 && c0.arrivedMs != null && this.arrivedOnly() && this.last && haversine(this.last.lat, this.last.lng, c0.lat, c0.lng) <= c0.radius);
-    // fase kendaraan: to_start (menuju titik awal) | at_start (berada di titik awal) | en_route | finished
-    const phase = this.finished ? 'finished' : !c0 || c0.arrivedMs == null ? 'to_start' : atStartNow ? 'at_start' : 'en_route';
+    // fase kendaraan: to_start (menuju titik awal) | late_start (terlambat ke titik awal) | at_start (berada di titik awal) | en_route | finished
+    const lateMs = (this.params.lateStartMin || 0) * 60000;
+    const lateNow = !!c0 && c0.arrivedMs == null && lateMs > 0 && Number.isFinite(this.startMs) && nowMs >= this.startMs + lateMs;
+    const phase = this.finished ? 'finished' : !c0 || c0.arrivedMs == null ? (lateNow ? 'late_start' : 'to_start') : atStartNow ? 'at_start' : 'en_route';
     const res = {
       phase,
       startedMs: c0 ? c0.arrivedMs : null,

@@ -46,6 +46,7 @@ async function seed({ store }) {
   await store.saveAssignment(mk('b2', 'u2', 'Demo: keluar rute'));
   await store.saveAssignment(mk('b5', 'u3', 'Demo: terlambat'));
   await store.saveAssignment(mk('b6', null, 'Demo: belum berangkat'));
+  await store.saveAssignment(mk('b3', 'u1', 'Demo: tidak tiba di titik awal'));
 }
 
 createRoot(document.getElementById('tms-root')).render(<Root api={api} addInId="demo-addin" active seed={seed} />);

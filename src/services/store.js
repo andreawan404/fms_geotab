@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS = {
   pollSec: 15,
   sensors: { engineHours: ['DiagnosticEngineHoursId'], fuel: ['DiagnosticDeviceTotalFuelId', 'DiagnosticTotalFuelUsedId'] },
   units: { fuelEcon: 'kmpl' }, // 'kmpl' (km/L) atau 'l100' (L/100 km)
-  defaults: { widthM: 60, avgSpeedKmh: 40, radius: 100, confirmSec: 30, confirmMeters: 150, gpsMarginM: 10, recoverSec: 15, graceMin: 15 },
+  defaults: { widthM: 60, avgSpeedKmh: 40, radius: 100, confirmSec: 30, confirmMeters: 150, gpsMarginM: 10, recoverSec: 15, graceMin: 15, lateStartMin: 10 },
 };
 
 export const uid = (p = 'x') => `${p}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
