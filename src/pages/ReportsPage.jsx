@@ -6,6 +6,7 @@ import { addDays, fmtDateTime, fmtDur, fmtKm, fmtTime, parseYmd, ymd } from '../
 import { expand } from '../core/schedule.js';
 import { toCSV } from '../core/csv.js';
 import { errMessage } from '../services/geotab.js';
+import { benchmark } from '../core/benchmark.js';
 import { fmtEconomy, fmtHours, fmtLiters, fuelEconomy, withApprox } from '../core/sensor.js';
 
 const MAX_ROWS = 1500;
@@ -50,32 +51,6 @@ export default function ReportsPage() {
       const ids = sel.length ? sel : null;
       setProgress({ label: t('rep.loading'), pct: 5 });
       const [trips, exceptions, rules] = await Promise.all([geotab.getTrips(fromMs, toMs, ids), geotab.getExceptions(fromMs, toMs, ids), getRules()]);
-      // engine hour / fuel / economy per kendaraan (seluruh rentang) dan per trip, dari counter StatusData
-      const byDev = new Map();
-      trips.forEach((tr, i) => {
-        if (!byDev.has(tr.deviceId)) byDev.set(tr.deviceId, []);
-        byDev.get(tr.deviceId).push(i);
-      });
-      const sensors = { dev: new Map(), trip: new Map() };
-      const devQueue = [...byDev.keys()];
-      let sdone = 0;
-      const sworker = async () => {
-        while (devQueue.length) {
-          const id = devQueue.shift();
-          const idx = byDev.get(id);
-          const distKm = idx.reduce((sum, i) => sum + trips[i].distanceKm, 0);
-          try {
-            const r = await sensorWindows(id, [{ from: fromMs, to: toMs, distKm }, ...idx.map((i) => ({ from: trips[i].startMs, to: trips[i].stopMs, distKm: trips[i].distanceKm }))]);
-            sensors.dev.set(id, { ...r.items[0], hasHours: r.hasHours, hasFuel: r.hasFuel });
-            idx.forEach((i, k) => sensors.trip.set(i, r.items[k + 1]));
-          } catch {
-            /* kendaraan tanpa sensor / gagal: kolom tampil "-" */
-          }
-          sdone++;
-          setProgress({ label: `${t('rep.sensorLoading')} ${sdone}/${byDev.size}`, pct: 8 + (7 * sdone) / Math.max(1, byDev.size) });
-        }
-      };
-      await Promise.all([sworker(), sworker(), sworker()]);
       const insts = expand(assignments, from, to).filter((i) => i.startMs < Date.now() && (!ids || ids.includes(i.deviceId)) && routeMap.has(i.routeId));
       const out = [];
       let done = 0;
@@ -90,11 +65,46 @@ export default function ReportsPage() {
             out.push({ inst, result: null, error: errMessage(e) });
           }
           done++;
-          setProgress({ label: `${t('rep.evaluating')} ${done}/${insts.length}`, pct: 15 + (85 * done) / Math.max(1, insts.length) });
+          setProgress({ label: `${t('rep.evaluating')} ${done}/${insts.length}`, pct: 8 + (82 * done) / Math.max(1, insts.length) });
         }
       };
       await Promise.all([worker(), worker(), worker()]);
       out.sort((a, b) => a.inst.startMs - b.inst.startMs);
+      // engine hour / fuel / economy per kendaraan (seluruh rentang), per trip, dan per penugasan, dari counter StatusData
+      const byDev = new Map();
+      const slot = (id) => {
+        if (!byDev.has(id)) byDev.set(id, { trips: [], runs: [] });
+        return byDev.get(id);
+      };
+      trips.forEach((tr, i) => slot(tr.deviceId).trips.push(i));
+      out.forEach((o, i) => o.result && slot(o.inst.deviceId).runs.push(i));
+      const sensors = { dev: new Map(), trip: new Map(), run: new Map() };
+      const devQueue = [...byDev.keys()];
+      let sdone = 0;
+      const sworker = async () => {
+        while (devQueue.length) {
+          const id = devQueue.shift();
+          const { trips: ti, runs: ri } = byDev.get(id);
+          const distKm = ti.reduce((sum, i) => sum + trips[i].distanceKm, 0);
+          const now = Date.now();
+          try {
+            const windows = [
+              { from: fromMs, to: toMs, distKm },
+              ...ti.map((i) => ({ from: trips[i].startMs, to: trips[i].stopMs, distKm: trips[i].distanceKm })),
+              ...ri.map((i) => ({ from: out[i].inst.startMs, to: Math.min(out[i].inst.endMs, now), distKm: out[i].result.totalDistM / 1000 })),
+            ];
+            const r = await sensorWindows(id, windows);
+            sensors.dev.set(id, { ...r.items[0], hasHours: r.hasHours, hasFuel: r.hasFuel });
+            ti.forEach((i, k) => sensors.trip.set(i, r.items[1 + k]));
+            ri.forEach((i, k) => sensors.run.set(out[i].inst.key, r.items[1 + ti.length + k]));
+          } catch {
+            /* kendaraan tanpa sensor / gagal: kolom tampil "-" */
+          }
+          sdone++;
+          setProgress({ label: `${t('rep.sensorLoading')} ${sdone}/${byDev.size}`, pct: 90 + (10 * sdone) / Math.max(1, byDev.size) });
+        }
+      };
+      await Promise.all([sworker(), sworker(), sworker()]);
       setRep({ trips, exceptions, rules, sensors, runs: out, range: { from, to }, ids });
       setTab('summary');
     } catch (e) {
@@ -171,7 +181,7 @@ export default function ReportsPage() {
           </div>
 
           <div className="tms-tabs">
-            {['summary', 'trips', 'exceptions', 'compliance'].map((k) => (
+            {['summary', 'trips', 'exceptions', 'compliance', 'benchmark'].map((k) => (
               <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t(`rep.tab.${k}`)}</button>
             ))}
             <span className="tms-grow" />
@@ -258,6 +268,38 @@ export default function ReportsPage() {
             </div>
           )}
 
+          {tab === 'benchmark' && (
+            <div>
+              <p className="tms-sm tms-muted" style={{ margin: '0 0 8px' }}>{t('bench.note')}</p>
+              <div className="tms-kpis" style={{ marginBottom: 8 }}>
+                <Kpi label={t('bench.fleetAvg')} value={model.benchRoute.fleet ? fmtEconomy(model.benchRoute.fleet, unit) : '-'} />
+              </div>
+              {[['route', model.benchRoute, (k) => routeMap.get(k)?.name || k], ['driver', model.benchDriver, (k) => driverMap.get(k)?.name || k]].map(([kind, b, label]) => (
+                <div key={kind} className="tms-tablewrap" style={{ marginBottom: 12 }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>{kind === 'route' ? t('bench.route') : t('bench.driver')}</th><th className="num">{t('bench.runs')}</th><th className="num">{t('rep.col.km')}</th><th className="num">{t('col.engineHours')}</th><th className="num">{t('col.fuelUsed')}</th>
+                        <th className="num">{t('col.fuelEcon')}</th><th className="num">{t('bench.vsAvg')}</th><th className="num">{t('detail.deviations')}</th><th className="num">{t('detail.compliance')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {b.groups.length === 0 && <tr><td colSpan={9}><Empty>{t('rep.noRuns')}</Empty></td></tr>}
+                      {b.groups.map((g) => (
+                        <tr key={g.key}>
+                          <td><b>{label(g.key)}</b></td><td className="num">{g.runs}</td><td className="num">{g.distKm.toFixed(0)}</td><td className="num">{fmtHours(g.engineSec)}</td><td className="num">{fmtLiters(g.fuelL, 0)}</td>
+                          <td className="num">{fmtEconomy(g, unit)}</td>
+                          <td className="num">{g.vsPct == null ? '-' : <span className={`tms-badge ${g.flag === 'low' ? 'red' : g.flag === 'high' ? 'green' : 'gray'}`}>{g.vsPct > 0 ? '+' : ''}{g.vsPct.toFixed(0)}%{g.flag === 'low' ? ` · ${t('bench.low')}` : g.flag === 'high' ? ` · ${t('bench.high')}` : ''}</span>}</td>
+                          <td className="num">{g.deviations}</td><td className="num">{g.compliance == null ? '-' : `${g.compliance.toFixed(0)}%`}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          )}
+
           {tab === 'compliance' && (
             <div className="tms-tablewrap">
               <table>
@@ -331,6 +373,17 @@ export default function ReportsPage() {
         { label: t('asg.vehicle'), get: (r) => name(r.deviceId) }, { label: t('asg.driver'), get: (r) => driverMap.get(r.driverId)?.name || '' }, { label: 'Rule', get: (r) => rep.rules[r.ruleId] || r.ruleId },
         { label: t('detail.start'), get: (r) => fmtDateTime(r.startMs) }, { label: t('detail.end'), get: (r) => fmtDateTime(r.endMs) }, { label: `${t('rep.col.excDur')} (s)`, get: (r) => Math.round(r.durationSec) },
       ]);
+    } else if (k === 'benchmark') {
+      const rows = [
+        ...model.benchRoute.groups.map((g) => ({ kind: t('bench.route'), name: routeMap.get(g.key)?.name || g.key, ...g })),
+        ...model.benchDriver.groups.map((g) => ({ kind: t('bench.driver'), name: driverMap.get(g.key)?.name || g.key, ...g })),
+      ];
+      csv('benchmark', rows, [
+        { label: 'Tipe', key: 'kind' }, { label: 'Nama', key: 'name' }, { label: t('bench.runs'), key: 'runs' }, { label: 'km', get: (r) => r.distKm.toFixed(1) },
+        { label: `${t('col.engineHours')} (h)`, get: (r) => (r.engineSec == null ? '' : (r.engineSec / 3600).toFixed(2)) }, { label: `${t('col.fuelUsed')} (L)`, get: (r) => (r.fuelL == null ? '' : r.fuelL.toFixed(1)) },
+        { label: 'km/L', get: (r) => (r.kmPerL == null ? '' : r.kmPerL.toFixed(2)) }, { label: 'L/100km', get: (r) => (r.lPer100km == null ? '' : r.lPer100km.toFixed(1)) },
+        { label: t('bench.vsAvg'), get: (r) => (r.vsPct == null ? '' : r.vsPct.toFixed(1)) }, { label: t('detail.deviations'), key: 'deviations' }, { label: `${t('detail.compliance')} %`, get: (r) => (r.compliance == null ? '' : r.compliance.toFixed(1)) },
+      ]);
     } else {
       csv('kepatuhan_rute', rep.runs.filter((r) => r.result), [
         { label: t('asg.date'), get: (r) => r.inst.date }, { label: t('asg.vehicle'), get: (r) => name(r.inst.deviceId) }, { label: t('asg.driver'), get: (r) => driverMap.get(r.inst.driverId)?.name || '' },
@@ -403,6 +456,14 @@ function buildModel(rep, devices) {
   const order = new Map(devices.map((d, i) => [d.id, i]));
   const summary = [...per.values()].map((r) => ({ ...r, compliance: r.compN ? r.compSum / r.compN : null })).sort((a, b) => (order.get(a.id) ?? 1e9) - (order.get(b.id) ?? 1e9));
   const ruleCols = [...ruleTotals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([id, total]) => ({ id, total, name: rep.rules[id] || id }));
+  const benchRows = rep.runs
+    .filter((r) => r.result)
+    .map(({ inst, result }) => {
+      const x = rep.sensors?.run.get(inst.key);
+      return { routeId: inst.routeId, driverId: inst.driverId, deviceId: inst.deviceId, distKm: result.totalDistM / 1000, fuelL: x?.fuelL ?? null, engineSec: x?.engineSec ?? null, deviations: result.deviations.length, compliance: result.compliancePct };
+    });
+  const benchRoute = benchmark(benchRows, (r) => r.routeId);
+  const benchDriver = benchmark(benchRows, (r) => r.driverId);
   // total armada: economy hanya dari kendaraan yang punya data fuel (jarak dan fuel dari kendaraan yang sama)
   const withHours = summary.filter((r) => r.sens && r.sens.engineSec != null);
   const withFuel = summary.filter((r) => r.sens && r.sens.fuelL != null);
@@ -411,6 +472,8 @@ function buildModel(rep, devices) {
   const eco = withFuel.length ? fuelEconomy(fuelDist, fuelTotal) : null;
   return {
     summary,
+    benchRoute,
+    benchDriver,
     ruleCols,
     excRows: [...excBy.values()].sort((a, b) => b.total - a.total),
     totals: {

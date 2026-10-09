@@ -2,6 +2,18 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '1.7.0',
+    date: '2026-10-09',
+    id: [
+      'Laporan > tab Benchmark: fuel economy per rute dan per sopir, dibandingkan dengan rata-rata armada (selisih %), penanda boros/hemat (>= 15% dan jarak >= 20 km).',
+      'Menampilkan jumlah penugasan, jarak, engine hour, fuel, deviasi, dan kepatuhan per kelompok; ekspor CSV. Sopir mengikuti sopir yang ditugaskan.',
+    ],
+    en: [
+      'Reports > Benchmark tab: fuel economy by route and by driver compared with the fleet average (% difference), with high-use / efficient flags (>= 15% and distance >= 20 km).',
+      'Shows assignment count, distance, engine hour, fuel, deviations and compliance per group; CSV export. Driver follows the assigned driver.',
+    ],
+  },
+  {
     v: '1.6.0',
     date: '2026-10-09',
     id: [
