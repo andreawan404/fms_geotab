@@ -3,7 +3,7 @@ import { useApp } from '../AppContext.jsx';
 import { Empty, Field, Modal, Spinner } from '../components/ui.jsx';
 import InstanceDetail from '../components/InstanceDetail.jsx';
 import { addDays, fmtTime, parseYmd, startOfWeek, ymd } from '../core/time.js';
-import { expand, findConflicts } from '../core/schedule.js';
+import { expand, findConflicts, planCopy } from '../core/schedule.js';
 import { uid } from '../services/store.js';
 import { errMessage } from '../services/geotab.js';
 
@@ -16,6 +16,7 @@ export default function AssignmentsPage() {
   const [onlyScheduled, setOnlyScheduled] = useState(true);
   const [form, setForm] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [copyDay, setCopyDay] = useState(false);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(week, i)), [week]);
   const instances = useMemo(() => expand(assignments, ymd(days[0]), ymd(days[6])), [assignments, days]);
@@ -57,6 +58,7 @@ export default function AssignmentsPage() {
     <div className="tms-page">
       <div className="tms-row" style={{ marginBottom: 10 }}>
         <h2 className="tms-grow">{t('asg.title')}</h2>
+        <button className="tms-btn" onClick={() => setCopyDay(true)} disabled={!assignments.length}>{t('asg.copyDay')}</button>
         <button className="tms-btn pri" onClick={() => openNew()} disabled={!routes.length}>+ {t('asg.new')}</button>
       </div>
       {!routes.length && <div className="tms-banner warn" style={{ margin: '0 0 10px' }}>{t('asg.needRoute')}</div>}
@@ -110,6 +112,7 @@ export default function AssignmentsPage() {
         </table>
       </div>
 
+      {copyDay && <CopyDialog onClose={() => setCopyDay(false)} />}
       {form && <AssignmentForm initial={form} onClose={() => setForm(null)} />}
       {detail && (
         <InstanceDetail
@@ -124,6 +127,7 @@ export default function AssignmentsPage() {
 
 function DetailActions({ inst, onEdit, onDone }) {
   const { t, assignments, saveAssignment, deleteAssignment, toast } = useApp();
+  const [dup, setDup] = useState(false);
   const a = assignments.find((x) => x.id === inst.assignmentId);
   if (!a) return null;
   const run = async (fn) => {
@@ -146,9 +150,85 @@ function DetailActions({ inst, onEdit, onDone }) {
   return (
     <>
       <button className="tms-btn" onClick={() => onEdit(a)}>{t('edit')}</button>
+      <button className="tms-btn" onClick={() => setDup(true)}>{t('asg.duplicate')}</button>
+      {dup && <CopyDialog only={inst} onClose={() => setDup(false)} onDone={onDone} />}
       <button className="tms-btn danger" onClick={delThis}>{a.recur ? t('asg.deleteThis') : t('delete')}</button>
       {a.recur && <button className="tms-btn danger" onClick={delAll}>{t('asg.deleteSeries')}</button>}
     </>
+  );
+}
+
+/** Salin penugasan ke tanggal lain. only = satu instance (Duplikat); tanpa only = semua penugasan pada satu hari (Salin hari). */
+function CopyDialog({ only, onClose, onDone }) {
+  const { t, assignments, saveAssignment, deviceMap, routeMap, toast } = useApp();
+  const todayStr = ymd(new Date());
+  const [src, setSrc] = useState(only ? only.date : todayStr);
+  const [dst, setDst] = useState(ymd(addDays(parseYmd(only ? only.date : todayStr), 1)));
+  const [busy, setBusy] = useState(false);
+  const insts = useMemo(() => (only ? [only] : expand(assignments, src, src)), [only, assignments, src]);
+  const plan = useMemo(() => planCopy(insts, assignments, dst, () => 'preview'), [insts, assignments, dst]);
+  const reasonText = (r) => t(`asg.skip.${r}`);
+
+  const run = async () => {
+    setBusy(true);
+    try {
+      let n = 0;
+      for (const a of planCopy(insts, assignments, dst, () => uid('a')).create) {
+        await saveAssignment(a);
+        n++;
+      }
+      toast(t('asg.copied', { n, m: plan.skipped.length }), plan.skipped.length ? 'err' : 'ok');
+      onClose();
+      onDone?.();
+    } catch (e) {
+      toast(errMessage(e), 'err');
+    }
+    setBusy(false);
+  };
+
+  return (
+    <Modal
+      onClose={onClose}
+      title={only ? t('asg.duplicate') : t('asg.copyDay')}
+      footer={
+        <>
+          <button className="tms-btn" onClick={onClose}>{t('cancel')}</button>
+          <button className="tms-btn pri" onClick={run} disabled={busy || plan.create.length === 0}>{t('asg.copyN', { n: plan.create.length })}</button>
+        </>
+      }
+    >
+      <div className="tms-grid3" style={{ marginBottom: 10 }}>
+        {!only && (
+          <Field label={t('asg.copyFrom')}>
+            <input type="date" value={src} onChange={(e) => setSrc(e.target.value)} />
+          </Field>
+        )}
+        <Field label={t('asg.copyTo')}>
+          <input type="date" value={dst} onChange={(e) => setDst(e.target.value)} />
+        </Field>
+      </div>
+      <p className="tms-sm tms-muted" style={{ margin: '0 0 6px' }}>{t('asg.copyHint')}</p>
+      {insts.length === 0 && <Empty>{t('asg.copyNone')}</Empty>}
+      {insts.length > 0 && (
+        <div className="tms-tablewrap" style={{ maxHeight: 260, overflow: 'auto' }}>
+          <table>
+            <tbody>
+              {insts.map((i) => {
+                const sk = plan.skipped.find((x) => x.inst.key === i.key);
+                return (
+                  <tr key={i.key}>
+                    <td><b>{deviceMap.get(i.deviceId)?.name || i.deviceId}</b></td>
+                    <td>{routeMap.get(i.routeId)?.name}</td>
+                    <td>{fmtTime(i.startMs)}–{fmtTime(i.endMs)}</td>
+                    <td>{sk ? <span className="tms-badge amber">{reasonText(sk.reason)}</span> : <span className="tms-badge green">{'\u2713'}</span>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Modal>
   );
 }
 

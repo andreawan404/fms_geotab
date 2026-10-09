@@ -21,6 +21,16 @@ Fitur tambahan MVP yang disepakati: toleransi + debounce alert (anti GPS drift),
 selisih ETA, terlewat), laporan kepatuhan rute, replay rencana vs aktual, status penugasan
 (terjadwal / berjalan / selesai / terlewat / menyimpang).
 
+## Versi & riwayat perubahan
+
+Riwayat lengkap ada di [CHANGELOG.md](CHANGELOG.md) dan di add-in (Pengaturan > Riwayat versi). Sumber tunggalnya `src/changelog.js`;
+setelah mengubahnya jalankan `npm run changelog`. Setiap rilis menaikkan versi di `package.json` dan `public/config.json`
+(`config.json` di `dist` diisi otomatis saat build).
+
+Fitur sejak v1.1: fase tugas (titik awal / selesai / terlambat), engine hour + fuel used + fuel economy (Monitor, Laporan),
+benchmark per rute dan per sopir, kolom Idle %, salin / duplikat penugasan. Engine hour dan fuel dibaca dari StatusData Geotab
+(ID diagnostik bisa diubah di Pengaturan; gunakan **Cek sensor** untuk melihat kendaraan mana yang punya data).
+
 ## Cara kerja alert keluar rute
 
 - **Selama halaman TMS terbuka (Monitor):** add-in mengambil `LogRecord` baru tiap N detik (default 15), menjalankan mesin

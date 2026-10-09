@@ -2,6 +2,18 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '1.9.0',
+    date: '2026-10-10',
+    id: [
+      'Penugasan: tombol Duplikat di detail penugasan (salin satu penugasan ke tanggal lain) dan Salin hari (salin seluruh penugasan satu hari ke tanggal lain).',
+      'Hasil salinan berupa penugasan sekali; yang bentrok kendaraan/sopir dilewati dan ditampilkan alasannya sebelum disimpan.',
+    ],
+    en: [
+      'Assignments: Duplicate button in the assignment detail (copy one assignment to another date) and Copy day (copy all assignments of a day to another date).',
+      'Copies are one-time assignments; vehicle/driver conflicts are skipped and the reason is shown before saving.',
+    ],
+  },
+  {
     v: '1.8.0',
     date: '2026-10-09',
     id: [

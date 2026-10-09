@@ -70,3 +70,42 @@ export function findConflicts(candidate, existing, horizonStart, horizonDays = 6
   }
   return out;
 }
+
+/**
+ * Rencana menyalin instance penugasan ke tanggal lain sebagai penugasan sekali (bukan berulang).
+ * Instance yang bentrok (kendaraan / sopir) dengan penugasan yang ada atau yang baru dibuat dilewati.
+ * @returns {{ create: Array, skipped: Array<{inst, reason}> }}
+ */
+export function planCopy(instances, assignments, targetDate, makeId, nowMs = Date.now()) {
+  const byId = new Map(assignments.map((a) => [a.id, a]));
+  const pool = [...assignments];
+  const create = [];
+  const skipped = [];
+  for (const inst of instances) {
+    const src = byId.get(inst.assignmentId);
+    if (!src || inst.date === targetDate) {
+      skipped.push({ inst, reason: 'same' });
+      continue;
+    }
+    const cand = {
+      id: makeId(),
+      routeId: inst.routeId,
+      deviceId: inst.deviceId,
+      driverId: inst.driverId || '',
+      startTime: src.startTime,
+      endTime: src.endTime,
+      date: targetDate,
+      note: inst.note || '',
+      active: true,
+      createdAt: nowMs,
+    };
+    const c = findConflicts(cand, pool, targetDate, 1);
+    if (c.length) {
+      skipped.push({ inst, reason: c[0].reason });
+      continue;
+    }
+    create.push(cand);
+    pool.push(cand);
+  }
+  return { create, skipped };
+}

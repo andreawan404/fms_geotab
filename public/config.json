@@ -1,7 +1,7 @@
 {
   "name": "TMS Transport Management",
   "supportEmail": "support@example.com",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "items": [
     {
       "url": "https://fms-geotab.vercel.app/addin.html",

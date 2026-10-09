@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { encodePolyline, decodePolyline, chunkString } from '../src/core/polyline.js';
 import { haversine, RouteIndex, simplifyPath, pathLength } from '../src/core/geometry.js';
 import { RouteRun, evaluateInstance } from '../src/core/tracking.js';
-import { expand, findConflicts } from '../src/core/schedule.js';
+import { expand, findConflicts, planCopy } from '../src/core/schedule.js';
 import { corridorRings } from '../src/core/corridor.js';
 import { parseSpan, atTime } from '../src/core/time.js';
 import { toCSV } from '../src/core/csv.js';
@@ -247,5 +247,35 @@ describe('terlambat ke titik awal', () => {
     expect(ok.tickTime(W.startMs + 30 * 60e3)).toEqual([]);
     const off = mk(0);
     expect(off.tickTime(W.startMs + 60 * 60e3)).toEqual([]);
+  });
+});
+
+describe('salin penugasan', () => {
+  const A = (o) => ({ id: 'a1', routeId: 'r1', deviceId: 'v1', driverId: 'd1', startTime: '08:00', endTime: '12:00', recur: { days: [0, 1, 2, 3, 4, 5, 6], from: '2026-10-01' }, active: true, ...o });
+  let n = 0;
+  const mid = () => `n${++n}`;
+  it('menyalin instance (termasuk dari jadwal berulang) sebagai penugasan sekali di tanggal tujuan', () => {
+    const asg = [A({ recur: { days: [0, 1, 2, 3, 4, 5, 6], from: '2026-10-01', until: '2026-10-10' } })];
+    const insts = expand(asg, '2026-10-07', '2026-10-07');
+    const r = planCopy(insts, asg, '2026-10-20', mid);
+    expect(r.create).toHaveLength(1);
+    expect(r.create[0]).toMatchObject({ date: '2026-10-20', deviceId: 'v1', driverId: 'd1', startTime: '08:00', endTime: '12:00', routeId: 'r1' });
+    expect(r.create[0].recur).toBeUndefined();
+    expect(r.skipped).toHaveLength(0);
+  });
+  it('melewati yang bentrok dan tanggal yang sama', () => {
+    const asg = [A({ recur: undefined, date: '2026-10-07' }), A({ id: 'a2', recur: undefined, date: '2026-10-08' })]; // kendaraan sama sudah ada di 10-08
+    const insts = expand(asg, '2026-10-07', '2026-10-07');
+    const r = planCopy(insts, asg, '2026-10-08', mid);
+    expect(r.create).toHaveLength(0);
+    expect(r.skipped[0].reason).toBe('vehicle');
+    expect(planCopy(insts, asg, '2026-10-07', mid).skipped[0].reason).toBe('same');
+  });
+  it('dua instance kendaraan/sopir sama pada hari sumber tidak menjadi ganda di tujuan', () => {
+    const asg = [A({ recur: undefined, date: '2026-10-07' }), A({ id: 'a2', deviceId: 'v2', recur: undefined, date: '2026-10-07' })]; // sopir sama, jam sama -> sudah bentrok di sumber
+    const insts = expand(asg, '2026-10-07', '2026-10-07');
+    const r = planCopy(insts, asg, '2026-10-09', mid);
+    expect(r.create).toHaveLength(1);
+    expect(r.skipped[0].reason).toBe('driver');
   });
 });
