@@ -1,29 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>TMS Probe</title></head>
+<body>
 <div id="probe" style="padding:16px;font:14px/1.5 sans-serif">TMS PROBE: HTML dimuat, menunggu initialize...</div>
 <script>
 (function () {
-  var info = function () {
-    var r = {};
-    try { r.href = location.href; } catch (e) {}
-    try { r.isTop = window.top === window; } catch (e) { r.isTop = 'cross-origin'; }
-    r.hasGeotab = typeof window.geotab;
-    return JSON.stringify(r);
-  };
-  console.info('[TMS-PROBE] script jalan', info());
+  console.info('[TMS-PROBE] script jalan');
   window.geotab = window.geotab || {};
   window.geotab.addin = window.geotab.addin || {};
   var factory = function () {
-    console.info('[TMS-PROBE] factory dipanggil');
     return {
       initialize: function (api, state, cb) {
-        console.info('[TMS-PROBE] initialize dipanggil');
         var el = document.getElementById('probe');
-        if (el) el.textContent = 'TMS PROBE OK: initialize dipanggil. ' + info();
+        if (el) el.textContent = 'TMS PROBE OK: initialize dipanggil.';
+        console.info('[TMS-PROBE] initialize dipanggil');
         cb();
       },
-      focus: function () { console.info('[TMS-PROBE] focus'); },
-      blur: function () { console.info('[TMS-PROBE] blur'); }
+      focus: function () {},
+      blur: function () {}
     };
   };
   ['probe', 'tmsProbe', 'TMSProbe'].forEach(function (n) { window.geotab.addin[n] = factory; });
 })();
 </script>
+</body>
+</html>

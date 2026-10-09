@@ -1,5 +1,14 @@
-<!-- Halaman add-in MyGeotab. Geotab memuat HTML ini lalu mengeksekusi tms.js (mendaftarkan geotab.addin.tms).
-     Letakkan file ini sejajar dengan tms.js. addInId diisi oleh `npm run build` (env ADDIN_ID). -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>TMS Transport Management</title>
+</head>
+<body>
 <div id="tms-root"></div>
 <script>window.TMS_CONFIG = { addInId: "__ADDIN_ID__" };</script>
-<script src="__HOST_URL__/tms.js"></script>
+<script>
+__BUNDLE__
+</script>
+</body>
+</html>
