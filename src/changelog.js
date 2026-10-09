@@ -2,6 +2,20 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '1.5.0',
+    date: '2026-10-09',
+    id: [
+      'Laporan > Ringkasan armada: kolom Engine hour, Fuel used, Fuel economy per kendaraan + KPI total armada (economy hanya dari kendaraan yang punya data fuel).',
+      'Laporan > Trip: kolom Engine hour, Fuel used, Fuel economy per trip.',
+      'Ekspor CSV ikut berisi kolom baru (jam, liter, km/L, L/100km, penanda perkiraan). Data sensor dibaca per kendaraan dengan paging otomatis.',
+    ],
+    en: [
+      'Reports > Fleet summary: Engine hour, Fuel used and Fuel economy columns per vehicle + fleet-wide KPIs (economy only from vehicles with fuel data).',
+      'Reports > Trips: Engine hour, Fuel used and Fuel economy columns per trip.',
+      'CSV export includes the new columns (hours, litres, km/L, L/100km, estimate flag). Sensor data is read per vehicle with automatic paging.',
+    ],
+  },
+  {
     v: '1.4.0',
     date: '2026-10-09',
     id: [

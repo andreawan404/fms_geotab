@@ -82,3 +82,6 @@ export function fmtEconomy(s, unit = 'kmpl') {
   if (!s) return '-';
   return unit === 'l100' ? (s.lPer100km == null ? '-' : `${s.lPer100km.toFixed(1)} L/100km`) : s.kmPerL == null ? '-' : `${s.kmPerL.toFixed(2)} km/L`;
 }
+
+/** Awali dengan "~" bila nilai hanya perkiraan. */
+export const withApprox = (x, txt) => (x && x.approx && txt !== '-' ? `~${txt}` : txt);

@@ -27,17 +27,24 @@ export function createGeotab(api) {
   const validStatus = (r) => Number.isFinite(r.t) && Number.isFinite(r.v);
   async function statusSeries(deviceId, diagId, fromMs, toMs, limit = 50000) {
     if (badDiag.has(diagId)) return [];
+    const out = [];
+    let from = fromMs;
     try {
-      const rows = await call('Get', {
-        typeName: 'StatusData',
-        search: { fromDate: toIso(fromMs), toDate: toIso(toMs), deviceSearch: { id: deviceId }, diagnosticSearch: { id: diagId } },
-        resultsLimit: limit,
-      });
-      return rows.map(normStatus).filter(validStatus).sort((a, b) => a.t - b.t);
+      for (let guard = 0; guard < 8; guard++) {
+        const rows = await call('Get', {
+          typeName: 'StatusData',
+          search: { fromDate: toIso(from), toDate: toIso(toMs), deviceSearch: { id: deviceId }, diagnosticSearch: { id: diagId } },
+          resultsLimit: limit,
+        });
+        const norm = rows.map(normStatus).filter(validStatus).sort((a, b) => a.t - b.t);
+        out.push(...norm);
+        if (rows.length < limit || limit < 50000 || !norm.length) break; // halaman penuh -> lanjut ke halaman berikutnya
+        from = norm[norm.length - 1].t + 1;
+      }
     } catch (e) {
       if (/diagnostic|not found|invalid/i.test(errMessage(e))) badDiag.add(diagId);
-      return [];
     }
+    return out;
   }
 
   const normLog = (r) => ({ t: new Date(r.dateTime).getTime(), lat: r.latitude, lng: r.longitude, speed: r.speed });
