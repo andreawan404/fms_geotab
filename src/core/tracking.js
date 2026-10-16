@@ -185,7 +185,7 @@ export class RouteRun {
     if (!d || !d.confirmed) return [];
     const rec = { startMs: d.startMs, endMs: d.lastOutMs, maxDistM: d.maxDistM, travelM: d.travelM, lat: d.lat, lng: d.lng };
     this.deviations.push(rec);
-    return [{ type: 'deviation_end', ...rec }];
+    return [{ type: 'deviation_end', t: rec.endMs, detectedAt: rec.endMs, distM: rec.maxDistM, ...rec }];
   }
 
   result(nowMs = Date.now()) {

@@ -2,6 +2,12 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v1.12.0 - 2026-10-16
+
+- Riwayat Alert: tombol "Lihat semua alert" membuka halaman riwayat lengkap. Tampilan Timeline (dikelompokkan per hari) dan Per kendaraan, dengan filter periode (hari ini / 7 / 30 / 90 hari), kendaraan, jenis kejadian, status penanganan, dan pencarian. Klik kejadian membuka detail penugasannya. Ekspor CSV tersedia.
+- Semua jenis kejadian (keluar rute, kembali, terlambat, di titik awal, checkpoint, selesai) kini tersimpan permanen di AddInData per hari, sehingga tetap bisa dilihat setelah MyGeotab ditutup atau dibuka dari perangkat lain. Retensi default 90 hari (atur di Pengaturan), data lebih lama dihapus otomatis.
+- "Tandai ditangani": alert keluar rute / terlambat dapat ditandai sudah ditangani beserta catatan; nama pengguna dan waktunya tercatat, dapat dibatalkan. Tersedia di panel Alert dan di Riwayat.
+
 ## v1.11.0 - 2026-10-10
 
 - Panel Alert & kejadian di Monitor dirombak: hanya kejadian N menit terakhir (pilihan 5 / 10 / 30, default 10), terbaru di atas, dengan waktu relatif ("3 mnt lalu").

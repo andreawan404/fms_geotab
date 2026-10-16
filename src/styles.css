@@ -197,3 +197,9 @@
 .tms-alert-item .ttl b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tms-alert-item .rel{font-size:11px;color:#6b7a8a;white-space:nowrap;flex:none}
 .tms-alert-item .txt{color:#33414f;margin-top:1px;overflow-wrap:anywhere}
 .tms-alert-item.mute .txt{color:#667587}
+
+.tms-alert-item.hist{align-items:flex-start;cursor:default}.tms-alert-item.hist:hover{background:#fff}
+.tms-alert-item .tms-btn{flex:none;align-self:center}
+.tms-acked{font-size:11px;color:#1f7a45;margin-top:2px}
+.tms-histf{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.tms-card .tms-histf select,.tms-card .tms-histf input{width:auto;flex:0 1 220px;min-width:160px}.tms-card .tms-histf input[type=search]{flex:1 1 220px}
+.tms-clickable{cursor:pointer}.tms-pill-bad{background:#d63a3a;color:#fff;border-radius:9px;padding:0 8px;margin-left:8px;text-transform:none;letter-spacing:0}

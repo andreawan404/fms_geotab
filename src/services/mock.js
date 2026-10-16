@@ -284,6 +284,9 @@ export function createMockApi() {
   const wait = (fn) => setTimeout(fn, 40);
   return {
     isMock: true,
+    getSession(cb) {
+      setTimeout(() => cb({ userName: 'operator@demo', database: 'demo' }), 20);
+    },
     call(method, params, ok, err) {
       wait(() => {
         try {

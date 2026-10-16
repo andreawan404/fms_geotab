@@ -54,6 +54,24 @@ export function createGeotab(api) {
     call,
     multiCall,
 
+    /** Nama pengguna MyGeotab yang sedang login (untuk "ditangani oleh"); kosong bila tidak tersedia. */
+    getUser() {
+      return new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(''), 3000);
+        try {
+          if (typeof api.getSession !== 'function') return resolve('');
+          api.getSession((s) => {
+            clearTimeout(timer);
+            resolve((s && s.userName) || '');
+          }, false);
+        } catch {
+          clearTimeout(timer);
+          resolve('');
+        }
+        return undefined;
+      });
+    },
+
     async getDevices() {
       const rows = await call('Get', { typeName: 'Device', search: {} });
       const now = Date.now();

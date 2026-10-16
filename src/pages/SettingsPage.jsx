@@ -95,6 +95,9 @@ export default function SettingsPage({ addInId }) {
             <Field label={t('set.idleWarn')} hint={t('set.idleWarnHint')}>
               <input type="number" min="0" max="100" value={s.idleWarnPct ?? 20} onChange={(e) => setS({ ...s, idleWarnPct: e.target.value })} />
             </Field>
+            <Field label={t('set.alertRetention')} hint={t('set.alertRetentionHint')}>
+              <input type="number" min="7" max="365" value={s.alertRetentionDays ?? 90} onChange={(e) => setS({ ...s, alertRetentionDays: e.target.value })} />
+            </Field>
             <Field label={t('set.poll')} hint={t('set.pollHint')}>
               <input type="number" min="5" value={s.pollSec} onChange={(e) => setS({ ...s, pollSec: e.target.value })} />
             </Field>

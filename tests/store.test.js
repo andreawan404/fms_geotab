@@ -60,7 +60,7 @@ describe('store (AddInData)', () => {
     const g = fakeGeotab();
     const store = createStore(g, 'addin1');
     const asg = await store.saveAssignment({ id: 'a1', routeId: 'r1', deviceId: 'b1', startTime: '08:00', endTime: '17:00', recur: { days: [1], from: '2026-10-05' } });
-    await store.saveAlert({ key: 'k1', ts: 1, deviceId: 'b1' });
+    await store.appendAlerts([{ id: 'a1@2026-10-05:deviation_start:1', type: 'deviation_start', t: 1, at: 1, deviceId: 'b1', routeId: 'r1', instKey: 'a1@2026-10-05', distM: 120 }]);
     await store.saveSettings({ pollSec: 30, routing: { provider: 'ors' } }, undefined);
     const d = await store.load();
     expect(d.assignments.length).toBe(1);
@@ -77,5 +77,47 @@ describe('store (AddInData)', () => {
     const r = mkRoute('r1', 5);
     r.checkpoints = Array.from({ length: 120 }, (_, i) => ({ id: `c${i}`, name: 'Checkpoint dengan nama yang cukup panjang '.repeat(2) + i, lat: -6.2, lng: 106.8, radius: 100, etaOffsetS: 100 }));
     await expect(store.saveRoute(r)).rejects.toThrow(/terlalu besar/);
+  });
+
+  it('log alert: semua jenis tersimpan per hari, terpecah bila besar, utuh saat dibaca & tidak ganda', async () => {
+    const g = fakeGeotab();
+    const store = createStore(g, 'addin1');
+    const day = new Date(2026, 9, 5, 9, 0).getTime();
+    const evs = Array.from({ length: 160 }, (_, i) => ({ id: `a1@2026-10-05:checkpoint_arrived:${day + i}`, type: i % 2 ? 'deviation_start' : 'checkpoint_arrived', t: day + i, at: day + i * 1000, deviceId: 'b1', routeId: 'r1', instKey: 'a1@2026-10-05', cpName: 'Checkpoint panjang ' + i, distM: 100 + i, lat: -6.2, lng: 106.8 }));
+    await store.appendAlerts(evs.slice(0, 80));
+    await store.appendAlerts(evs.slice(80));
+    for (const r of g.rows.values()) expect(JSON.stringify(r.details).length).toBeLessThan(9500);
+    expect(g.rows.size).toBeGreaterThan(1);
+    const d = await store.load();
+    expect(d.alerts.length).toBe(160);
+    expect(d.alerts[0].at).toBeGreaterThan(d.alerts[159].at); // terbaru dulu
+    expect(d.alerts.find((a) => a.id === evs[3].id).cpName).toBe('Checkpoint panjang 3');
+    // sesi lain menulis event yang sama -> tidak ganda
+    const other = createStore(g, 'addin1');
+    await other.appendAlerts([evs[0]]);
+    expect((await store.load()).alerts.length).toBe(160);
+  });
+
+  it('ack: simpan, baca, hapus', async () => {
+    const g = fakeGeotab();
+    const store = createStore(g, 'addin1');
+    const a = await store.saveAck({ id: 'x', by: 'budi', at: 5, note: 'sudah ditelepon' });
+    let d = await store.load();
+    expect(d.acks.get('x').by).toBe('budi');
+    expect(d.acks.get('x').note).toBe('sudah ditelepon');
+    await store.deleteAck(a);
+    d = await store.load();
+    expect(d.acks.size).toBe(0);
+  });
+
+  it('cleanup: hanya menghapus rekaman lebih lama dari retensi', async () => {
+    const g = fakeGeotab();
+    const store = createStore(g, 'addin1');
+    const now = Date.now();
+    await store.appendAlerts([{ id: 'old', type: 'deviation_start', t: now - 100 * 864e5, at: now - 100 * 864e5, deviceId: 'b1', instKey: 'k@d' }]);
+    await store.appendAlerts([{ id: 'new', type: 'deviation_start', t: now, at: now, deviceId: 'b1', instKey: 'k@d' }]);
+    const d = await store.load();
+    expect(await store.cleanup(d.oldRids, 90)).toBe(1);
+    expect((await store.load()).alerts.map((a) => a.id)).toEqual(['new']);
   });
 });

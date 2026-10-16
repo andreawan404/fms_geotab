@@ -2,6 +2,20 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '1.12.0',
+    date: '2026-10-16',
+    id: [
+      'Riwayat Alert: tombol "Lihat semua alert" membuka halaman riwayat lengkap. Tampilan Timeline (dikelompokkan per hari) dan Per kendaraan, dengan filter periode (hari ini / 7 / 30 / 90 hari), kendaraan, jenis kejadian, status penanganan, dan pencarian. Klik kejadian membuka detail penugasannya. Ekspor CSV tersedia.',
+      'Semua jenis kejadian (keluar rute, kembali, terlambat, di titik awal, checkpoint, selesai) kini tersimpan permanen di AddInData per hari, sehingga tetap bisa dilihat setelah MyGeotab ditutup atau dibuka dari perangkat lain. Retensi default 90 hari (atur di Pengaturan), data lebih lama dihapus otomatis.',
+      '"Tandai ditangani": alert keluar rute / terlambat dapat ditandai sudah ditangani beserta catatan; nama pengguna dan waktunya tercatat, dapat dibatalkan. Tersedia di panel Alert dan di Riwayat.',
+    ],
+    en: [
+      'Alert history: "View all alerts" opens a full history page. Timeline (grouped by day) and By-vehicle views, with filters for period (today / 7 / 30 / 90 days), vehicle, event type, handling status and search. Clicking an event opens its assignment detail. CSV export included.',
+      'All event types (off route, back on route, late, at start, checkpoints, completed) are now stored permanently in AddInData per day, so they remain visible after MyGeotab is closed or opened from another device. Default retention 90 days (set in Settings); older data is deleted automatically.',
+      '"Mark handled": off-route / late alerts can be marked handled with a note; the user name and time are recorded and can be undone. Available in the Alert panel and in History.',
+    ],
+  },
+  {
     v: '1.11.0',
     date: '2026-10-10',
     id: [

@@ -9,6 +9,7 @@ import { makeT } from './i18n.js';
 import { eventText } from './lib/eventText.js';
 
 const NOTIFY_TYPES = new Set(['deviation_start', 'late_start', 'start_reached', 'route_completed']);
+const FEED_MAX = 30000;
 const WARN_TYPES = new Set(['deviation_start', 'late_start']);
 
 const Ctx = createContext(null);
@@ -73,7 +74,8 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
   const [drivers, setDrivers] = useState([]);
   const [statuses, setStatuses] = useState(new Map());
   const [results, setResults] = useState(new Map());
-  const [feed, setFeed] = useState([]);
+  const [feed, setFeed] = useState([]); // seluruh log alert (riwayat sesuai retensi) terbaru di atas
+  const [acks, setAcks] = useState(new Map()); // alertId -> { by, at, note }
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
   const [toasts, setToasts] = useState([]);
@@ -119,16 +121,17 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
         errs.seed = errMessage(e);
       }
     }
-    seen.current = new Set(loaded.alerts.map((a) => a.key));
+    seen.current = new Set(loaded.alerts.map((a) => a.id));
     setData(loaded);
     setDevices(dev);
     setDrivers(drv);
-    setFeed(
-      loaded.alerts.map((a) => ({ id: a.key, type: a.type || 'deviation_start', cpName: a.cpName, min: a.min, t: a.startMs, at: a.ts, deviceId: a.deviceId, routeId: a.routeId, instKey: a.instKey, distM: a.distM, lat: a.lat, lng: a.lng, persisted: true })),
-    );
+    setFeed(loaded.alerts.slice(0, FEED_MAX));
+    setAcks(loaded.acks || new Map());
     monitor.reset();
     setErrors(errs);
     setLoading(false);
+    // pembersihan retensi di latar belakang (maks. beberapa ratus rekaman per muat)
+    if (d && loaded.oldRids?.length) store.cleanup(loaded.oldRids, Number(loaded.settings?.alertRetentionDays) || 90).catch(() => {});
   }, [store, geotab, seed, monitor]);
 
   useEffect(() => {
@@ -145,12 +148,10 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
         fresh.push({ id, type: e.type, t: e.t, at: e.detectedAt || e.t, deviceId: e.deviceId, routeId: e.routeId, instKey: e.instKey, cpName: e.name, min: e.min, distM: e.distM, lat: e.lat, lng: e.lng });
       }
       if (!fresh.length) return;
-      setFeed((f) => [...fresh, ...f].sort((a, b) => b.at - a.at).slice(0, 400));
+      setFeed((f) => [...fresh, ...f].sort((a, b) => b.at - a.at).slice(0, FEED_MAX));
       const now = Date.now();
       for (const it of fresh) {
         if (!NOTIFY_TYPES.has(it.type)) continue;
-        const device = devRef.current.find((d) => d.id === it.deviceId);
-        const route = dataRef.current.routes.find((r) => r.id === it.routeId);
         if (now - it.at < 5 * 60000) {
           const msg = eventText(it, { t, deviceMap: new Map(devRef.current.map((d) => [d.id, d])), routeMap: new Map(dataRef.current.routes.map((r) => [r.id, r])) });
           if (soundRef.current) beep();
@@ -161,10 +162,9 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
           }
           toast(msg, WARN_TYPES.has(it.type) ? 'err' : 'ok');
         }
-        store
-          .saveAlert({ key: it.id, type: it.type, cpName: it.cpName, min: it.min, ts: it.at, deviceId: it.deviceId, routeId: it.routeId, instKey: it.instKey, startMs: it.t, distM: Math.round(it.distM || 0), lat: it.lat, lng: it.lng })
-          .catch(() => {});
       }
+      // semua jenis kejadian disimpan ke riwayat (log harian); event lama yang belum tersimpan ikut terisi (backfill)
+      store.appendAlerts(fresh).catch(() => {});
     },
     [store, toast, t],
   );
@@ -281,6 +281,35 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
     [geotab],
   );
 
+  const ackAlert = useCallback(
+    async (ids, note) => {
+      const by = (await geotab.getUser().catch(() => '')) || '';
+      const at = Date.now();
+      const saved = [];
+      for (const id of ids) saved.push(await store.saveAck({ id, by, at, note }));
+      setAcks((m) => {
+        const n = new Map(m);
+        for (const a of saved) n.set(a.id, a);
+        return n;
+      });
+      return saved;
+    },
+    [store, geotab],
+  );
+  const unackAlert = useCallback(
+    async (id) => {
+      const a = acks.get(id);
+      if (!a) return;
+      await store.deleteAck(a);
+      setAcks((m) => {
+        const n = new Map(m);
+        n.delete(id);
+        return n;
+      });
+    },
+    [store, acks],
+  );
+
   const getRules = useCallback(async () => {
     if (!rulesCache.current) rulesCache.current = await geotab.getRules().catch(() => ({}));
     return rulesCache.current;
@@ -307,6 +336,9 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
     statuses,
     results,
     feed,
+    acks,
+    ackAlert,
+    unackAlert,
     loading,
     errors,
     lastTick,

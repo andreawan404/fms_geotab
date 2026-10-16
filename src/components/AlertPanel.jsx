@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext.jsx';
-import { Empty, Modal } from './ui.jsx';
-import { SEVERITY, ongoingItems, recentItems, relParts } from '../lib/alertView.js';
+import { Empty } from './ui.jsx';
+import AckDialog from './AckDialog.jsx';
+import { ACKABLE, SEVERITY, ongoingItems, recentItems, relParts } from '../lib/alertView.js';
 import { fmtDateTime, fmtTime } from '../core/time.js';
 import { vehicleLabel } from '../lib/vehicle.js';
 
@@ -26,8 +27,8 @@ export const useRel = () => {
 };
 
 /** Panel alert live: yang sedang berlangsung (tidak kedaluwarsa) + kejadian N menit terakhir. */
-export default function AlertPanel({ onOpen }) {
-  const { t, results, feed, deviceMap, routeMap } = useApp();
+export default function AlertPanel({ onOpen, onViewAll }) {
+  const { t, results, feed, acks, deviceMap, routeMap } = useApp();
   const rel = useRel();
   const now = useNow();
   const [win, setWin] = useState(() => {
@@ -38,7 +39,7 @@ export default function AlertPanel({ onOpen }) {
       return 10;
     }
   });
-  const [all, setAll] = useState(false);
+  const [ackIds, setAckIds] = useState(null);
   const pick = (v) => {
     setWin(v);
     try {
@@ -91,34 +92,18 @@ export default function AlertPanel({ onOpen }) {
             <div className="body">
               <div className="ttl"><b>{dname(it.deviceId)}</b><span className="rel">{rel(it.at, now)}</span></div>
               <div className="txt">{text(it)}</div>
+              {acks.has(it.id) && <div className="tms-acked">✓ {t('ack.by', { by: acks.get(it.id).by || '—' })}</div>}
             </div>
+            {ACKABLE.has(it.type) && !acks.has(it.id) && (
+              <button className="tms-btn sm" onClick={(e) => { e.stopPropagation(); setAckIds([it.id]); }}>{t('ack.btn')}</button>
+            )}
           </div>
         ))}
       </div>
       <div className="tms-card-f">
-        <button className="tms-btn sm" onClick={() => setAll(true)}>{t('panel.viewAll')} ({feed.length})</button>
+        <button className="tms-btn sm" onClick={onViewAll}>{t('panel.viewAll')} ({feed.length})</button>
       </div>
-      {all && <AllAlertsModal onClose={() => setAll(false)} onOpen={onOpen} />}
+      {ackIds && <AckDialog ids={ackIds} onClose={() => setAckIds(null)} />}
     </div>
-  );
-}
-
-// Daftar lengkap sementara; digantikan halaman Riwayat Alert (v1.12.0).
-function AllAlertsModal({ onClose, onOpen }) {
-  const { t, feed, results, deviceMap, routeMap } = useApp();
-  const text = (it) => t(`ev.${it.type}`, { route: routeMap.get(it.routeId)?.name || '', cp: it.cpName || '', dist: Math.round(it.distM || 0), min: it.min ?? '' });
-  return (
-    <Modal wide onClose={onClose} title={t('panel.allTitle')} footer={<button className="tms-btn" onClick={onClose}>{t('close')}</button>}>
-      {feed.length === 0 && <Empty>{t('mon.noAlerts')}</Empty>}
-      {feed.map((it) => (
-        <div key={it.id} className={`tms-alert-item ${SEVERITY[it.type] || 'mute'}`} onClick={() => { const i = results.get(it.instKey)?.inst; if (i) { onClose(); onOpen?.(i); } }}>
-          <span className="dot" />
-          <div className="body">
-            <div className="ttl"><b>{vehicleLabel(deviceMap.get(it.deviceId) || { name: it.deviceId }).name}</b><span className="rel">{fmtDateTime(it.at)}</span></div>
-            <div className="txt">{text(it)}</div>
-          </div>
-        </div>
-      ))}
-    </Modal>
   );
 }
