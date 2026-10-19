@@ -121,7 +121,11 @@ export function createMockApi() {
   }
   rows = loadLS();
   let seq = rows.reduce((m, r) => Math.max(m, Number(String(r.id).slice(1)) || 0), 0);
-  const zones = [];
+  const zones = [
+    { id: 'zd1', name: 'Gudang Cikarang', points: [{x:107.171,y:-6.3073999999999995},{x:107.1734,y:-6.3073999999999995},{x:107.1734,y:-6.305},{x:107.171,y:-6.305}] },
+    { id: 'zd2', name: 'Pabrik Karawang', points: [{x:107.3364,y:-6.3227},{x:107.33879999999999,y:-6.3227},{x:107.33879999999999,y:-6.3203000000000005},{x:107.3364,y:-6.3203000000000005}] },
+    { id: 'zd3', name: 'Depo Jakarta Timur', points: [{x:106.89920000000001,y:-6.2261999999999995},{x:106.9016,y:-6.2261999999999995},{x:106.9016,y:-6.2238},{x:106.89920000000001,y:-6.2238}] },
+  ];
 
   function handle(method, p) {
     const type = p?.typeName;

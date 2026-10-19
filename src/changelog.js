@@ -2,6 +2,24 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '2.0.1',
+    date: '2026-10-19',
+    id: [
+      'Nomor DO dibuat otomatis dari waktu + nama customer (mis. DO-20261019-154854-PTCONTOH); cukup isi customer, nomor bisa diubah manual bila perlu.',
+      'Lokasi stop lebih mudah: cari nama tempat/alamat (hasil langsung muncul), pilih Zona MyGeotab (titik, radius, dan bentuk zona terisi otomatis), atau klik / geser pin pada peta. Peta menampilkan titik, radius, dan zona.',
+      'Tabel barang diganti kartu per barang dengan semua field kapasitas tertata rapi, tanpa scroll ke samping; kolom qty lebih lebar.',
+      'Stop Delivery: centang barang dari pickup sehingga isinya otomatis sama persis (ikut berubah bila pickup diubah). Tombol "Ubah" untuk perbedaan di delivery (mis. qty sebagian) dan "Tambah barang lain" untuk barang berbeda.',
+      'Dialog Order tidak lagi menempel di tepi atas dan selalu terlihat penuh di dalam MyGeotab.',
+    ],
+    en: [
+      'DO number is generated automatically from time + customer name (e.g. DO-20261019-154854-PTCONTOH); just enter the customer, the number can still be edited manually.',
+      'Easier stop locations: search a place/address (results appear as you type), pick a MyGeotab Zone (point, radius and zone shape filled automatically), or click / drag the pin on the map. The map shows the point, radius and zone.',
+      'The goods table is replaced by one card per item with all capacity fields neatly laid out, no sideways scrolling; wider qty field.',
+      'Delivery stops: tick goods from the pickup so they are automatically identical (and follow pickup edits). "Edit" handles differences at delivery (e.g. partial qty) and "Add other item" handles different goods.',
+      'The Order dialog no longer sticks to the top edge and is always fully visible inside MyGeotab.',
+    ],
+  },
+  {
     v: '2.0.0',
     date: '2026-10-19',
     id: [

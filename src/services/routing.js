@@ -94,3 +94,18 @@ export async function geocode(settings, text) {
   const data = await jsonFetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=${q}${cc}`);
   return data.map((d) => ({ label: d.display_name, lat: Number(d.lat), lng: Number(d.lon) }));
 }
+
+/** Alamat dari koordinat (best effort, hanya Nominatim). Mengembalikan string atau ''. */
+export async function reverseGeocode(settings, lat, lng) {
+  try {
+    const r = settings.routing || {};
+    if (r.provider === 'ors' && r.orsKey) {
+      const d = await jsonFetch(`https://api.openrouteservice.org/geocode/reverse?api_key=${encodeURIComponent(r.orsKey)}&point.lon=${lng}&point.lat=${lat}&size=1`);
+      return d.features?.[0]?.properties?.label || '';
+    }
+    const d = await jsonFetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+    return d.display_name || '';
+  } catch {
+    return '';
+  }
+}

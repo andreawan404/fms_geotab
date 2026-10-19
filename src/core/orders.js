@@ -186,3 +186,11 @@ export function legs(order) {
   for (let i = 0; i < s.length - 1; i++) out.push({ fromIdx: i, toIdx: i + 1, from: s[i], to: s[i + 1] });
   return out;
 }
+
+/** Nomor DO otomatis: DO-YYYYMMDD-HHmmss-KODECUSTOMER (kode = huruf/angka awal nama customer, maks 8). */
+export function genDoNo(customer, now = new Date()) {
+  const p2 = (n) => String(n).padStart(2, '0');
+  const stamp = `${now.getFullYear()}${p2(now.getMonth() + 1)}${p2(now.getDate())}-${p2(now.getHours())}${p2(now.getMinutes())}${p2(now.getSeconds())}`;
+  const code = String(customer || '').normalize('NFKD').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8);
+  return code ? `DO-${stamp}-${code}` : '';
+}

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useApp } from '../AppContext.jsx';
 
 export function Modal({ title, onClose, children, footer, wide = false, xwide = false }) {
@@ -7,8 +7,13 @@ export function Modal({ title, onClose, children, footer, wide = false, xwide = 
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, [onClose]);
+  const ref = useRef(null);
+  useEffect(() => {
+    // di dalam iframe MyGeotab, pastikan dialog terlihat penuh (tidak terpotong di atas)
+    try { ref.current?.scrollIntoView({ block: 'nearest' }); } catch { /* abaikan */ }
+  }, []);
   return (
-    <div className="tms-modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
+    <div ref={ref} className={`tms-modal-back ${xwide ? 'top' : ''}`} onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
       <div className={`tms-modal ${wide ? 'wide' : ''} ${xwide ? 'xwide' : ''}`} role="dialog" aria-modal="true">
         <div className="tms-modal-head">
           <h3>{title}</h3>

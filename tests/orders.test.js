@@ -112,3 +112,14 @@ describe('xlsx & import', () => {
     expect(chk.items.find((x) => x.order.doNo === 'DO-8').status).toBe('duplicate');
   });
 });
+
+import { genDoNo } from '../src/core/orders.js';
+describe('genDoNo', () => {
+  it('membentuk nomor dari waktu dan nama customer', () => {
+    expect(genDoNo('PT Contoh Makmur', new Date(2026, 9, 19, 15, 48, 54))).toBe('DO-20261019-154854-PTCONTOH');
+  });
+  it('kosong bila customer kosong dan lolos format validasi', () => {
+    expect(genDoNo('  ', new Date())).toBe('');
+    expect(genDoNo('CV. Sumber Jaya & Co', new Date(2026, 0, 2, 3, 4, 5))).toMatch(/^[A-Za-z0-9][A-Za-z0-9\-_/.]{0,39}$/);
+  });
+});

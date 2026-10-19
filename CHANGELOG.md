@@ -2,6 +2,14 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v2.0.1 - 2026-10-19
+
+- Nomor DO dibuat otomatis dari waktu + nama customer (mis. DO-20261019-154854-PTCONTOH); cukup isi customer, nomor bisa diubah manual bila perlu.
+- Lokasi stop lebih mudah: cari nama tempat/alamat (hasil langsung muncul), pilih Zona MyGeotab (titik, radius, dan bentuk zona terisi otomatis), atau klik / geser pin pada peta. Peta menampilkan titik, radius, dan zona.
+- Tabel barang diganti kartu per barang dengan semua field kapasitas tertata rapi, tanpa scroll ke samping; kolom qty lebih lebar.
+- Stop Delivery: centang barang dari pickup sehingga isinya otomatis sama persis (ikut berubah bila pickup diubah). Tombol "Ubah" untuk perbedaan di delivery (mis. qty sebagian) dan "Tambah barang lain" untuk barang berbeda.
+- Dialog Order tidak lagi menempel di tepi atas dan selalu terlihat penuh di dalam MyGeotab.
+
 ## v2.0.0 - 2026-10-19
 
 - Tahap 1 proses pengiriman: menu baru "Order" untuk membuat dan mengelola Delivery Order (DO). Satu DO bisa multi-drop dengan beberapa stop berurutan (pickup / delivery), masing-masing dengan alamat, koordinat, radius, jendela waktu, kontak, dan daftar barang.
