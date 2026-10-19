@@ -107,3 +107,14 @@ scripts/       postbuild, gen-addin-id, check-i18n
   dengan pesan jelas. Geometri disederhanakan ke ≤ 2.500 titik.
 - Laporan memanggil `Trip`, `ExceptionEvent`, dan `LogRecord` per kendaraan; rentang > 31 hari meminta konfirmasi.
 - Zone Geotab dari koridor disederhanakan (≤ 400 titik); koridor yang terputus hanya memakai bagian terbesar.
+
+
+## Backend order (v2.0+)
+
+Fitur Order memakai Vercel Functions (`api/`) dan Postgres. Setup sekali:
+
+1. Vercel project > **Storage > Create Database > Postgres (Neon)** lalu hubungkan ke project ini. Variabel `POSTGRES_URL` (atau `DATABASE_URL`) terisi otomatis.
+2. Project > Settings > Environment Variables: `ALLOWED_DATABASES` = nama database MyGeotab (pisahkan koma bila lebih dari satu).
+3. **Redeploy**, lalu buka `https://fms-geotab.vercel.app/api/health` untuk memastikan database dan autentikasi `ok`.
+
+Skema database dibuat/dimigrasi otomatis saat API pertama dipanggil. API memverifikasi sesi MyGeotab pengguna (header `Authorization: Geotab ...`).

@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createGeotab, errMessage } from './services/geotab.js';
+import { createOrdersApi } from './services/ordersApi.js';
 import { createStore, DEFAULT_SETTINGS } from './services/store.js';
 import { Monitor } from './services/monitor.js';
 import { evaluateInstance, DEFAULT_PARAMS } from './core/tracking.js';
@@ -35,6 +36,7 @@ function beep() {
 export function AppProvider({ api, addInId, active = true, seed, children }) {
   const geotab = useMemo(() => createGeotab(api), [api]);
   const store = useMemo(() => createStore(geotab, addInId), [geotab, addInId]);
+  const ordersApi = useMemo(() => createOrdersApi({ geotab, isMock: !!api.isMock }), [geotab, api]);
   const monitor = useRef(new Monitor()).current;
 
   const [lang, setLangState] = useState(() => {
@@ -324,6 +326,7 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
     api,
     geotab,
     store,
+    ordersApi,
     isMock: !!api.isMock,
     settings: data.settings,
     routes: data.routes,

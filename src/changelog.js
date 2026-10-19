@@ -2,6 +2,22 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '2.0.0',
+    date: '2026-10-19',
+    id: [
+      'Tahap 1 proses pengiriman: menu baru "Order" untuk membuat dan mengelola Delivery Order (DO). Satu DO bisa multi-drop dengan beberapa stop berurutan (pickup / delivery), masing-masing dengan alamat, koordinat, radius, jendela waktu, kontak, dan daftar barang.',
+      'Data muatan selengkap mungkin: qty, satuan, berat, volume, pallet, koli, dimensi, kategori, suhu, B3, dan bisa ditumpuk. Ringkasan muatan menghitung beban puncak sepanjang rute, serta peringatan bila bongkar melebihi muat atau suhu bentrok.',
+      'Import dari Excel / CSV memakai template kami (satu baris = satu item) dengan pratinjau dan validasi per DO sebelum disimpan. Template dan petunjuk kolom bisa diunduh.',
+      'Backend baru di Vercel (Postgres + API) dengan autentikasi sesi MyGeotab dan jejak audit. Perlu menghubungkan Postgres dan mengisi ALLOWED_DATABASES (lihat README); cek status di /api/health.',
+    ],
+    en: [
+      'Stage 1 of the delivery process: new "Orders" menu to create and manage Delivery Orders (DO). One DO can be multi-drop with several sequential pickup / delivery stops, each with address, coordinates, radius, time window, contact and a list of goods.',
+      'As complete cargo data as possible: qty, unit, weight, volume, pallets, colli, dimensions, category, temperature, hazardous and stackable. The load summary computes peak load along the route and warns when unloading exceeds loading or temperatures conflict.',
+      'Import from Excel / CSV using our template (one row = one item) with preview and per-DO validation before saving. Template and column guide can be downloaded.',
+      'New backend on Vercel (Postgres + API) with MyGeotab session authentication and audit trail. Requires connecting Postgres and setting ALLOWED_DATABASES (see README); check status at /api/health.',
+    ],
+  },
+  {
     v: '1.12.0',
     date: '2026-10-16',
     id: [

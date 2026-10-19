@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useApp } from '../AppContext.jsx';
 
-export function Modal({ title, onClose, children, footer, wide = false }) {
+export function Modal({ title, onClose, children, footer, wide = false, xwide = false }) {
   useEffect(() => {
     const h = (e) => e.key === 'Escape' && onClose?.();
     window.addEventListener('keydown', h);
@@ -9,7 +9,7 @@ export function Modal({ title, onClose, children, footer, wide = false }) {
   }, [onClose]);
   return (
     <div className="tms-modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
-      <div className={`tms-modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true">
+      <div className={`tms-modal ${wide ? 'wide' : ''} ${xwide ? 'xwide' : ''}`} role="dialog" aria-modal="true">
         <div className="tms-modal-head">
           <h3>{title}</h3>
           <button className="tms-x" onClick={onClose} aria-label="Close">×</button>
@@ -82,6 +82,20 @@ export function Kpi({ label, value, sub, tone = '' }) {
 
 export function download(filename, text, mime = 'text/csv;charset=utf-8') {
   const url = URL.createObjectURL(new Blob([text], { type: mime }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+    a.remove();
+  }, 500);
+}
+
+/** Unduh data biner (mis. .xlsx). */
+export function downloadBlob(filename, bytes, mime = 'application/octet-stream') {
+  const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;

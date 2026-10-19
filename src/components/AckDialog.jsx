@@ -25,7 +25,7 @@ export default function AckDialog({ ids, onClose }) {
       footer={
         <>
           <button className="tms-btn" onClick={onClose}>{t('cancel')}</button>
-          <button className="tms-btn primary" disabled={busy} onClick={go}>{t('ack.confirm', { n: ids.length })}</button>
+          <button className="tms-btn pri" disabled={busy} onClick={go}>{t('ack.confirm', { n: ids.length })}</button>
         </>
       }
     >

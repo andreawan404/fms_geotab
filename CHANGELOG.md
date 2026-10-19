@@ -2,6 +2,13 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v2.0.0 - 2026-10-19
+
+- Tahap 1 proses pengiriman: menu baru "Order" untuk membuat dan mengelola Delivery Order (DO). Satu DO bisa multi-drop dengan beberapa stop berurutan (pickup / delivery), masing-masing dengan alamat, koordinat, radius, jendela waktu, kontak, dan daftar barang.
+- Data muatan selengkap mungkin: qty, satuan, berat, volume, pallet, koli, dimensi, kategori, suhu, B3, dan bisa ditumpuk. Ringkasan muatan menghitung beban puncak sepanjang rute, serta peringatan bila bongkar melebihi muat atau suhu bentrok.
+- Import dari Excel / CSV memakai template kami (satu baris = satu item) dengan pratinjau dan validasi per DO sebelum disimpan. Template dan petunjuk kolom bisa diunduh.
+- Backend baru di Vercel (Postgres + API) dengan autentikasi sesi MyGeotab dan jejak audit. Perlu menghubungkan Postgres dan mengisi ALLOWED_DATABASES (lihat README); cek status di /api/health.
+
 ## v1.12.0 - 2026-10-16
 
 - Riwayat Alert: tombol "Lihat semua alert" membuka halaman riwayat lengkap. Tampilan Timeline (dikelompokkan per hari) dan Per kendaraan, dengan filter periode (hari ini / 7 / 30 / 90 hari), kendaraan, jenis kejadian, status penanganan, dan pencarian. Klik kejadian membuka detail penugasannya. Ekspor CSV tersedia.

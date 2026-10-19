@@ -54,6 +54,23 @@ export function createGeotab(api) {
     call,
     multiCall,
 
+    /** Kredensial sesi MyGeotab untuk otentikasi ke API order: { database, userName, sessionId, server }. */
+    getCredentials() {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Sesi MyGeotab tidak tersedia')), 5000);
+        try {
+          api.getSession((s, server) => {
+            clearTimeout(timer);
+            if (!s || !s.sessionId) return reject(new Error('Sesi MyGeotab tidak tersedia'));
+            return resolve({ database: s.database, userName: s.userName, sessionId: s.sessionId, server: server || s.server || '' });
+          }, false);
+        } catch (e) {
+          clearTimeout(timer);
+          reject(e);
+        }
+      });
+    },
+
     /** Nama pengguna MyGeotab yang sedang login (untuk "ditangani oleh"); kosong bila tidak tersedia. */
     getUser() {
       return new Promise((resolve) => {

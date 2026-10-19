@@ -4,11 +4,12 @@ import { Toasts } from './components/ui.jsx';
 import FleetPage from './pages/FleetPage.jsx';
 import RoutesPage from './pages/RoutesPage.jsx';
 import AssignmentsPage from './pages/AssignmentsPage.jsx';
+import OrdersPage from './pages/OrdersPage.jsx';
 import MonitorPage from './pages/MonitorPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 
-const TABS = ['fleet', 'routes', 'assignments', 'monitor', 'reports', 'settings'];
+const TABS = ['fleet', 'orders', 'routes', 'assignments', 'monitor', 'reports', 'settings'];
 
 export default function App({ addInId }) {
   const { t, lang, setLang, results, errors, isMock, reload, loading } = useApp();
@@ -43,6 +44,7 @@ export default function App({ addInId }) {
       </div>
       {fatal && <div className="tms-banner">{errors.store ? `${t('err.store')}: ${errors.store}` : `${t('err.devices')}: ${errors.devices}`}</div>}
       {tab === 'fleet' && <FleetPage />}
+      {tab === 'orders' && <OrdersPage />}
       {tab === 'routes' && <RoutesPage />}
       {tab === 'assignments' && <AssignmentsPage />}
       {tab === 'monitor' && <MonitorPage />}

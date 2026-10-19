@@ -285,7 +285,7 @@ export function createMockApi() {
   return {
     isMock: true,
     getSession(cb) {
-      setTimeout(() => cb({ userName: 'operator@demo', database: 'demo' }), 20);
+      setTimeout(() => cb({ userName: 'operator@demo', database: 'demo', sessionId: 'mock-session' }), 20);
     },
     call(method, params, ok, err) {
       wait(() => {
