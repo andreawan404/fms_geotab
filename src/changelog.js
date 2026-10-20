@@ -2,6 +2,22 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '2.1.0',
+    date: '2026-10-20',
+    id: [
+      'Tahap 2 (Planning + Dispatch): menu baru "Vendor & Armada" untuk mengelola vendor (email, PIC), kendaraan (plat, jenis, GPS, kapasitas berat / volume / pallet / koli / dimensi bak, suhu, B3), dan driver.',
+      'Alokasi DO dari daftar Order. Sistem membandingkan beban puncak DO dengan kapasitas tiap kendaraan dan menampilkan alasan bila tidak cocok (mis. "berat 2.400 > 900 kg").',
+      'Dua cara: tawarkan ke beberapa vendor sekaligus (siapa yang menerima duluan mendapatkan DO, dijamin atomik; batas respons default 60 menit) atau alokasi langsung ke kendaraan + driver. Penawaran yang ditolak / kedaluwarsa tercatat dan DO ditandai "Tidak ada yang menerima" untuk dialokasikan ulang.',
+      'Email penawaran memakai Brevo. Selama BREVO_API_KEY belum diisi di Vercel, penawaran tetap tercatat tetapi email berstatus belum terkirim. Halaman portal vendor (terima / tolak lewat tautan) menyusul di v2.2.',
+    ],
+    en: [
+      'Stage 2 (Planning + Dispatch): new "Vendors & Fleet" menu to manage vendors (email, PIC), vehicles (plate, type, GPS, weight / volume / pallet / colli / body-dimension capacity, temperature, hazardous) and drivers.',
+      'Allocate a DO from the Orders list. The system compares the DO peak load with each vehicle capacity and shows why it does not fit (e.g. "weight 2,400 > 900 kg").',
+      'Two ways: offer to several vendors at once (first to accept gets the DO, guaranteed atomic; default response deadline 60 minutes) or allocate directly to a vehicle + driver. Rejected / expired offers are recorded and the DO is flagged "Nobody accepted" for reallocation.',
+      'Offer emails use Brevo. Until BREVO_API_KEY is set in Vercel, offers are still recorded but emails show as not sent. The vendor portal page (accept / reject via link) follows in v2.2.',
+    ],
+  },
+  {
     v: '2.0.2',
     date: '2026-10-20',
     id: ['Perbaikan: kolom pada kartu barang tidak lagi kehilangan fokus setiap mengetik satu karakter; sekarang bisa mengetik langsung secara berkelanjutan.'],

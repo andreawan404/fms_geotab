@@ -2,6 +2,7 @@
 import { randomUUID } from 'node:crypto';
 import { normalizeOrder, summary, validateOrder } from '../../src/core/orders.js';
 import { ApiError } from './errors.js';
+import { expireOffers } from './dispatchRepo.js';
 
 const STOP_COLS = `s.id, s.order_id, s.seq, s.type, s.name, s.address, s.lat::float8 AS lat, s.lng::float8 AS lng, s.radius_m,
   s.window_start, s.window_end, s.contact_name, s.contact_phone, s.instructions`;
@@ -10,7 +11,11 @@ const ITEM_COLS = `i.id, i.stop_id, i.ord, i.description, i.sku, i.qty::float8 A
   i.width_cm::float8 AS width_cm, i.height_cm::float8 AS height_cm, i.category, i.temp_min::float8 AS temp_min,
   i.temp_max::float8 AS temp_max, i.hazardous, i.stackable`;
 const ORDER_COLS = `o.id, o.do_no, o.customer, o.order_date::text AS order_date, o.priority, o.status, o.notes, o.summary,
-  o.version, o.created_by, o.created_at, o.updated_at`;
+  o.version, o.created_by, o.created_at, o.updated_at, o.vendor_id, o.vehicle_id, o.driver_id, o.assigned_at, o.assigned_via,
+  (SELECT name FROM vendors WHERE id = o.vendor_id) AS vendor_name, (SELECT plate FROM vehicles WHERE id = o.vehicle_id) AS plate,
+  (SELECT name FROM drivers WHERE id = o.driver_id) AS driver_name,
+  (SELECT count(*) FROM offers f WHERE f.order_id = o.id AND f.status = 'offered')::int AS open_offers,
+  (SELECT count(*) FROM offers f WHERE f.order_id = o.id)::int AS offer_count`;
 
 const iso = (v) => (v == null ? '' : v instanceof Date ? v.toISOString() : new Date(v).toISOString());
 
@@ -18,6 +23,8 @@ const mapHead = (r) => ({
   id: r.id, doNo: r.do_no, customer: r.customer, orderDate: r.order_date, priority: r.priority, status: r.status, notes: r.notes,
   summary: typeof r.summary === 'string' ? JSON.parse(r.summary) : r.summary || {}, version: Number(r.version), createdBy: r.created_by || '',
   createdAt: iso(r.created_at), updatedAt: iso(r.updated_at),
+  vendorId: r.vendor_id || null, vehicleId: r.vehicle_id || null, driverId: r.driver_id || null, assignedAt: r.assigned_at ? iso(r.assigned_at) : '', assignedVia: r.assigned_via || '',
+  vendorName: r.vendor_name || '', plate: r.plate || '', driverName: r.driver_name || '', openOffers: Number(r.open_offers || 0), offerCount: Number(r.offer_count || 0),
 });
 const mapItem = (r) => ({
   description: r.description, sku: r.sku, qty: r.qty, unit: r.unit, weightKg: r.weight_kg, volumeM3: r.volume_m3, pallets: r.pallets, colli: r.colli,
@@ -126,6 +133,7 @@ export async function deleteOrder(db, id, actor) {
 }
 
 export async function getOrder(db, id) {
+  await expireOffers(db);
   const head = await db.query(`SELECT ${ORDER_COLS} FROM orders o WHERE o.id = $1`, [id]);
   if (!head.length) return null;
   const stops = await db.query(`SELECT ${STOP_COLS} FROM stops s WHERE s.order_id = $1 ORDER BY s.seq`, [id]);
@@ -137,6 +145,7 @@ export async function getOrder(db, id) {
 
 /** Daftar DO (tanpa detail stop): filter status, q (nomor DO/customer), rentang tanggal order, halaman. */
 export async function listOrders(db, { status, q, from, to, limit = 50, offset = 0 } = {}) {
+  await expireOffers(db);
   const where = [];
   const p = [];
   const add = (sql, v) => { p.push(v); where.push(sql.replace('?', `$${p.length}`)); };

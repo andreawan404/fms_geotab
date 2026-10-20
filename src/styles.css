@@ -267,3 +267,13 @@
 .tms-src label{flex:1;display:flex;gap:8px;align-items:center;cursor:pointer;min-width:0}
 .tms-src.on{background:#e6f5ec}
 @media (max-width:1000px){.tms-loc{grid-template-columns:1fr}.tms-item-grid .tms-if{grid-column:span 6!important}}
+
+/* ---- Master & dispatch ---- */
+.tms-form2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.tms-form2 .wide{grid-column:1/-1}
+.tms-form3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 12px;margin-top:8px}
+.tms-form4{display:grid;grid-template-columns:repeat(4,1fr);gap:0 12px}
+.tms-chk{display:flex;gap:6px;align-items:center;margin:6px 0;font-size:13px}
+.tms-flagrow{display:flex;align-items:flex-end;padding-bottom:6px}
+.tms-dsp-need{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;background:#f3f6f9;border-radius:8px;padding:8px 12px;font-size:13px}
+.tms-banner.warn{background:#fdf6df;border-color:#e6c35c;color:#6b5000}
+@media (max-width:900px){.tms-form2,.tms-form3,.tms-form4{grid-template-columns:1fr}}

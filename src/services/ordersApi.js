@@ -49,6 +49,20 @@ export function createOrdersApi({ geotab, isMock }) {
     update: (id, order, version) => req('PUT', `/orders/${id}`, { ...order, version }),
     remove: (id) => req('DELETE', `/orders/${id}`),
     importOrders: (orders) => req('POST', '/orders/import', { orders }),
+    // master vendor / kendaraan / driver
+    master: {
+      list: async (kind, params) => (await req('GET', `/master/${kind}${qs(params)}`)).items,
+      create: async (kind, item) => (await req('POST', `/master/${kind}`, item)).item,
+      update: async (kind, id, item) => (await req('PUT', `/master/${kind}?id=${id}`, item)).item,
+      remove: (kind, id) => req('DELETE', `/master/${kind}?id=${id}`),
+    },
+    // penawaran / alokasi
+    dispatch: {
+      get: (orderId) => req('GET', `/dispatch?orderId=${orderId}`),
+      offer: (orderId, vendorIds, expiryMin = 60) => req('POST', '/dispatch', { orderId, action: 'offer', vendorIds, expiryMin }),
+      assign: (orderId, vendorId, vehicleId, driverId) => req('POST', '/dispatch', { orderId, action: 'assign', vendorId, vehicleId, driverId }),
+      release: (orderId) => req('POST', '/dispatch', { orderId, action: 'release' }),
+    },
   };
 }
 
@@ -79,8 +93,67 @@ function createMockOrdersApi() {
     { type: 'pickup', name: 'Pabrik Karawang', items: [it({ description: 'Sparepart', weightKg: 800, qty: 40 })] },
     { type: 'delivery', name: 'Bengkel Jakarta Timur', items: [it({ description: 'Sparepart', weightKg: 800, qty: 40 })] },
   ] });
+  // ---- master & penawaran (demo)
+  let mid = 0;
+  const M = { vendors: [], vehicles: [], drivers: [] };
+  const offers = [];
+  const addM = (kind, o) => { const r = { id: `m${++mid}`, active: true, ...o }; M[kind].push(r); return r; };
+  const va = addM('vendors', { name: 'PT Angkut Sejahtera', email: 'ops@angkut.example', pic: 'Pak Dedi', phone: '081200000001', geotabGroup: '', notes: '' });
+  const vb = addM('vendors', { name: 'CV Trans Mandiri', email: 'dispatch@transmandiri.example', pic: 'Bu Sari', phone: '081200000002', geotabGroup: '', notes: '' });
+  addM('vehicles', { vendorId: va.id, plate: 'B 9001 AA', type: 'cdd', hasGps: true, maxWeightKg: 2500, maxVolumeM3: 10, maxPallets: 6, lengthCm: 380, widthCm: 170, heightCm: 170 });
+  addM('vehicles', { vendorId: va.id, plate: 'B 9002 AB', type: 'fuso', hasGps: false, maxWeightKg: 8000, maxVolumeM3: 28, maxPallets: 14, lengthCm: 620, widthCm: 220, heightCm: 220 });
+  addM('vehicles', { vendorId: vb.id, plate: 'B 8101 CD', type: 'blindvan', hasGps: false, maxWeightKg: 900, maxVolumeM3: 4, maxPallets: 2 });
+  addM('drivers', { vendorId: va.id, name: 'Budi Santoso', phone: '081300000001', licenseNo: 'B2-001' });
+  addM('drivers', { vendorId: vb.id, name: 'Candra Wijaya', phone: '081300000002', licenseNo: 'B1-002' });
+  const need = (id) => { const o = db.get(id); if (!o) throw err(404, 'not_found'); return o; };
+  const mkOffers = (o) => offers.filter((f) => f.orderId === o.id);
+  const decorate = (o) => {
+    const ve = M.vendors.find((x) => x.id === o.vendorId);
+    const vh = M.vehicles.find((x) => x.id === o.vehicleId);
+    const dr = M.drivers.find((x) => x.id === o.driverId);
+    const of = mkOffers(o);
+    return { ...o, vendorName: ve?.name || '', plate: vh?.plate || '', driverName: dr?.name || '', openOffers: of.filter((f) => f.status === 'offered' && new Date(f.expiresAt) > new Date()).length, offerCount: of.length };
+  };
   return {
     isMock: true,
+    master: {
+      async list(kind, { vendorId, all } = {}) { return M[kind].filter((x) => (all || x.active) && (!vendorId || x.vendorId === vendorId)).map((x) => ({ ...x })); },
+      async create(kind, item) {
+        if (!String(item.name || item.plate || '').trim()) throw err(422, 'validation', [{ path: 'name', code: 'required' }]);
+        return { ...addM(kind, { ...item }) };
+      },
+      async update(kind, id, item) { const i = M[kind].findIndex((x) => x.id === id); if (i < 0) throw err(404, 'not_found'); M[kind][i] = { ...M[kind][i], ...item }; return { ...M[kind][i] }; },
+      async remove(kind, id) { M[kind] = M[kind].filter((x) => x.id !== id); return { ok: true }; },
+    },
+    dispatch: {
+      async get(orderId) {
+        return { offers: offers.filter((f) => f.orderId === orderId).map((f) => ({ ...f, status: f.status === 'offered' && new Date(f.expiresAt) <= new Date() ? 'expired' : f.status, vendorName: M.vendors.find((v) => v.id === f.vendorId)?.name || '' })), mail: { configured: false, from: 'aan@sumbermas-autorindo.com' } };
+      },
+      async offer(orderId, vendorIds, expiryMin = 60) {
+        const o = need(orderId);
+        if (!['draft', 'offered'].includes(o.status)) throw err(409, 'order_state');
+        offers.forEach((f) => { if (f.orderId === orderId && f.status === 'offered') f.status = 'withdrawn'; });
+        const exp = new Date(Date.now() + expiryMin * 60000).toISOString();
+        vendorIds.forEach((vid) => offers.push({ id: `of${++mid}`, orderId, vendorId: vid, status: 'offered', sentAt: now(), expiresAt: exp, respondedAt: '', rejectReason: '' }));
+        o.status = 'offered';
+        o.version += 1;
+        return { ok: true, expiresAt: exp, mail: { configured: false }, emails: vendorIds.map((vid) => ({ vendorId: vid, vendorName: M.vendors.find((v) => v.id === vid)?.name, status: M.vendors.find((v) => v.id === vid)?.email ? 'skipped' : 'no_email' })) };
+      },
+      async assign(orderId, vendorId, vehicleId, driverId) {
+        const o = need(orderId);
+        if (!['draft', 'offered'].includes(o.status)) throw err(409, 'order_state');
+        offers.forEach((f) => { if (f.orderId === orderId && f.status === 'offered') f.status = 'withdrawn'; });
+        Object.assign(o, { status: 'assigned', vendorId, vehicleId, driverId: driverId || null, assignedAt: now(), assignedVia: 'admin' });
+        return { ok: true };
+      },
+      async release(orderId) {
+        const o = need(orderId);
+        if (!['offered', 'assigned'].includes(o.status)) throw err(409, 'order_state');
+        offers.forEach((f) => { if (f.orderId === orderId && f.status === 'offered') f.status = 'withdrawn'; });
+        Object.assign(o, { status: 'draft', vendorId: null, vehicleId: null, driverId: null, assignedAt: '', assignedVia: '' });
+        return { ok: true };
+      },
+    },
     health: async () => ({ ok: true, db: 'mock' }),
     async list({ status, q } = {}) {
       let rows = [...db.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -88,12 +161,12 @@ function createMockOrdersApi() {
       for (const r of rows) counts[r.status] = (counts[r.status] || 0) + 1;
       if (status) rows = rows.filter((r) => r.status === status);
       if (q) rows = rows.filter((r) => `${r.doNo} ${r.customer}`.toLowerCase().includes(String(q).toLowerCase()));
-      return { orders: rows.map(({ stops, ...h }) => h), total: rows.length, counts };
+      return { orders: rows.map(({ stops, ...h }) => decorate(h)), total: rows.length, counts };
     },
     async get(id) {
       const o = db.get(id);
       if (!o) throw err(404, 'not_found');
-      return structuredClone(o);
+      return structuredClone(decorate(o));
     },
     async create(input) {
       return add(input);

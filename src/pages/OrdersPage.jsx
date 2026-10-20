@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useApp } from '../AppContext.jsx';
 import { Empty, Kpi, Spinner } from '../components/ui.jsx';
+import DispatchDialog from '../components/DispatchDialog.jsx';
 import OrderEditor from '../components/OrderEditor.jsx';
 import OrderImport, { downloadTemplate } from '../components/OrderImport.jsx';
 import { ORDER_STATUS } from '../core/orders.js';
@@ -35,6 +36,7 @@ export default function OrdersPage() {
   const [health, setHealth] = useState(null);
   const [edit, setEdit] = useState(null); // null | 'new' | id
   const [imp, setImp] = useState(false);
+  const [dsp, setDsp] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,12 +106,12 @@ export default function OrdersPage() {
           <thead>
             <tr>
               <th>{t('ord.doNo')}</th><th>{t('ord.customer')}</th><th>{t('ord.date')}</th><th>{t('ord.priority')}</th><th>{t('mon.status')}</th><th>{t('ord.route')}</th>
-              <th className="num">{t('ord.stopsShort')}</th><th className="num">{t('ord.sum.peakWeight')} (kg)</th><th className="num">{t('ord.sum.peakVolume')} (m³)</th><th className="num">{t('ord.sum.pallets')}</th><th>{t('ord.flags')}</th><th />
+              <th className="num">{t('ord.stopsShort')}</th><th className="num">{t('ord.sum.peakWeight')} (kg)</th><th className="num">{t('ord.sum.peakVolume')} (m³)</th><th className="num">{t('ord.sum.pallets')}</th><th>{t('ord.flags')}</th><th>{t('dsp.allocation')}</th><th />
             </tr>
           </thead>
           <tbody>
-            {loading && data.orders.length === 0 && <tr><td colSpan={12}><Spinner text={t('loading')} /></td></tr>}
-            {!loading && data.orders.length === 0 && <tr><td colSpan={12}><Empty>{t('ord.empty')}</Empty></td></tr>}
+            {loading && data.orders.length === 0 && <tr><td colSpan={13}><Spinner text={t('loading')} /></td></tr>}
+            {!loading && data.orders.length === 0 && <tr><td colSpan={13}><Empty>{t('ord.empty')}</Empty></td></tr>}
             {data.orders.map((o) => {
               const s = o.summary || {};
               return (
@@ -125,7 +127,14 @@ export default function OrdersPage() {
                   <td className="num">{fmtNum(s.peakVolume, 2)}</td>
                   <td className="num">{fmtNum(s.peakPallets, 1)}</td>
                   <td>{s.hazardous && <span className="tms-badge red">B3</span>} {s.tempMin != null || s.tempMax != null ? <span className="tms-badge blue">°C</span> : null}</td>
-                  <td>{o.status === 'draft' && <button className="tms-btn sm danger" onClick={(e) => remove(o, e)}>{t('delete')}</button>}</td>
+                  <td>
+                    {o.vendorName ? <div><b>{o.vendorName}</b><div className="tms-sm tms-muted">{o.plate}{o.driverName ? ` · ${o.driverName}` : ''}</div></div>
+                      : o.status === 'offered' ? (o.openOffers > 0 ? <span className="tms-badge blue">{t('dsp.waiting', { n: o.openOffers })}</span> : <span className="tms-badge red">{t('dsp.noResponse')}</span>) : <span className="tms-muted">-</span>}
+                  </td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    {['draft', 'offered', 'assigned'].includes(o.status) && <button className="tms-btn sm pri" onClick={(e) => { e.stopPropagation(); setDsp(o.id); }}>{o.status === 'assigned' ? t('dsp.detail') : t('dsp.allocate')}</button>}{' '}
+                    {o.status === 'draft' && <button className="tms-btn sm danger" onClick={(e) => remove(o, e)}>{t('delete')}</button>}
+                  </td>
                 </tr>
               );
             })}
@@ -136,6 +145,7 @@ export default function OrdersPage() {
         <div style={{ marginTop: 8 }}><button className="tms-btn sm" onClick={() => setLimit(limit + PAGE)}>{t('hist.more', { n: data.total - data.orders.length })}</button></div>
       )}
 
+      {dsp && <DispatchDialog orderId={dsp} onClose={() => setDsp(null)} onChanged={load} />}
       {edit && <OrderEditor id={edit === 'new' ? null : edit} onClose={() => setEdit(null)} onSaved={load} />}
       {imp && <OrderImport onClose={() => setImp(false)} onDone={load} existing={new Set(data.orders.map((o) => o.doNo))} />}
     </div>

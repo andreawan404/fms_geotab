@@ -2,6 +2,13 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v2.1.0 - 2026-10-20
+
+- Tahap 2 (Planning + Dispatch): menu baru "Vendor & Armada" untuk mengelola vendor (email, PIC), kendaraan (plat, jenis, GPS, kapasitas berat / volume / pallet / koli / dimensi bak, suhu, B3), dan driver.
+- Alokasi DO dari daftar Order. Sistem membandingkan beban puncak DO dengan kapasitas tiap kendaraan dan menampilkan alasan bila tidak cocok (mis. "berat 2.400 > 900 kg").
+- Dua cara: tawarkan ke beberapa vendor sekaligus (siapa yang menerima duluan mendapatkan DO, dijamin atomik; batas respons default 60 menit) atau alokasi langsung ke kendaraan + driver. Penawaran yang ditolak / kedaluwarsa tercatat dan DO ditandai "Tidak ada yang menerima" untuk dialokasikan ulang.
+- Email penawaran memakai Brevo. Selama BREVO_API_KEY belum diisi di Vercel, penawaran tetap tercatat tetapi email berstatus belum terkirim. Halaman portal vendor (terima / tolak lewat tautan) menyusul di v2.2.
+
 ## v2.0.2 - 2026-10-20
 
 - Perbaikan: kolom pada kartu barang tidak lagi kehilangan fokus setiap mengetik satu karakter; sekarang bisa mengetik langsung secara berkelanjutan.

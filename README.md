@@ -118,3 +118,7 @@ Fitur Order memakai Vercel Functions (`api/`) dan Postgres. Setup sekali:
 3. **Redeploy**, lalu buka `https://fms-geotab.vercel.app/api/health` untuk memastikan database dan autentikasi `ok`.
 
 Skema database dibuat/dimigrasi otomatis saat API pertama dipanggil. API memverifikasi sesi MyGeotab pengguna (header `Authorization: Geotab ...`).
+
+### Email penawaran (Brevo) - opsional sampai siap
+
+Tambahkan di Vercel > Environment Variables lalu Redeploy: `BREVO_API_KEY` (Secret), `BREVO_SENDER` (default `aan@sumbermas-autorindo.com`, harus sudah diverifikasi sebagai sender di Brevo), `PORTAL_BASE_URL` (default `https://fms-geotab.vercel.app`). Tanpa `BREVO_API_KEY`, penawaran tetap tercatat tetapi email tidak dikirim.
