@@ -2,6 +2,12 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '2.0.2',
+    date: '2026-10-20',
+    id: ['Perbaikan: kolom pada kartu barang tidak lagi kehilangan fokus setiap mengetik satu karakter; sekarang bisa mengetik langsung secara berkelanjutan.'],
+    en: ['Fix: fields in the item card no longer lose focus after every keystroke; typing now flows continuously.'],
+  },
+  {
     v: '2.0.1',
     date: '2026-10-19',
     id: [

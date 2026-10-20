@@ -56,10 +56,11 @@ const NumIn = ({ value, onChange, step = 'any', ...p }) => (
   <input type="number" min="0" step={step} value={value ?? ''} onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))} {...p} />
 );
 
+const F = ({ label, cls = '', children }) => <label className={`tms-if ${cls}`}><span>{label}</span>{children}</label>;
+
 /** Satu barang: semua field kapasitas tersusun dalam kartu (tanpa scroll samping). */
 function ItemCard({ it, n, set, remove, ro }) {
   const { t } = useApp();
-  const F = ({ label, cls = '', children }) => <label className={`tms-if ${cls}`}><span>{label}</span>{children}</label>;
   return (
     <div className="tms-item">
       <div className="tms-item-n">{n}</div>
