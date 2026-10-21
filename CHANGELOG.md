@@ -2,6 +2,13 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v2.2.0 - 2026-10-21
+
+- Tahap 3: Portal Vendor di /portal.html (tanpa login, cukup tautan dari email penawaran; nyaman di HP). Vendor melihat rute, jadwal, kontak, dan barang tiap stop.
+- Vendor dapat menerima DO dengan memilih kendaraan (hanya yang cocok kapasitas) dan driver (atau mengetik driver baru), atau menolak dengan alasan. Siapa menerima duluan menang; vendor lain langsung melihat penawaran ditutup.
+- Eksekusi perjalanan: mulai perjalanan, tiba, mulai muat / bongkar, selesai & berangkat untuk tiap stop, berurutan dan tidak bisa dilompati. Lokasi HP dicatat tiap langkah (berguna untuk kendaraan tanpa GPS) dan ditandai bila di luar radius stop. DO otomatis Berjalan lalu Selesai.
+- Di add-in: kemajuan perjalanan tampil di daftar Order dan linimasa lengkap (waktu, stop, tautan GPS) di dialog Alokasi. Email penawaran disederhanakan agar lebih kecil kemungkinan masuk tab Promotions.
+
 ## v2.1.0 - 2026-10-20
 
 - Tahap 2 (Planning + Dispatch): menu baru "Vendor & Armada" untuk mengelola vendor (email, PIC), kendaraan (plat, jenis, GPS, kapasitas berat / volume / pallet / koli / dimensi bak, suhu, B3), dan driver.

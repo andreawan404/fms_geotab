@@ -127,7 +127,7 @@ function createMockOrdersApi() {
     },
     dispatch: {
       async get(orderId) {
-        return { offers: offers.filter((f) => f.orderId === orderId).map((f) => ({ ...f, status: f.status === 'offered' && new Date(f.expiresAt) <= new Date() ? 'expired' : f.status, vendorName: M.vendors.find((v) => v.id === f.vendorId)?.name || '' })), mail: { configured: false, from: 'aan@sumbermas-autorindo.com' } };
+        return { trip: { events: [], steps: [] }, offers: offers.filter((f) => f.orderId === orderId).map((f) => ({ ...f, status: f.status === 'offered' && new Date(f.expiresAt) <= new Date() ? 'expired' : f.status, vendorName: M.vendors.find((v) => v.id === f.vendorId)?.name || '' })), mail: { configured: false, from: 'aan@sumbermas-autorindo.com' } };
       },
       async offer(orderId, vendorIds, expiryMin = 60) {
         const o = need(orderId);

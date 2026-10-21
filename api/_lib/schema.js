@@ -153,6 +153,30 @@ export const MIGRATIONS = [
       )`,
     ],
   },
+  {
+    version: 3,
+    name: 'trip events',
+    statements: [
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS started_at timestamptz`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS finished_at timestamptz`,
+      `CREATE TABLE IF NOT EXISTS trip_events (
+        id bigserial PRIMARY KEY,
+        order_id uuid NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        seq int NOT NULL,
+        type text NOT NULL,
+        stop_seq int,
+        at timestamptz NOT NULL DEFAULT now(),
+        lat double precision,
+        lng double precision,
+        accuracy_m double precision,
+        dist_m double precision,
+        outside boolean NOT NULL DEFAULT false,
+        note text NOT NULL DEFAULT '',
+        source text NOT NULL DEFAULT 'vendor'
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS trip_events_seq_uq ON trip_events (order_id, seq)`,
+    ],
+  },
 ];
 
 const done = new WeakSet();

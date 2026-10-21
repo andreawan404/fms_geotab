@@ -5,6 +5,7 @@ import DispatchDialog from '../components/DispatchDialog.jsx';
 import OrderEditor from '../components/OrderEditor.jsx';
 import OrderImport, { downloadTemplate } from '../components/OrderImport.jsx';
 import { ORDER_STATUS } from '../core/orders.js';
+import { totalSteps } from '../core/trip.js';
 import { STATUS_CLS, apiErrorText, fmtNum } from '../lib/orderView.js';
 
 const PAGE = 50;
@@ -128,7 +129,8 @@ export default function OrdersPage() {
                   <td className="num">{fmtNum(s.peakPallets, 1)}</td>
                   <td>{s.hazardous && <span className="tms-badge red">B3</span>} {s.tempMin != null || s.tempMax != null ? <span className="tms-badge blue">°C</span> : null}</td>
                   <td>
-                    {o.vendorName ? <div><b>{o.vendorName}</b><div className="tms-sm tms-muted">{o.plate}{o.driverName ? ` · ${o.driverName}` : ''}</div></div>
+                    {o.vendorName ? <div><b>{o.vendorName}</b><div className="tms-sm tms-muted">{o.plate}{o.driverName ? ` · ${o.driverName}` : ''}</div>
+                      {o.tripEvents > 0 && <div className="tms-sm"><span className={`tms-badge ${o.status === 'done' ? 'green' : 'blue'}`}>{t('trip.progress', { p: Math.round((o.tripEvents / totalSteps((o.summary || {}).stops || 2)) * 100) })}</span></div>}</div>
                       : o.status === 'offered' ? (o.openOffers > 0 ? <span className="tms-badge blue">{t('dsp.waiting', { n: o.openOffers })}</span> : <span className="tms-badge red">{t('dsp.noResponse')}</span>) : <span className="tms-muted">-</span>}
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>

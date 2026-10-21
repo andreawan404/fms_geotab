@@ -41,7 +41,7 @@ export function offerEmail({ order, vendor, token, expiresAt }) {
     ['Beban puncak', `${s.peakWeight ?? 0} kg / ${s.peakVolume ?? 0} m³ / ${s.peakPallets ?? 0} pallet`], ['Batas respons', `${exp} WIB`],
   ];
   const subject = `Penawaran DO ${order.doNo} - ${order.customer}`;
-  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1c2833"><p>Yth. ${esc(vendor.pic || vendor.name)},</p><p>Ada penawaran pengiriman baru. Siapa yang menerima lebih dulu akan mendapatkan DO ini.</p><table cellpadding="6" style="border-collapse:collapse">${rows.map(([k, v]) => `<tr><td style="color:#6b7a89">${esc(k)}</td><td><b>${esc(v)}</b></td></tr>`).join('')}</table><p><a href="${esc(link)}" style="background:#0b5ea8;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;display:inline-block">Lihat &amp; terima / tolak DO</a></p><p style="color:#6b7a89;font-size:12px">Tautan ini khusus untuk ${esc(vendor.name)}. Jangan diteruskan ke pihak lain.</p></div>`;
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222"><p>Yth. ${esc(vendor.pic || vendor.name)},</p><p>Ada penawaran pengiriman (DO) yang menunggu respons Anda. Siapa yang menerima lebih dulu mendapatkan DO ini.</p>${rows.map(([k, v]) => `<div>${esc(k)}: <b>${esc(v)}</b></div>`).join('')}<p>Terima / tolak DO di tautan berikut:<br><a href="${esc(link)}">${esc(link)}</a></p><p style="color:#666;font-size:12px">Tautan ini khusus untuk ${esc(vendor.name)}, jangan diteruskan ke pihak lain.</p></div>`;
   const text = `Penawaran DO ${order.doNo}\n${rows.map(([k, v]) => `${k}: ${v}`).join('\n')}\n\nBuka: ${link}`;
   return { subject, html, text };
 }

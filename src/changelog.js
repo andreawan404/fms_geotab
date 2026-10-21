@@ -2,6 +2,22 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '2.2.0',
+    date: '2026-10-21',
+    id: [
+      'Tahap 3: Portal Vendor di /portal.html (tanpa login, cukup tautan dari email penawaran; nyaman di HP). Vendor melihat rute, jadwal, kontak, dan barang tiap stop.',
+      'Vendor dapat menerima DO dengan memilih kendaraan (hanya yang cocok kapasitas) dan driver (atau mengetik driver baru), atau menolak dengan alasan. Siapa menerima duluan menang; vendor lain langsung melihat penawaran ditutup.',
+      'Eksekusi perjalanan: mulai perjalanan, tiba, mulai muat / bongkar, selesai & berangkat untuk tiap stop, berurutan dan tidak bisa dilompati. Lokasi HP dicatat tiap langkah (berguna untuk kendaraan tanpa GPS) dan ditandai bila di luar radius stop. DO otomatis Berjalan lalu Selesai.',
+      'Di add-in: kemajuan perjalanan tampil di daftar Order dan linimasa lengkap (waktu, stop, tautan GPS) di dialog Alokasi. Email penawaran disederhanakan agar lebih kecil kemungkinan masuk tab Promotions.',
+    ],
+    en: [
+      'Stage 3: Vendor Portal at /portal.html (no login, just the link from the offer email; phone friendly). Vendors see the route, schedule, contacts and goods per stop.',
+      'Vendors can accept a DO by choosing a vehicle (only those that fit) and a driver (or typing a new one), or reject with a reason. First to accept wins; other vendors immediately see the offer closed.',
+      'Trip execution: start trip, arrive, start loading / unloading, done & depart for every stop, in strict order. Phone location is recorded at each step (useful for vehicles without GPS) and flagged when outside the stop radius. The DO automatically becomes In progress, then Completed.',
+      'In the add-in: trip progress shows in the Orders list and a full timeline (time, stop, GPS link) in the Allocation dialog. The offer email is simplified to be less likely to land in the Promotions tab.',
+    ],
+  },
+  {
     v: '2.1.0',
     date: '2026-10-20',
     id: [

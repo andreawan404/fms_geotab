@@ -225,7 +225,7 @@ export async function releaseOrder(db, orderId, actor) {
   const rows = await db.query(
     `WITH g AS (UPDATE orders SET status = 'draft', vendor_id = NULL, vehicle_id = NULL, driver_id = NULL, assigned_at = NULL, assigned_via = NULL, version = version + 1, updated_at = now()
                 WHERE id = $1 AND status IN ('offered', 'assigned') RETURNING id),
-     w AS (UPDATE offers SET status = 'withdrawn', responded_at = now() WHERE order_id IN (SELECT id FROM g) AND status IN ('offered') RETURNING id)
+     w AS (UPDATE offers SET status = 'withdrawn', responded_at = now() WHERE order_id IN (SELECT id FROM g) AND status IN ('offered', 'accepted') RETURNING id)
      SELECT count(*)::int AS n FROM g`, [orderId]);
   if (Number(rows[0].n) !== 1) await orderStateError(db, orderId, 'dilepas');
   await audit(db, actor, 'release', 'order', orderId, {});

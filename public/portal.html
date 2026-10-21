@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Portal Vendor - SMA TMS</title>
+<style>
+:root{--pri:#0b5ea8;--pri-d:#084a85;--bg:#f2f5f8;--card:#fff;--bd:#d9dee5;--tx:#1c2733;--mut:#667587;--ok:#1a9e5c;--warn:#b07800;--err:#d63a3a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header{background:var(--pri);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px}header b{font-size:16px}header small{opacity:.8;margin-left:auto}
+main{max-width:720px;margin:0 auto;padding:12px 16px 90px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:12px 0}
+h2{margin:0 0 6px;font-size:18px}h3{margin:0 0 8px;font-size:15px}
+.mut{color:var(--mut)}.sm{font-size:13px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.grow{flex:1}
+.badge{display:inline-block;border-radius:10px;padding:1px 9px;font-size:12px;font-weight:600;background:#e8edf2;color:#3a4a5a}
+.badge.ok{background:#e0f4e9;color:#117a45}.badge.warn{background:#fdf2d4;color:#7a5a00}.badge.err{background:#fde6e6;color:#a32020}.badge.blue{background:#e1eefa;color:#0b4a85}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:14px}.kv dt{color:var(--mut)}.kv dd{margin:0;font-weight:600;text-align:right}
+.stop{position:relative;padding:0 0 14px 38px}.stop:before{content:"";position:absolute;left:13px;top:26px;bottom:-4px;width:2px;background:#cfd7e0}.stop:last-child:before{display:none}
+.dot{position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--pri);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}.dot.d{background:var(--ok)}.dot.done{background:#8a94a0}.dot.now{box-shadow:0 0 0 4px rgba(11,94,168,.25)}
+.items{margin:6px 0 0;padding:6px 10px;background:#f6f8fa;border-radius:8px;font-size:13px}.items div{padding:2px 0}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+select,input,textarea{width:100%;font:inherit;padding:10px;border:1px solid var(--bd);border-radius:8px;background:#fff;color:var(--tx)}
+button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:13px 16px;cursor:pointer;background:var(--pri);color:#fff}
+button.sec{background:#fff;color:var(--tx);border:1px solid var(--bd)}button.red{background:#fff;color:var(--err);border:1px solid #efb6b6}button:disabled{opacity:.5;cursor:not-allowed}
+.big{width:100%;font-size:17px;padding:16px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--bd);padding:10px 16px}.bar>div{max-width:720px;margin:0 auto}
+.msg{border-radius:10px;padding:10px 12px;margin:10px 0;font-size:14px}.msg.err{background:#fde6e6;color:#8f1d1d}.msg.warn{background:#fdf2d4;color:#6b5000}.msg.ok{background:#e0f4e9;color:#0f6b3d}
+.tl{margin:0;padding:0;list-style:none}.tl li{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid #eef1f5;font-size:14px}.tl li:last-child{border:0}.tl time{color:var(--mut);white-space:nowrap;font-size:13px}
+.center{text-align:center;padding:40px 10px}
+a{color:var(--pri)}
+</style>
+</head>
+<body>
+<header><b>SMA TMS</b><span>Portal Vendor</span><small id="vendor"></small></header>
+<main id="app"><div class="center mut">Memuat…</div></main>
+<script>
+(function () {
+  'use strict';
+  var app = document.getElementById('app');
+  var token = (location.hash.match(/#\/o\/([A-Za-z0-9_-]+)/) || [])[1] || '';
+  var state = null, busy = false, flash = null, timer = null;
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function wib(iso, opt) { if (!iso) return '-'; return new Date(iso).toLocaleString('id-ID', Object.assign({ timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }, opt || {})) + ' WIB'; }
+  function num(v, d) { return v == null ? '-' : Number(v).toLocaleString('id-ID', { maximumFractionDigits: d == null ? 0 : d }); }
+  function api(method, body) {
+    var url = '/api/portal' + (method === 'GET' ? '?t=' + encodeURIComponent(token) : '');
+    return fetch(url, { method: method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error((j.error && j.error.message) || 'Gagal'); e.code = j.error && j.error.code; e.details = j.error && j.error.details; throw e; } return j; }); });
+  }
+  var WHY = { weight: function (r) { return 'berat ' + num(r.need, 1) + ' > ' + num(r.have, 1) + ' kg'; }, volume: function (r) { return 'volume ' + num(r.need, 1) + ' > ' + num(r.have, 1) + ' m³'; }, pallets: function (r) { return 'pallet ' + num(r.need, 1) + ' > ' + num(r.have, 1); }, colli: function (r) { return 'koli ' + num(r.need) + ' > ' + num(r.have); }, length: function () { return 'barang terlalu panjang'; }, width: function () { return 'barang terlalu lebar'; }, height: function () { return 'barang terlalu tinggi'; }, temp_control: function () { return 'tidak berpendingin'; }, temp_range: function () { return 'rentang suhu tidak cukup'; }, hazardous: function () { return 'tidak boleh angkut B3'; } };
+  var ERR = { offer_closed: 'Penawaran sudah ditutup (kemungkinan sudah diambil vendor lain atau kedaluwarsa).', vehicle_not_fit: 'Kendaraan tidak sesuai kapasitas muatan.', vehicle_invalid: 'Pilih kendaraan Anda.', driver_required: 'Pilih driver atau isi nama driver.', reason_required: 'Isi alasan penolakan (minimal 3 huruf).', out_of_date: 'Status sudah berubah. Halaman dimuat ulang.', trip_closed: 'Perjalanan tidak dapat diubah lagi.' };
+  function errText(e) { return ERR[e.code] || e.message || 'Terjadi kesalahan'; }
+
+  var TYPE = { pickup: 'Lokasi muat', delivery: 'Lokasi bongkar' };
+  var ACTION = { trip_start: 'Mulai perjalanan', arrive_pickup: 'Tiba di lokasi muat', service_start_pickup: 'Mulai muat', depart_pickup: 'Selesai muat & berangkat', arrive_delivery: 'Tiba di lokasi bongkar', service_start_delivery: 'Mulai bongkar', depart_delivery: 'Selesai bongkar' };
+  var DONE = { trip_start: 'Perjalanan dimulai', arrive_pickup: 'Tiba di lokasi muat', service_start_pickup: 'Mulai muat', depart_pickup: 'Selesai muat, berangkat', arrive_delivery: 'Tiba di lokasi bongkar', service_start_delivery: 'Mulai bongkar', depart_delivery: 'Selesai bongkar' };
+  function key(st) { return st.type === 'trip_start' ? 'trip_start' : st.type + '_' + st.stopType; }
+
+  function itemsHtml(items) {
+    if (!items || !items.length) return '';
+    return '<div class="items">' + items.map(function (i) {
+      var bits = [num(i.qty) + ' ' + esc(i.unit)];
+      if (i.weightKg != null) bits.push(num(i.weightKg, 1) + ' kg');
+      if (i.volumeM3 != null) bits.push(num(i.volumeM3, 2) + ' m³');
+      if (i.pallets != null) bits.push(num(i.pallets, 1) + ' pallet');
+      var flags = (i.hazardous ? ' <span class="badge err">B3</span>' : '') + ((i.tempMin != null || i.tempMax != null) ? ' <span class="badge blue">' + (i.tempMin != null ? i.tempMin : '…') + '–' + (i.tempMax != null ? i.tempMax : '…') + ' °C</span>' : '') + (i.stackable === false ? ' <span class="badge warn">Jangan ditumpuk</span>' : '');
+      return '<div><b>' + esc(i.description) + '</b> · ' + bits.join(' · ') + flags + '</div>';
+    }).join('') + '</div>';
+  }
+  function mapLink(s) { return s.lat != null ? ' <a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + s.lat + ',' + s.lng + '">Buka peta</a>' : ''; }
+
+  function stopsHtml(order, prog) {
+    return order.stops.map(function (s, i) {
+      var cls = s.type === 'delivery' ? 'd' : '';
+      var st = prog ? prog(i) : '';
+      return '<div class="stop"><span class="dot ' + cls + ' ' + st + '">' + (i + 1) + '</span><div><b>' + esc(s.name) + '</b> <span class="badge ' + (s.type === 'delivery' ? 'ok' : 'blue') + '">' + TYPE[s.type] + '</span>' +
+        (s.address ? '<div class="sm mut">' + esc(s.address) + mapLink(s) + '</div>' : (mapLink(s) ? '<div class="sm">' + mapLink(s) + '</div>' : '')) +
+        ((s.windowStart || s.windowEnd) ? '<div class="sm">Jadwal: ' + (s.windowStart ? wib(s.windowStart) : '…') + ' – ' + (s.windowEnd ? wib(s.windowEnd) : '…') + '</div>' : '') +
+        (s.contactName || s.contactPhone ? '<div class="sm">PIC: ' + esc(s.contactName) + ' ' + (s.contactPhone ? '<a href="tel:' + esc(s.contactPhone) + '">' + esc(s.contactPhone) + '</a>' : '') + '</div>' : '') +
+        (s.instructions ? '<div class="sm mut">' + esc(s.instructions) + '</div>' : '') + itemsHtml(s.items) + '</div></div>';
+    }).join('');
+  }
+  function summaryHtml(o) {
+    var s = o.summary || {};
+    return '<div class="card"><div class="row"><h2 class="grow">' + esc(o.doNo) + '</h2>' + (o.priority !== 'normal' ? '<span class="badge ' + (o.priority === 'urgent' ? 'err' : 'warn') + '">' + (o.priority === 'urgent' ? 'Mendesak' : 'Prioritas tinggi') + '</span>' : '') + '</div>' +
+      '<div class="mut sm" style="margin-bottom:8px">' + esc(o.customer) + ' · ' + esc(o.orderDate) + '</div>' +
+      '<dl class="kv"><dt>Beban puncak</dt><dd>' + num(s.peakWeight, 1) + ' kg</dd><dt>Volume puncak</dt><dd>' + num(s.peakVolume, 2) + ' m³</dd><dt>Pallet</dt><dd>' + num(s.peakPallets, 1) + '</dd><dt>Jumlah stop</dt><dd>' + o.stops.length + '</dd></dl>' +
+      (o.notes ? '<div class="sm mut" style="margin-top:8px">Catatan: ' + esc(o.notes) + '</div>' : '') + '</div>';
+  }
+  function flashHtml() { return flash ? '<div class="msg ' + flash.t + '">' + esc(flash.m) + '</div>' : ''; }
+
+  // ---------- tampilan ----------
+  function renderOffer(d) {
+    var left = Math.max(0, new Date(d.offer.expiresAt).getTime() - Date.now());
+    var mins = Math.ceil(left / 60000);
+    var okVeh = d.vehicles.filter(function (v) { return v.fit.ok; });
+    var vopts = '<option value="">- pilih kendaraan -</option>' + d.vehicles.map(function (v) {
+      return '<option value="' + esc(v.id) + '"' + (v.fit.ok ? '' : ' disabled') + '>' + esc(v.plate) + ' · ' + num(v.maxWeightKg) + ' kg' + (v.fit.ok ? '' : ' ✕ ' + v.fit.reasons.map(function (r) { return (WHY[r.code] || function () { return r.code; })(r); }).join(', ')) + '</option>';
+    }).join('');
+    var dopts = '<option value="">- pilih driver -</option>' + d.drivers.map(function (x) { return '<option value="' + esc(x.id) + '">' + esc(x.name) + '</option>'; }).join('') + '<option value="__new">+ Driver baru…</option>';
+    app.innerHTML = flashHtml() +
+      '<div class="msg ' + (mins <= 10 ? 'warn' : 'ok') + '">Penawaran untuk <b>' + esc(d.offer.vendorName) + '</b>. Batas respons ' + wib(d.offer.expiresAt) + ' (sisa ' + (mins > 0 ? mins + ' menit' : 'kurang dari 1 menit') + '). Siapa yang menerima lebih dulu mendapatkan DO ini.</div>' +
+      summaryHtml(d.order) + '<div class="card"><h3>Rute</h3>' + stopsHtml(d.order) + '</div>' +
+      '<div class="card"><h3>Terima DO ini</h3>' +
+      (okVeh.length ? '' : '<div class="msg err">Tidak ada kendaraan Anda yang sesuai kapasitas muatan ini. Anda hanya bisa menolak.</div>') +
+      '<label>Kendaraan</label><select id="veh"' + (okVeh.length ? '' : ' disabled') + '>' + vopts + '</select>' +
+      '<label>Driver</label><select id="drv"' + (okVeh.length ? '' : ' disabled') + '>' + dopts + '</select>' +
+      '<div id="newdrv" style="display:none"><label>Nama driver baru</label><input id="dn" autocomplete="off"><label>No. HP driver</label><input id="dp" inputmode="tel" autocomplete="off"></div></div>' +
+      '<div class="card"><h3>Tolak DO ini</h3><label>Alasan penolakan</label><textarea id="why" rows="2" placeholder="mis. armada penuh, jadwal bentrok"></textarea></div>' +
+      '<div class="bar"><div class="row"><button class="red" id="rej" style="flex:1">Tolak</button><button id="acc" style="flex:2"' + (okVeh.length ? '' : ' disabled') + '>Terima DO</button></div></div>';
+    var drv = document.getElementById('drv');
+    drv.onchange = function () { document.getElementById('newdrv').style.display = drv.value === '__new' ? 'block' : 'none'; };
+    document.getElementById('acc').onclick = function () {
+      var body = { t: token, action: 'accept', vehicleId: document.getElementById('veh').value };
+      if (!body.vehicleId) return setFlash('err', 'Pilih kendaraan Anda.');
+      if (drv.value === '__new') body.newDriver = { name: document.getElementById('dn').value, phone: document.getElementById('dp').value };
+      else if (drv.value) body.driverId = drv.value;
+      act(function () { return api('POST', body); }, 'DO diterima. Silakan mulai perjalanan saat siap.');
+    };
+    document.getElementById('rej').onclick = function () {
+      var r = document.getElementById('why').value;
+      if (!window.confirm('Tolak DO ini?')) return;
+      act(function () { return api('POST', { t: token, action: 'reject', reason: r }); }, 'Penolakan tercatat. Terima kasih.');
+    };
+  }
+
+  function renderClosed(d) {
+    var msg = { rejected: 'Anda menolak penawaran ini.', expired: 'Batas waktu respons sudah lewat.', withdrawn: 'Penawaran sudah ditutup (diambil vendor lain atau ditarik oleh admin).', released: 'Penugasan ini sudah dilepas oleh admin.' }[d.reason] || 'Penawaran sudah ditutup.';
+    app.innerHTML = flashHtml() + '<div class="card center"><h2>Penawaran ditutup</h2><p>' + esc(msg) + '</p>' + (d.offer.rejectReason ? '<p class="mut sm">Alasan: ' + esc(d.offer.rejectReason) + '</p>' : '') + '<p class="mut sm">DO ' + esc(d.order.doNo) + '</p></div>';
+  }
+
+  function renderTrip(d) {
+    var n = d.events.length, steps = d.steps, next = d.next, o = d.order;
+    var cur = n ? steps[n - 1] : null;
+    function prog(i) { if (!cur) return i === 0 ? 'now' : ''; if (cur.stopIdx > i || (cur.stopIdx === i && cur.type === 'depart')) return 'done'; return cur.stopIdx === i ? 'now' : (cur.stopIdx + 1 === i && cur.type === 'depart' ? 'now' : ''); }
+    var log = d.events.slice().reverse().map(function (e) {
+      var st = steps[e.seq - 1];
+      var where = st.stopIdx >= 0 ? ' · ' + esc(o.stops[st.stopIdx].name) : '';
+      return '<li><time>' + wib(e.at, { day: undefined, month: undefined }) + '</time><div>' + esc(DONE[key(st)]) + where + (e.outside ? ' <span class="badge warn">di luar radius ' + num(e.distM) + ' m</span>' : '') + '</div></li>';
+    }).join('');
+    var action = '';
+    if (d.finished) action = '<div class="msg ok"><b>Perjalanan selesai.</b> Terima kasih. Bukti serah terima (POD) menyusul di versi berikutnya.</div>';
+    else if (next) {
+      var stopName = next.stopIdx >= 0 ? o.stops[next.stopIdx].name : '';
+      action = '<div class="bar"><div><div class="sm mut" style="margin-bottom:6px">Langkah berikutnya' + (stopName ? ' · ' + esc(stopName) : '') + '</div><button class="big" id="go">' + esc(ACTION[key(next)]) + '</button><div class="sm mut" style="margin-top:6px;text-align:center">Lokasi HP Anda dicatat saat menekan tombol (bila diizinkan).</div></div></div>';
+    }
+    app.innerHTML = flashHtml() +
+      '<div class="card"><div class="row"><h2 class="grow">' + esc(o.doNo) + '</h2><span class="badge ' + (d.finished ? 'ok' : 'blue') + '">' + (d.finished ? 'Selesai' : n ? 'Berjalan' : 'Siap berangkat') + '</span></div>' +
+      '<div class="mut sm">' + esc(o.customer) + '</div><div class="sm" style="margin-top:6px">' + (d.vehicle ? '<b>' + esc(d.vehicle.plate) + '</b>' : '') + (d.driver ? ' · ' + esc(d.driver.name) + (d.driver.phone ? ' (' + esc(d.driver.phone) + ')' : '') : '') + '</div></div>' +
+      action + '<div class="card"><h3>Rute</h3>' + stopsHtml(o, prog) + '</div>' + (log ? '<div class="card"><h3>Riwayat</h3><ul class="tl">' + log + '</ul></div>' : '');
+    var go = document.getElementById('go');
+    if (go) go.onclick = function () {
+      go.disabled = true; go.textContent = 'Mencatat…';
+      locate(function (pos) {
+        var body = { t: token, action: 'event', seq: next.seq };
+        if (pos) { body.lat = pos.latitude; body.lng = pos.longitude; body.accuracy = pos.accuracy; }
+        act(function () { return api('POST', body); }, null, function (r) { if (r && r.outside) setFlash('warn', 'Posisi Anda ' + num(r.distM) + ' m dari titik stop (di luar radius). Tetap tercatat.'); });
+      });
+    };
+  }
+
+  function locate(cb) {
+    if (!navigator.geolocation) return cb(null);
+    var done = false;
+    var t = setTimeout(function () { if (!done) { done = true; cb(null); } }, 8000);
+    navigator.geolocation.getCurrentPosition(function (p) { if (done) return; done = true; clearTimeout(t); cb(p.coords); }, function () { if (done) return; done = true; clearTimeout(t); cb(null); }, { enableHighAccuracy: true, timeout: 7000, maximumAge: 15000 });
+  }
+
+  function setFlash(t, m) { flash = { t: t, m: m }; render(); window.scrollTo(0, 0); }
+  function act(fn, okMsg, after) {
+    if (busy) return; busy = true; flash = null;
+    fn().then(function (r) { busy = false; return load(true).then(function () { if (okMsg) setFlash('ok', okMsg); if (after) after(r); }); })
+      .catch(function (e) { busy = false; flash = { t: 'err', m: errText(e) }; if (e.code === 'out_of_date' || e.code === 'offer_closed' || e.code === 'trip_closed') load(true).then(function () { flash = { t: 'err', m: errText(e) }; render(); }); else render(); window.scrollTo(0, 0); });
+  }
+  function render() {
+    if (!state) return;
+    document.getElementById('vendor').textContent = state.offer.vendorName || '';
+    if (state.mode === 'offer') renderOffer(state); else if (state.mode === 'trip') renderTrip(state); else renderClosed(state);
+  }
+  function load(silent) {
+    return api('GET').then(function (d) { state = d; render(); }).catch(function (e) {
+      if (!silent || !state) app.innerHTML = '<div class="card center"><h2>Tautan tidak valid</h2><p class="mut">' + (e.code === 'not_found' ? 'Tautan tidak ditemukan atau sudah tidak berlaku.' : esc(errText(e))) + '</p></div>';
+    });
+  }
+  if (!token) { app.innerHTML = '<div class="card center"><h2>Tautan tidak lengkap</h2><p class="mut">Buka portal ini dari tombol di email penawaran.</p></div>'; return; }
+  load();
+  timer = setInterval(function () { if (!busy && state && state.mode === 'offer') render(); }, 30000); // segarkan sisa waktu
+  window.addEventListener('hashchange', function () { location.reload(); });
+})();
+</script>
+</body>
+</html>

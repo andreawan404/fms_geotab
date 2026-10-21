@@ -20,7 +20,7 @@ function send(res, status, body) {
 }
 
 /** route({ GET: async ({req, db, user, query, body}) => data, POST: ... }, { auth: true }) -> handler Vercel */
-export function route(handlers, { auth = true } = {}) {
+export function route(handlers, { auth = true, schema = false } = {}) {
   return async function handler(req, res) {
     cors(res);
     if (req.method === 'OPTIONS') {
@@ -33,7 +33,7 @@ export function route(handlers, { auth = true } = {}) {
       if (!fn) throw new ApiError(405, 'method_not_allowed');
       const user = auth ? await authenticate(req) : null;
       const db = getDb();
-      if (auth) await ensureSchema(db);
+      if (auth || schema) await ensureSchema(db);
       let body = req.body;
       if (typeof body === 'string' && body) {
         try {

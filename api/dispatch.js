@@ -5,6 +5,8 @@ import { ApiError } from './_lib/errors.js';
 import { assignDirect, createOffers, listOffers, logEmail, releaseOrder } from './_lib/dispatchRepo.js';
 import { getOrder } from './_lib/ordersRepo.js';
 import { dispatchBlockers, normalizeOrder } from '../src/core/orders.js';
+import { tripEvents } from './_lib/tripRepo.js';
+import { buildSteps } from '../src/core/trip.js';
 import { mailConfig, offerEmail, sendEmail } from './_lib/mailer.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -14,7 +16,13 @@ const oid = (v) => {
 };
 
 export default route({
-  GET: async ({ db, query }) => ({ offers: await listOffers(db, oid(query.orderId)), mail: { configured: mailConfig().configured, from: mailConfig().from } }),
+  GET: async ({ db, query }) => {
+    const id = oid(query.orderId);
+    const offers = await listOffers(db, id);
+    const order = await getOrder(db, id);
+    const events = await tripEvents(db, id);
+    return { offers, trip: { events, steps: order ? buildSteps(order.stops) : [] }, mail: { configured: mailConfig().configured, from: mailConfig().from } };
+  },
   POST: async ({ db, body, user }) => {
     const orderId = oid(body.orderId);
     const order = await getOrder(db, orderId);

@@ -277,3 +277,5 @@
 .tms-dsp-need{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;background:#f3f6f9;border-radius:8px;padding:8px 12px;font-size:13px}
 .tms-banner.warn{background:#fdf6df;border-color:#e6c35c;color:#6b5000}
 @media (max-width:900px){.tms-form2,.tms-form3,.tms-form4{grid-template-columns:1fr}}
+
+.tms-trip{list-style:none;margin:6px 0 0;padding:0}.tms-trip li{display:flex;gap:10px;align-items:center;padding:3px 0;font-size:13px;border-bottom:1px solid #eef1f5}.tms-trip li:last-child{border:0}.tms-trip time{color:var(--c-mut);white-space:nowrap}

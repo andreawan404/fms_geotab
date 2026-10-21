@@ -15,7 +15,8 @@ const ORDER_COLS = `o.id, o.do_no, o.customer, o.order_date::text AS order_date,
   (SELECT name FROM vendors WHERE id = o.vendor_id) AS vendor_name, (SELECT plate FROM vehicles WHERE id = o.vehicle_id) AS plate,
   (SELECT name FROM drivers WHERE id = o.driver_id) AS driver_name,
   (SELECT count(*) FROM offers f WHERE f.order_id = o.id AND f.status = 'offered')::int AS open_offers,
-  (SELECT count(*) FROM offers f WHERE f.order_id = o.id)::int AS offer_count`;
+  (SELECT count(*) FROM offers f WHERE f.order_id = o.id)::int AS offer_count,
+  o.started_at, o.finished_at, (SELECT count(*) FROM trip_events t WHERE t.order_id = o.id)::int AS trip_events`;
 
 const iso = (v) => (v == null ? '' : v instanceof Date ? v.toISOString() : new Date(v).toISOString());
 
@@ -25,6 +26,7 @@ const mapHead = (r) => ({
   createdAt: iso(r.created_at), updatedAt: iso(r.updated_at),
   vendorId: r.vendor_id || null, vehicleId: r.vehicle_id || null, driverId: r.driver_id || null, assignedAt: r.assigned_at ? iso(r.assigned_at) : '', assignedVia: r.assigned_via || '',
   vendorName: r.vendor_name || '', plate: r.plate || '', driverName: r.driver_name || '', openOffers: Number(r.open_offers || 0), offerCount: Number(r.offer_count || 0),
+  startedAt: r.started_at ? iso(r.started_at) : '', finishedAt: r.finished_at ? iso(r.finished_at) : '', tripEvents: Number(r.trip_events || 0),
 });
 const mapItem = (r) => ({
   description: r.description, sku: r.sku, qty: r.qty, unit: r.unit, weightKg: r.weight_kg, volumeM3: r.volume_m3, pallets: r.pallets, colli: r.colli,

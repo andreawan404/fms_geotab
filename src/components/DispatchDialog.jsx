@@ -4,6 +4,7 @@ import { Modal, Spinner } from './ui.jsx';
 import { dispatchBlockers, normalizeOrder, totals } from '../core/orders.js';
 import { fittingVehicles, vehicleFit } from '../core/capacity.js';
 import { fmtDateTime } from '../core/time.js';
+import { stepKey } from '../core/trip.js';
 import { apiErrorText, fmtNum, issueText } from '../lib/orderView.js';
 
 const OFFER_CLS = { offered: 'blue', accepted: 'green', rejected: 'red', expired: 'amber', withdrawn: 'gray' };
@@ -114,6 +115,28 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
                   </div>
                   <button className="tms-btn danger" onClick={release} disabled={busy}>{t('dsp.release')}</button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {disp.trip?.events?.length > 0 && (
+            <div className="tms-card" style={{ margin: '8px 0' }}>
+              <div className="tms-card-b">
+                <b>{t('trip.title')}</b> <span className="tms-badge blue">{t('trip.progress', { p: Math.round((disp.trip.events.length / Math.max(1, disp.trip.steps.length)) * 100) })}</span>
+                <ul className="tms-trip">
+                  {[...disp.trip.events].reverse().map((e) => {
+                    const st = disp.trip.steps[e.seq - 1];
+                    const stop = st && st.stopIdx >= 0 ? order.stops[st.stopIdx] : null;
+                    return (
+                      <li key={e.seq}>
+                        <time>{fmtDateTime(e.at)}</time>
+                        <span>{st ? t(`trip.step.${stepKey(st)}`) : e.type}{stop ? ` · ${stop.name}` : ''}</span>
+                        {e.outside && <span className="tms-badge amber">{t('trip.outside', { m: fmtNum(e.distM) })}</span>}
+                        {e.lat != null && <a target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps?q=${e.lat},${e.lng}`}>GPS</a>}
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             </div>
           )}
