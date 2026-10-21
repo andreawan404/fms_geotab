@@ -233,6 +233,30 @@ export const MIGRATIONS = [
     name: 'pod_kind',
     statements: [`ALTER TABLE pods ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'delivery'`],
   },
+  {
+    version: 6,
+    name: 'exceptions',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS exceptions (
+        id bigserial PRIMARY KEY,
+        order_id uuid NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        dedupe_key text NOT NULL,
+        kind text NOT NULL,
+        severity text NOT NULL DEFAULT 'medium',
+        source text NOT NULL DEFAULT 'system',
+        stop_seq int,
+        meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        cleared_at timestamptz,
+        ack_at timestamptz,
+        ack_by text,
+        ack_note text NOT NULL DEFAULT '',
+        closed_by text
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS exceptions_key_uq ON exceptions (order_id, dedupe_key)`,
+      `CREATE INDEX IF NOT EXISTS exceptions_open_idx ON exceptions (cleared_at, created_at DESC)`,
+    ],
+  },
 ];
 
 const done = new WeakSet();

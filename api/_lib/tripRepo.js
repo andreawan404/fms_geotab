@@ -6,6 +6,7 @@ import { normalizeOrder, totals } from '../../src/core/orders.js';
 import { vehicleFit } from '../../src/core/capacity.js';
 import { buildSteps } from '../../src/core/trip.js';
 import { haversine } from '../../src/core/geometry.js';
+import { insertVendorIssue } from './insightsRepo.js';
 import { insertPodWithEvent, preparePod, purgeOldPods, listPods } from './podRepo.js';
 
 const iso = (v) => (v == null ? '' : v instanceof Date ? v.toISOString() : new Date(v).toISOString());
@@ -128,4 +129,11 @@ export async function portalPod(db, token, input) {
   const r = await insertPodWithEvent(db, { order, offer, step, steps, pod, stopSeq: step.stopIdx + 1, stopName: stop.name, kind: step.stopType === 'pickup' ? 'pickup' : 'delivery' });
   purgeOldPods(db);
   return r;
+}
+
+/** Vendor melaporkan kendala (mogok, macet, toko tutup, gagal kirim, dll.) -> muncul di Exception admin. */
+export async function portalIssue(db, token, input) {
+  const { offer, order } = await ctxByToken(db, token);
+  if (!tripOpen(offer, order) || !['assigned', 'running'].includes(order.status)) throw new ApiError(409, 'trip_closed', 'Perjalanan tidak dapat diubah');
+  return insertVendorIssue(db, { order, kind: String(input.kind || ''), note: input.note, lat: input.lat, lng: input.lng });
 }

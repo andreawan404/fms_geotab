@@ -23,6 +23,27 @@ const DEMO_PODS = [
   { id: 'dp2', kind: 'delivery', doNo: 'DO-DEMO-001', customer: 'PT Contoh', stopName: 'Toko Bogor', receiverName: 'Pak Andi', receiverTitle: 'Kepala toko', receiverPhone: '', note: '', hasDiff: true, outside: false, distM: 35, submittedAt: new Date(Date.now() - 1 * 3600e3).toISOString(), verifyCode: 'demo-pod', hash: 'b'.repeat(64), photos: 3, amendments: 0, purged: false, vendorName: 'CV Trans Mandiri', plate: 'B 9001 SMA' },
 ];
 
+const ago = (h) => new Date(Date.now() - h * 3600e3).toISOString();
+const DEMO_EXC = [
+  { id: 1, orderId: 'd1', doNo: 'DO-DEMO-001', customer: 'PT Contoh', vendorName: 'CV Trans Mandiri', plate: 'B 9001 SMA', kind: 'late', severity: 'high', source: 'system', stopSeq: 2, meta: { stop: 'Toko Bogor', minutes: 75 }, createdAt: ago(1), clearedAt: '', ackAt: '', ackBy: '', ackNote: '', state: 'open' },
+  { id: 2, orderId: 'd2', doNo: 'DO-DEMO-002', customer: 'PT Maju', vendorName: 'PT Ekspres Nusa', plate: 'B 9002 SMA', kind: 'breakdown', severity: 'high', source: 'vendor', stopSeq: 1, meta: { note: 'Ban pecah di tol Jakarta-Cikampek KM 40', stop: 'Gudang Cikarang' }, createdAt: ago(0.5), clearedAt: '', ackAt: '', ackBy: '', ackNote: '', state: 'open' },
+  { id: 3, orderId: 'd1', doNo: 'DO-DEMO-001', customer: 'PT Contoh', vendorName: 'CV Trans Mandiri', plate: 'B 9001 SMA', kind: 'qty_diff', severity: 'medium', source: 'system', stopSeq: 2, meta: { stop: 'Toko Bogor', receiver: 'Pak Andi', podKind: 'delivery' }, createdAt: ago(3), clearedAt: '', ackAt: '', ackBy: '', ackNote: '', state: 'open' },
+  { id: 4, orderId: 'd3', doNo: 'DO-DEMO-003', customer: 'PT Sentosa', vendorName: '', plate: '', kind: 'no_response', severity: 'high', source: 'system', stopSeq: null, meta: {}, createdAt: ago(5), clearedAt: '', ackAt: ago(4), ackBy: 'demo', ackNote: 'sedang telepon vendor lain', state: 'handled' },
+];
+function demoReport(from, to) {
+  const days = Math.max(1, Math.round((Date.parse(to) - Date.parse(from)) / 864e5) + 1);
+  const daily = Array.from({ length: Math.min(days, 92) }, (_, i) => ({ date: new Date(Date.parse(from) + i * 864e5).toISOString().slice(0, 10), created: 6 + ((i * 7) % 9), done: 4 + ((i * 5) % 8) }));
+  const total = daily.reduce((a, d) => a + d.created, 0);
+  const done = daily.reduce((a, d) => a + d.done, 0);
+  const vend = (id, name, k) => ({ vendorId: id, vendorName: name, sent: 40 * k, accepted: 30 * k, rejected: 6 * k, expired: 4 * k, responseMin: 14 + k * 3, orders: 30 * k, done: 27 * k, measured: 50 * k, ontime: 44 * k, qtyDiff: 2 * k, exceptions: 5 * k, acceptRate: 0.75, onTimeRate: 0.88 });
+  return {
+    range: { from, to }, graceMin: 15,
+    kpi: { total, counts: { done, running: 3, assigned: 4, offered: 2, draft: 5 }, dispatched: done + 7, done, completionRate: done / (done + 7), measuredStops: 150, onTimeStops: 132, onTimeRate: 0.88, leadMin: { toAssign: 38, toStart: 55, trip: 320, total: 420 }, exceptions: 21 },
+    daily, vendors: [vend('v1', 'CV Trans Mandiri', 2), vend('v2', 'PT Ekspres Nusa', 1)],
+    exceptionsByKind: [{ kind: 'late_arrival', severity: 'medium', n: 8 }, { kind: 'qty_diff', severity: 'medium', n: 5 }, { kind: 'outside_radius', severity: 'low', n: 4 }, { kind: 'breakdown', severity: 'high', n: 2 }, { kind: 'no_response', severity: 'high', n: 2 }],
+  };
+}
+
 export function createOrdersApi({ geotab, isMock }) {
   if (isMock) return createMockOrdersApi();
   async function req(method, path, body) {
@@ -64,6 +85,11 @@ export function createOrdersApi({ geotab, isMock }) {
       remove: (kind, id) => req('DELETE', `/master/${kind}?id=${id}`),
     },
     // penawaran / alokasi
+    insights: {
+      exceptions: ({ status = 'open', kind = '', q = '' } = {}) => req('GET', `/insights?status=${status}&kind=${kind}&q=${encodeURIComponent(q)}`),
+      act: (action, id, note = '') => req('POST', '/insights', { action, id, note }),
+      report: ({ from, to }) => req('GET', `/insights?r=report&from=${from}&to=${to}`),
+    },
     pod: { list: ({ kind, q, days } = {}) => req('GET', `/pod?list=1&kind=${kind || ''}&q=${encodeURIComponent(q || '')}&days=${days || 30}`).then((r) => r.pods), get: (id) => req('GET', `/pod?id=${encodeURIComponent(id)}`).then((r) => r.pod) },
     dispatch: {
       get: (orderId) => req('GET', `/dispatch?orderId=${orderId}`),
@@ -133,6 +159,22 @@ function createMockOrdersApi() {
       },
       async update(kind, id, item) { const i = M[kind].findIndex((x) => x.id === id); if (i < 0) throw err(404, 'not_found'); M[kind][i] = { ...M[kind][i], ...item }; return { ...M[kind][i] }; },
       async remove(kind, id) { M[kind] = M[kind].filter((x) => x.id !== id); return { ok: true }; },
+    },
+    insights: {
+      async exceptions({ status = 'open', kind = '' } = {}) {
+        const rows = DEMO_EXC.filter((e) => (status === 'all' || e.state === status) && (!kind || e.kind === kind));
+        const c = (st, sev) => DEMO_EXC.filter((e) => e.state === st && (!sev || e.severity === sev)).length;
+        return { exceptions: rows.map((e) => ({ ...e })), counts: { high: c('open', 'high'), medium: c('open', 'medium'), low: c('open', 'low'), open: c('open'), handled: c('handled'), cleared: c('cleared') } };
+      },
+      async act(action, id, note) {
+        const e = DEMO_EXC.find((x) => x.id === id);
+        if (!e) throw err(404, 'not_found');
+        if (action === 'ack') Object.assign(e, { state: 'handled', ackAt: now(), ackBy: 'demo', ackNote: note });
+        else if (action === 'unack') Object.assign(e, { state: 'open', ackAt: '', ackNote: '' });
+        else if (action === 'resolve') Object.assign(e, { state: 'cleared', clearedAt: now() });
+        return { ok: true };
+      },
+      async report({ from, to }) { return demoReport(from, to); },
     },
     pod: {
       async list({ kind } = {}) { return DEMO_PODS.filter((p) => !kind || p.kind === kind); },

@@ -51,7 +51,7 @@ a{color:var(--pri)}
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error((j.error && j.error.message) || 'Gagal'); e.code = j.error && j.error.code; e.details = j.error && j.error.details; throw e; } return j; }); });
   }
   var WHY = { weight: function (r) { return 'berat ' + num(r.need, 1) + ' > ' + num(r.have, 1) + ' kg'; }, volume: function (r) { return 'volume ' + num(r.need, 1) + ' > ' + num(r.have, 1) + ' m³'; }, pallets: function (r) { return 'pallet ' + num(r.need, 1) + ' > ' + num(r.have, 1); }, colli: function (r) { return 'koli ' + num(r.need) + ' > ' + num(r.have); }, length: function () { return 'barang terlalu panjang'; }, width: function () { return 'barang terlalu lebar'; }, height: function () { return 'barang terlalu tinggi'; }, temp_control: function () { return 'tidak berpendingin'; }, temp_range: function () { return 'rentang suhu tidak cukup'; }, hazardous: function () { return 'tidak boleh angkut B3'; } };
-  var ERR = { offer_closed: 'Penawaran sudah ditutup (kemungkinan sudah diambil vendor lain atau kedaluwarsa).', vehicle_not_fit: 'Kendaraan tidak sesuai kapasitas muatan.', vehicle_invalid: 'Pilih kendaraan Anda.', driver_required: 'Pilih driver atau isi nama driver.', reason_required: 'Isi alasan penolakan (minimal 3 huruf).', out_of_date: 'Status sudah berubah. Halaman dimuat ulang.', trip_closed: 'Perjalanan tidak dapat diubah lagi.', pod_required: 'Isi POP / POD untuk menyelesaikan langkah ini.', receiver_required: 'Nama penerima wajib diisi.', photo_required: 'Minimal 1 foto bukti.', photo_max: 'Maksimal 4 foto.', signature_required: 'Tanda tangan penerima wajib.', diff_reason_required: 'Isi alasan untuk qty yang berbeda.', pod_invalid: 'Foto / tanda tangan tidak valid, ulangi.', pod_too_big: 'Foto terlalu besar, ambil ulang.', qty_invalid: 'Qty diterima tidak valid.' };
+  var ERR = { offer_closed: 'Penawaran sudah ditutup (kemungkinan sudah diambil vendor lain atau kedaluwarsa).', vehicle_not_fit: 'Kendaraan tidak sesuai kapasitas muatan.', vehicle_invalid: 'Pilih kendaraan Anda.', driver_required: 'Pilih driver atau isi nama driver.', reason_required: 'Isi alasan penolakan (minimal 3 huruf).', out_of_date: 'Status sudah berubah. Halaman dimuat ulang.', trip_closed: 'Perjalanan tidak dapat diubah lagi.', pod_required: 'Isi POP / POD untuk menyelesaikan langkah ini.', receiver_required: 'Nama penerima wajib diisi.', photo_required: 'Minimal 1 foto bukti.', photo_max: 'Maksimal 4 foto.', signature_required: 'Tanda tangan penerima wajib.', diff_reason_required: 'Isi alasan untuk qty yang berbeda.', pod_invalid: 'Foto / tanda tangan tidak valid, ulangi.', pod_too_big: 'Foto terlalu besar, ambil ulang.', qty_invalid: 'Qty diterima tidak valid.', issue_kind: 'Pilih jenis kendala.', issue_note: 'Jelaskan kendala singkat (min. 3 huruf).', issue_limit: 'Terlalu banyak laporan untuk DO ini.' };
   function errText(e) { return ERR[e.code] || e.message || 'Terjadi kesalahan'; }
 
   var TYPE = { pickup: 'Lokasi muat', delivery: 'Lokasi bongkar' };
@@ -142,7 +142,7 @@ a{color:var(--pri)}
       return '<li><time>' + wib(e.at, { day: undefined, month: undefined }) + '</time><div>' + esc(DONE[key(st)]) + where + (e.outside ? ' <span class="badge warn">di luar radius ' + num(e.distM) + ' m</span>' : '') + '</div></li>';
     }).join('');
     var action = '';
-    if (d.finished) action = '<div class="msg ok"><b>Perjalanan selesai.</b> Terima kasih. Bukti serah terima (POD) menyusul di versi berikutnya.</div>';
+    if (d.finished) action = '<div class="msg ok"><b>Perjalanan selesai.</b> Terima kasih. Bukti POP / POD tersimpan di bawah.</div>';
     else if (next) {
       var stopName = next.stopIdx >= 0 ? o.stops[next.stopIdx].name : '';
       var needPod = next.type === 'depart', isPop = next.stopType === 'pickup';
@@ -151,7 +151,9 @@ a{color:var(--pri)}
     app.innerHTML = flashHtml() +
       '<div class="card"><div class="row"><h2 class="grow">' + esc(o.doNo) + '</h2><span class="badge ' + (d.finished ? 'ok' : 'blue') + '">' + (d.finished ? 'Selesai' : n ? 'Berjalan' : 'Siap berangkat') + '</span></div>' +
       '<div class="mut sm">' + esc(o.customer) + '</div><div class="sm" style="margin-top:6px">' + (d.vehicle ? '<b>' + esc(d.vehicle.plate) + '</b>' : '') + (d.driver ? ' · ' + esc(d.driver.name) + (d.driver.phone ? ' (' + esc(d.driver.phone) + ')' : '') : '') + '</div></div>' +
-      action + '<div class="card"><h3>Rute</h3>' + stopsHtml(o, prog) + '</div>' + (d.pods && d.pods.length ? '<div class="card"><h3>Bukti terkirim (POP / POD)</h3>' + d.pods.map(function (p) { return '<div class="sm"><b>' + (p.kind === 'pickup' ? 'POP' : 'POD') + '</b> · Stop ' + p.stopSeq + ' · ' + (p.kind === 'pickup' ? 'diserahkan oleh ' : 'diterima ') + esc(p.receiverName) + ' · ' + wib(p.submittedAt) + (p.hasDiff ? ' <span class="badge warn">ada selisih qty</span>' : '') + '</div>'; }).join('') + '</div>' : '') + (log ? '<div class="card"><h3>Riwayat</h3><ul class="tl">' + log + '</ul></div>' : '');
+      action + (d.finished ? '' : '<div style="margin:8px 0"><button class="sec" id="issuebtn" style="width:100%">⚠ Laporkan kendala</button></div>') + '<div class="card"><h3>Rute</h3>' + stopsHtml(o, prog) + '</div>' + (d.pods && d.pods.length ? '<div class="card"><h3>Bukti terkirim (POP / POD)</h3>' + d.pods.map(function (p) { return '<div class="sm"><b>' + (p.kind === 'pickup' ? 'POP' : 'POD') + '</b> · Stop ' + p.stopSeq + ' · ' + (p.kind === 'pickup' ? 'diserahkan oleh ' : 'diterima ') + esc(p.receiverName) + ' · ' + wib(p.submittedAt) + (p.hasDiff ? ' <span class="badge warn">ada selisih qty</span>' : '') + '</div>'; }).join('') + '</div>' : '') + (log ? '<div class="card"><h3>Riwayat</h3><ul class="tl">' + log + '</ul></div>' : '');
+    var ib = document.getElementById('issuebtn');
+    if (ib) ib.onclick = function () { view = 'issue'; flash = null; render(); window.scrollTo(0, 0); locate(function (p) { if (p) lastPos = p; }); };
     var pg = document.getElementById('podgo');
     if (pg) pg.onclick = function () { pod = { photos: [], signed: false, recv: {} }; view = 'pod'; flash = null; render(); window.scrollTo(0, 0); locate(function (p) { if (p) lastPos = p; }); };
     var go = document.getElementById('go');
@@ -276,6 +278,26 @@ a{color:var(--pri)}
       });
     };
   }
+
+  function renderIssue(d) {
+    var KINDS = [['breakdown', 'Kendaraan mogok / rusak'], ['accident', 'Kecelakaan'], ['traffic', 'Macet / jalan tertutup'], ['customer_closed', 'Lokasi tutup / penerima tidak ada'], ['failed_delivery', 'Gagal kirim / barang ditolak'], ['other', 'Lainnya']];
+    app.innerHTML = flashHtml() + '<div class="card"><h2>Laporkan kendala</h2><div class="sm mut">' + esc(d.order.doNo) + ' · laporan langsung diterima admin.</div>' +
+      '<label>Jenis kendala *</label><select id="ik">' + KINDS.map(function (k) { return '<option value="' + k[0] + '">' + k[1] + '</option>'; }).join('') + '</select>' +
+      '<label>Penjelasan singkat *</label><textarea id="in" rows="4" maxlength="300" placeholder="mis. ban pecah di KM 40 tol Jakarta-Cikampek, estimasi perbaikan 1 jam"></textarea></div>' +
+      '<div class="bar"><div class="row"><button class="sec" id="icancel" style="flex:1">Kembali</button><button id="isend" style="flex:2">Kirim laporan</button></div></div>';
+    document.getElementById('icancel').onclick = function () { view = 'main'; flash = null; render(); };
+    document.getElementById('isend').onclick = function () {
+      var note = document.getElementById('in').value.trim(), kind = document.getElementById('ik').value;
+      if (note.length < 3) return setFlash('err', ERR.issue_note);
+      var btn = document.getElementById('isend'); btn.disabled = true; btn.textContent = 'Mengirim…';
+      locate(function (p) {
+        var pos = p || lastPos, body = { t: token, action: 'issue', kind: kind, note: note };
+        if (pos) { body.lat = pos.latitude; body.lng = pos.longitude; }
+        busy = false;
+        act(function () { return api('POST', body).then(function (r) { view = 'main'; return r; }); }, 'Laporan terkirim ke admin. Tetap hati-hati di jalan.');
+      });
+    };
+  }
   function renderVerify(code) {
     fetch('/api/portal?v=' + encodeURIComponent(code)).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); }).then(function (x) {
       if (!x.ok) { app.innerHTML = '<div class="card center"><h2>Kode tidak ditemukan</h2><p class="mut">Dokumen POD ini tidak terdaftar di sistem.</p></div>'; return; }
@@ -300,7 +322,7 @@ a{color:var(--pri)}
   function render() {
     if (!state) return;
     document.getElementById('vendor').textContent = state.offer.vendorName || '';
-    if (state.mode === 'offer') renderOffer(state); else if (state.mode === 'trip') { if (view === 'pod' && state.next) renderPod(state); else { view = 'main'; renderTrip(state); } } else renderClosed(state);
+    if (state.mode === 'offer') renderOffer(state); else if (state.mode === 'trip') { if (view === 'issue' && !state.finished) renderIssue(state); else if (view === 'pod' && state.next) renderPod(state); else { view = 'main'; renderTrip(state); } } else renderClosed(state);
   }
   function load(silent) {
     return api('GET').then(function (d) { state = d; render(); }).catch(function (e) {

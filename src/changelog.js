@@ -2,6 +2,22 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '2.4.0',
+    date: '2026-10-21',
+    id: [
+      'Tahap 5: Exception Management (menu "Exception"). Sistem mendeteksi otomatis: tidak ada vendor yang menerima, belum berangkat, terlambat / tiba terlambat, tidak ada update dari vendor, posisi di luar radius, dan selisih qty POP / POD. Exception hilang sendiri saat kondisinya pulih; admin dapat menandai "ditangani" dengan catatan atau menyelesaikannya manual. Jumlah exception terbuka tampil sebagai badge di menu.',
+      'Portal vendor: tombol "Laporkan kendala" (mogok, kecelakaan, macet, lokasi tutup, gagal kirim, lainnya) langsung masuk ke daftar Exception admin lengkap dengan lokasi.',
+      'Menu baru "Kinerja DO": penyelesaian DO, ketepatan waktu pengiriman, lead time (alokasi, durasi perjalanan, total), DO per hari, kinerja tiap vendor (rasio terima, waktu respons, tepat waktu, selisih qty, exception) dan sebaran exception. Ekspor kinerja vendor ke CSV.',
+      'Batas toleransi dapat diatur lewat variabel Vercel: EXC_LATE_GRACE_MIN (15), EXC_STALE_MIN (120), EXC_START_GRACE_MIN (30).',
+    ],
+    en: [
+      'Stage 5: Exception Management ("Exceptions" menu). The system automatically detects: no vendor accepted, not started, late / arrived late, no updates from the vendor, position outside the radius, and POP / POD quantity differences. Exceptions clear themselves when the condition recovers; admins can mark them handled with a note or close them manually. The open count shows as a badge on the menu.',
+      'Vendor portal: a "Report an issue" button (breakdown, accident, traffic, location closed, failed delivery, other) goes straight into the admin Exceptions list with the location.',
+      'New "DO Performance" menu: DO completion, on-time delivery, lead times (allocation, trip duration, total), DOs per day, per-vendor performance (accept rate, response time, on-time, quantity differences, exceptions) and an exception breakdown. Export vendor performance to CSV.',
+      'Tolerances can be set with Vercel variables: EXC_LATE_GRACE_MIN (15), EXC_STALE_MIN (120), EXC_START_GRACE_MIN (30).',
+    ],
+  },
+  {
     v: '2.3.1',
     date: '2026-10-21',
     id: [

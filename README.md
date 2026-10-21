@@ -126,3 +126,7 @@ Tambahkan di Vercel > Environment Variables lalu Redeploy: `BREVO_API_KEY` (Secr
 ## POD (v2.3)
 
 Bukti serah terima disimpan di Postgres (foto ≤ ~100–400 KB, tanda tangan PNG). Foto & tanda tangan dihapus setelah `POD_RETENTION_DAYS` hari (default 30); metadata + hash tetap. Verifikasi publik: `/portal.html#/v/<kode>`.
+
+## Exception & Kinerja (v2.4)
+
+Exception dideteksi otomatis saat admin membuka menu Exception (tanpa cron, aman untuk Vercel Hobby). Variabel opsional: `EXC_LATE_GRACE_MIN` (15), `EXC_STALE_MIN` (120), `EXC_START_GRACE_MIN` (30). Endpoint: `GET /api/insights` (daftar exception / `?r=report`), `POST /api/insights` (ack / unack / resolve).

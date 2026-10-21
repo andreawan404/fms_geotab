@@ -2,6 +2,13 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v2.4.0 - 2026-10-21
+
+- Tahap 5: Exception Management (menu "Exception"). Sistem mendeteksi otomatis: tidak ada vendor yang menerima, belum berangkat, terlambat / tiba terlambat, tidak ada update dari vendor, posisi di luar radius, dan selisih qty POP / POD. Exception hilang sendiri saat kondisinya pulih; admin dapat menandai "ditangani" dengan catatan atau menyelesaikannya manual. Jumlah exception terbuka tampil sebagai badge di menu.
+- Portal vendor: tombol "Laporkan kendala" (mogok, kecelakaan, macet, lokasi tutup, gagal kirim, lainnya) langsung masuk ke daftar Exception admin lengkap dengan lokasi.
+- Menu baru "Kinerja DO": penyelesaian DO, ketepatan waktu pengiriman, lead time (alokasi, durasi perjalanan, total), DO per hari, kinerja tiap vendor (rasio terima, waktu respons, tepat waktu, selisih qty, exception) dan sebaran exception. Ekspor kinerja vendor ke CSV.
+- Batas toleransi dapat diatur lewat variabel Vercel: EXC_LATE_GRACE_MIN (15), EXC_STALE_MIN (120), EXC_START_GRACE_MIN (30).
+
 ## v2.3.1 - 2026-10-21
 
 - Menu baru "Bukti": daftar semua POP (Proof of Pickup) dan POD (Proof of Delivery) dari seluruh DO. Filter jenis dan periode, cari berdasarkan DO / customer / lokasi / penerima / vendor / plat, lalu klik baris untuk membuka dokumen.
