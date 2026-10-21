@@ -51,7 +51,7 @@ a{color:var(--pri)}
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error((j.error && j.error.message) || 'Gagal'); e.code = j.error && j.error.code; e.details = j.error && j.error.details; throw e; } return j; }); });
   }
   var WHY = { weight: function (r) { return 'berat ' + num(r.need, 1) + ' > ' + num(r.have, 1) + ' kg'; }, volume: function (r) { return 'volume ' + num(r.need, 1) + ' > ' + num(r.have, 1) + ' m³'; }, pallets: function (r) { return 'pallet ' + num(r.need, 1) + ' > ' + num(r.have, 1); }, colli: function (r) { return 'koli ' + num(r.need) + ' > ' + num(r.have); }, length: function () { return 'barang terlalu panjang'; }, width: function () { return 'barang terlalu lebar'; }, height: function () { return 'barang terlalu tinggi'; }, temp_control: function () { return 'tidak berpendingin'; }, temp_range: function () { return 'rentang suhu tidak cukup'; }, hazardous: function () { return 'tidak boleh angkut B3'; } };
-  var ERR = { offer_closed: 'Penawaran sudah ditutup (kemungkinan sudah diambil vendor lain atau kedaluwarsa).', vehicle_not_fit: 'Kendaraan tidak sesuai kapasitas muatan.', vehicle_invalid: 'Pilih kendaraan Anda.', driver_required: 'Pilih driver atau isi nama driver.', reason_required: 'Isi alasan penolakan (minimal 3 huruf).', out_of_date: 'Status sudah berubah. Halaman dimuat ulang.', trip_closed: 'Perjalanan tidak dapat diubah lagi.', pod_required: 'Isi POD untuk menyelesaikan bongkar.', receiver_required: 'Nama penerima wajib diisi.', photo_required: 'Minimal 1 foto bukti.', photo_max: 'Maksimal 4 foto.', signature_required: 'Tanda tangan penerima wajib.', diff_reason_required: 'Isi alasan untuk qty yang berbeda.', pod_invalid: 'Foto / tanda tangan tidak valid, ulangi.', pod_too_big: 'Foto terlalu besar, ambil ulang.', qty_invalid: 'Qty diterima tidak valid.' };
+  var ERR = { offer_closed: 'Penawaran sudah ditutup (kemungkinan sudah diambil vendor lain atau kedaluwarsa).', vehicle_not_fit: 'Kendaraan tidak sesuai kapasitas muatan.', vehicle_invalid: 'Pilih kendaraan Anda.', driver_required: 'Pilih driver atau isi nama driver.', reason_required: 'Isi alasan penolakan (minimal 3 huruf).', out_of_date: 'Status sudah berubah. Halaman dimuat ulang.', trip_closed: 'Perjalanan tidak dapat diubah lagi.', pod_required: 'Isi POP / POD untuk menyelesaikan langkah ini.', receiver_required: 'Nama penerima wajib diisi.', photo_required: 'Minimal 1 foto bukti.', photo_max: 'Maksimal 4 foto.', signature_required: 'Tanda tangan penerima wajib.', diff_reason_required: 'Isi alasan untuk qty yang berbeda.', pod_invalid: 'Foto / tanda tangan tidak valid, ulangi.', pod_too_big: 'Foto terlalu besar, ambil ulang.', qty_invalid: 'Qty diterima tidak valid.' };
   function errText(e) { return ERR[e.code] || e.message || 'Terjadi kesalahan'; }
 
   var TYPE = { pickup: 'Lokasi muat', delivery: 'Lokasi bongkar' };
@@ -145,13 +145,13 @@ a{color:var(--pri)}
     if (d.finished) action = '<div class="msg ok"><b>Perjalanan selesai.</b> Terima kasih. Bukti serah terima (POD) menyusul di versi berikutnya.</div>';
     else if (next) {
       var stopName = next.stopIdx >= 0 ? o.stops[next.stopIdx].name : '';
-      var needPod = next.type === 'depart' && next.stopType === 'delivery';
-      action = '<div class="bar"><div><div class="sm mut" style="margin-bottom:6px">Langkah berikutnya' + (stopName ? ' · ' + esc(stopName) : '') + '</div><button class="big" id="' + (needPod ? 'podgo' : 'go') + '">' + esc(needPod ? 'Selesai bongkar & isi POD' : ACTION[key(next)]) + '</button><div class="sm mut" style="margin-top:6px;text-align:center">Lokasi HP Anda dicatat saat menekan tombol (bila diizinkan).</div></div></div>';
+      var needPod = next.type === 'depart', isPop = next.stopType === 'pickup';
+      action = '<div class="bar"><div><div class="sm mut" style="margin-bottom:6px">Langkah berikutnya' + (stopName ? ' · ' + esc(stopName) : '') + '</div><button class="big" id="' + (needPod ? 'podgo' : 'go') + '">' + esc(needPod ? (isPop ? 'Selesai muat & isi POP' : 'Selesai bongkar & isi POD') : ACTION[key(next)]) + '</button><div class="sm mut" style="margin-top:6px;text-align:center">Lokasi HP Anda dicatat saat menekan tombol (bila diizinkan).</div></div></div>';
     }
     app.innerHTML = flashHtml() +
       '<div class="card"><div class="row"><h2 class="grow">' + esc(o.doNo) + '</h2><span class="badge ' + (d.finished ? 'ok' : 'blue') + '">' + (d.finished ? 'Selesai' : n ? 'Berjalan' : 'Siap berangkat') + '</span></div>' +
       '<div class="mut sm">' + esc(o.customer) + '</div><div class="sm" style="margin-top:6px">' + (d.vehicle ? '<b>' + esc(d.vehicle.plate) + '</b>' : '') + (d.driver ? ' · ' + esc(d.driver.name) + (d.driver.phone ? ' (' + esc(d.driver.phone) + ')' : '') : '') + '</div></div>' +
-      action + '<div class="card"><h3>Rute</h3>' + stopsHtml(o, prog) + '</div>' + (d.pods && d.pods.length ? '<div class="card"><h3>POD terkirim</h3>' + d.pods.map(function (p) { return '<div class="sm">Stop ' + p.stopSeq + ' · diterima ' + esc(p.receiverName) + ' · ' + wib(p.submittedAt) + (p.hasDiff ? ' <span class="badge warn">ada selisih qty</span>' : '') + '</div>'; }).join('') + '</div>' : '') + (log ? '<div class="card"><h3>Riwayat</h3><ul class="tl">' + log + '</ul></div>' : '');
+      action + '<div class="card"><h3>Rute</h3>' + stopsHtml(o, prog) + '</div>' + (d.pods && d.pods.length ? '<div class="card"><h3>Bukti terkirim (POP / POD)</h3>' + d.pods.map(function (p) { return '<div class="sm"><b>' + (p.kind === 'pickup' ? 'POP' : 'POD') + '</b> · Stop ' + p.stopSeq + ' · ' + (p.kind === 'pickup' ? 'diserahkan oleh ' : 'diterima ') + esc(p.receiverName) + ' · ' + wib(p.submittedAt) + (p.hasDiff ? ' <span class="badge warn">ada selisih qty</span>' : '') + '</div>'; }).join('') + '</div>' : '') + (log ? '<div class="card"><h3>Riwayat</h3><ul class="tl">' + log + '</ul></div>' : '');
     var pg = document.getElementById('podgo');
     if (pg) pg.onclick = function () { pod = { photos: [], signed: false, recv: {} }; view = 'pod'; flash = null; render(); window.scrollTo(0, 0); locate(function (p) { if (p) lastPos = p; }); };
     var go = document.getElementById('go');
@@ -177,7 +177,7 @@ a{color:var(--pri)}
     var st = d.order.stops[d.next.stopIdx], n = new Date();
     var when = n.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
     var gps = lastPos ? lastPos.latitude.toFixed(5) + ', ' + lastPos.longitude.toFixed(5) + ' (±' + Math.round(lastPos.accuracy) + ' m)' : 'GPS tidak tersedia';
-    return [d.order.doNo + ' · ' + st.name, when, gps + (d.vehicle ? ' · ' + d.vehicle.plate : '')];
+    return [(st.type === 'pickup' ? 'POP ' : 'POD ') + d.order.doNo + ' · ' + st.name, when, gps + (d.vehicle ? ' · ' + d.vehicle.plate : '')];
   }
   function processPhoto(file, d) {
     return new Promise(function (resolve, reject) {
@@ -208,20 +208,20 @@ a{color:var(--pri)}
     return { clear: function () { c.clearRect(0, 0, canvas.width, canvas.height); }, png: function () { return canvas.toDataURL('image/png').split(',')[1]; } };
   }
   function renderPod(d) {
-    var st = d.order.stops[d.next.stopIdx];
+    var st = d.order.stops[d.next.stopIdx], pk = st.type === 'pickup', K = pk ? 'POP' : 'POD';
     var items = st.items.map(function (it, i) {
-      return '<div class="card" style="margin:8px 0;padding:10px"><b>' + esc(it.description) + '</b><div class="sm mut">Dikirim: ' + num(it.qty) + ' ' + esc(it.unit) + '</div>' +
-        '<label>Qty diterima</label><input type="number" inputmode="decimal" min="0" step="any" data-rq="' + i + '" value="' + (pod.recv[i] ? pod.recv[i].q : it.qty) + '">' +
+      return '<div class="card" style="margin:8px 0;padding:10px"><b>' + esc(it.description) + '</b><div class="sm mut">' + (pk ? 'Sesuai DO: ' : 'Dikirim: ') + num(it.qty) + ' ' + esc(it.unit) + '</div>' +
+        '<label>' + (pk ? 'Qty dimuat' : 'Qty diterima') + '</label><input type="number" inputmode="decimal" min="0" step="any" data-rq="' + i + '" value="' + (pod.recv[i] ? pod.recv[i].q : it.qty) + '">' +
         '<div data-rw="' + i + '" style="display:none"><label>Alasan selisih (wajib)</label><input data-rr="' + i + '" placeholder="mis. rusak, kurang, ditolak" value="' + esc(pod.recv[i] ? pod.recv[i].r : '') + '"></div></div>';
     }).join('');
     app.innerHTML = flashHtml() +
-      '<div class="card"><div class="row"><h2 class="grow">POD · ' + esc(st.name) + '</h2></div><div class="sm mut">' + esc(d.order.doNo) + ' · Bukti serah terima tidak dapat diubah setelah dikirim.</div></div>' +
-      '<div class="card"><h3>Barang diterima</h3>' + items + '</div>' +
-      '<div class="card"><h3>Penerima</h3><label>Nama penerima *</label><input id="rn" autocomplete="off" value="' + esc(pod.recv.name || '') + '"><label>Jabatan</label><input id="rt" autocomplete="off" value="' + esc(pod.recv.title || '') + '"><label>No. HP penerima</label><input id="rp" inputmode="tel" autocomplete="off" value="' + esc(pod.recv.phone || '') + '"></div>' +
+      '<div class="card"><div class="row"><h2 class="grow">' + K + ' · ' + esc(st.name) + '</h2></div><div class="sm mut">' + esc(d.order.doNo) + ' · Bukti serah terima tidak dapat diubah setelah dikirim.</div></div>' +
+      '<div class="card"><h3>' + (pk ? 'Barang dimuat' : 'Barang diterima') + '</h3>' + items + '</div>' +
+      '<div class="card"><h3>' + (pk ? 'Petugas gudang / pengirim' : 'Penerima') + '</h3><label>' + (pk ? 'Nama petugas *' : 'Nama penerima *') + '</label><input id="rn" autocomplete="off" value="' + esc(pod.recv.name || '') + '"><label>Jabatan</label><input id="rt" autocomplete="off" value="' + esc(pod.recv.title || '') + '"><label>No. HP</label><input id="rp" inputmode="tel" autocomplete="off" value="' + esc(pod.recv.phone || '') + '"></div>' +
       '<div class="card"><h3>Foto bukti * <span class="mut sm">(maks. 4, otomatis diberi cap waktu & lokasi)</span></h3><div id="thumbs" class="row" style="gap:8px"></div><div style="margin-top:8px"><input id="pf" type="file" accept="image/*" capture="environment" style="display:none"><button class="sec" id="addp">+ Ambil / pilih foto</button></div></div>' +
-      '<div class="card"><h3>Tanda tangan penerima *</h3><canvas id="sig" style="width:100%;height:170px;border:1px dashed #9aa7b5;border-radius:8px;background:#fff;touch-action:none"></canvas><div style="margin-top:6px"><button class="sec" id="sigc">Hapus tanda tangan</button></div></div>' +
+      '<div class="card"><h3>' + (pk ? 'Tanda tangan petugas *' : 'Tanda tangan penerima *') + '</h3><canvas id="sig" style="width:100%;height:170px;border:1px dashed #9aa7b5;border-radius:8px;background:#fff;touch-action:none"></canvas><div style="margin-top:6px"><button class="sec" id="sigc">Hapus tanda tangan</button></div></div>' +
       '<div class="card"><label style="margin-top:0">Catatan</label><textarea id="nt" rows="2">' + esc(pod.recv.note || '') + '</textarea></div>' +
-      '<div class="bar"><div class="row"><button class="sec" id="pcancel" style="flex:1">Kembali</button><button id="psend" style="flex:2">Kirim POD</button></div></div>';
+      '<div class="bar"><div class="row"><button class="sec" id="pcancel" style="flex:1">Kembali</button><button id="psend" style="flex:2">Kirim ' + K + '</button></div></div>';
     function thumbs() {
       document.getElementById('thumbs').innerHTML = pod.photos.map(function (p, i) { return '<div style="position:relative"><img src="' + p.url + '" style="width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid #d9dee5"><button data-rm="' + i + '" style="position:absolute;top:-6px;right:-6px;padding:0;width:24px;height:24px;border-radius:50%;background:#d63a3a">×</button></div>'; }).join('');
       document.getElementById('addp').disabled = pod.photos.length >= 4;
@@ -249,7 +249,7 @@ a{color:var(--pri)}
     document.getElementById('pcancel').onclick = function () { view = 'main'; flash = null; render(); };
     document.getElementById('psend').onclick = function () {
       var name = document.getElementById('rn').value.trim(), rec = [];
-      if (name.length < 2) return setFlash('err', ERR.receiver_required);
+      if (name.length < 2) return setFlash('err', pk ? 'Nama petugas wajib diisi.' : ERR.receiver_required);
       if (!pod.photos.length) return setFlash('err', ERR.photo_required);
       if (!pod.signed) return setFlash('err', ERR.signature_required);
       var bad = null;
@@ -260,7 +260,7 @@ a{color:var(--pri)}
         rec.push({ index: i, receivedQty: q, reason: r });
       });
       if (bad) return setFlash('err', bad);
-      if (!window.confirm('Kirim POD? Data tidak dapat diubah setelah dikirim.')) return;
+      if (!window.confirm('Kirim ' + K + '? Data tidak dapat diubah setelah dikirim.')) return;
       var btn = document.getElementById('psend'); btn.disabled = true; btn.textContent = 'Mengirim…';
       locate(function (p) {
         var pos = p || lastPos;
@@ -271,8 +271,8 @@ a{color:var(--pri)}
         rec.forEach(function (r) { pod.recv[r.index] = { q: r.receivedQty, r: r.reason }; });
         var ok = function () { view = 'main'; pod = null; };
         busy = false;
-        act(function () { return api('POST', body).then(function (r) { ok(); return r; }); }, 'POD terkirim. Terima kasih!', function (r) { if (r && r.outside) setFlash('warn', 'POD tercatat, tetapi posisi Anda ' + num(r.distM) + ' m dari titik stop.'); });
-        setTimeout(function () { if (document.getElementById('psend')) { document.getElementById('psend').disabled = false; document.getElementById('psend').textContent = 'Kirim POD'; } }, 4000);
+        act(function () { return api('POST', body).then(function (r) { ok(); return r; }); }, K + ' terkirim. Terima kasih!', function (r) { if (r && r.outside) setFlash('warn', K + ' tercatat, tetapi posisi Anda ' + num(r.distM) + ' m dari titik stop.'); });
+        setTimeout(function () { if (document.getElementById('psend')) { document.getElementById('psend').disabled = false; document.getElementById('psend').textContent = 'Kirim ' + K; } }, 4000);
       });
     };
   }
@@ -280,7 +280,7 @@ a{color:var(--pri)}
     fetch('/api/portal?v=' + encodeURIComponent(code)).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); }).then(function (x) {
       if (!x.ok) { app.innerHTML = '<div class="card center"><h2>Kode tidak ditemukan</h2><p class="mut">Dokumen POD ini tidak terdaftar di sistem.</p></div>'; return; }
       var v = x.j;
-      app.innerHTML = '<div class="card"><div class="msg ok"><b>✓ POD terdaftar dan asli</b></div><dl class="kv"><dt>Nomor DO</dt><dd>' + esc(v.doNo) + '</dd><dt>Lokasi</dt><dd>' + esc(v.stopName) + '</dd><dt>Penerima</dt><dd>' + esc(v.receiverName) + '</dd><dt>Waktu kirim</dt><dd>' + wib(v.submittedAt) + '</dd><dt>Selisih qty</dt><dd>' + (v.hasDiff ? 'Ada' : 'Tidak ada') + '</dd><dt>Kode hash</dt><dd style="font-family:monospace;font-size:12px">' + esc(v.hashShort) + '…</dd></dl>' + (v.purged ? '<div class="sm mut" style="margin-top:8px">Foto dan tanda tangan sudah dihapus sesuai masa retensi.</div>' : '') + '<div class="sm mut" style="margin-top:8px">Cocokkan kode hash dengan yang tercetak pada dokumen POD.</div></div>';
+      app.innerHTML = '<div class="card"><div class="msg ok"><b>✓ ' + (v.kind === 'pickup' ? 'POP' : 'POD') + ' terdaftar dan asli</b></div><dl class="kv"><dt>Nomor DO</dt><dd>' + esc(v.doNo) + '</dd><dt>Lokasi</dt><dd>' + esc(v.stopName) + '</dd><dt>' + (v.kind === 'pickup' ? 'Petugas' : 'Penerima') + '</dt><dd>' + esc(v.receiverName) + '</dd><dt>Waktu kirim</dt><dd>' + wib(v.submittedAt) + '</dd><dt>Selisih qty</dt><dd>' + (v.hasDiff ? 'Ada' : 'Tidak ada') + '</dd><dt>Kode hash</dt><dd style="font-family:monospace;font-size:12px">' + esc(v.hashShort) + '…</dd></dl>' + (v.purged ? '<div class="sm mut" style="margin-top:8px">Foto dan tanda tangan sudah dihapus sesuai masa retensi.</div>' : '') + '<div class="sm mut" style="margin-top:8px">Cocokkan kode hash dengan yang tercetak pada dokumen POD.</div></div>';
     }).catch(function () { app.innerHTML = '<div class="card center"><h2>Gagal memuat</h2></div>'; });
   }
 

@@ -48,7 +48,10 @@ async function running(stops = 2) {
   await post({ t, action: 'accept', vehicleId: veh.id, driverId: d.id });
   let seq = 0;
   const step = () => post({ t, action: 'event', seq: ++seq });
-  await step(); await step(); await step(); await step(); // start, arrive, loading, depart pickup
+  await step(); await step(); await step(); // start, arrive, loading
+  expect((await post({ t, action: 'event', seq: 4 })).body.error.code).toBe('pod_required');
+  expect((await post(podBody(t, 4, { receiverName: 'Petugas gudang' }))).code).toBe(200); // POP
+  seq = 4;
   return { o, t, step, seq: () => seq };
 }
 const podBody = (t, seq, extra = {}) => ({ t, action: 'pod', seq, receiverName: 'Pak Iwan', receiverTitle: 'Kepala gudang', photos: [{ b64: JPG(5), takenAt: '2026-10-20T03:00:00.000Z' }, { b64: JPG(9) }], signature: PNG, lat: -6.2001, lng: 106.9001, accuracy: 10, ...extra });
@@ -84,8 +87,17 @@ describe('POD', () => {
     expect((await call(orderH, { query: { id: o.id } })).body.order).toMatchObject({ status: 'done', tripEvents: 7 });
     // klik ganda / POD kedua ditolak
     expect((await post(podBody(t, 7))).code).toBe(409);
-    const list = (await call(dispatchH, { query: { orderId: o.id } })).body.pods;
-    expect(list).toHaveLength(1);
+    const all = (await call(dispatchH, { query: { orderId: o.id } })).body.pods;
+    expect(all.map((p) => p.kind)).toEqual(['pickup', 'delivery']);
+    const pop = (await call(podH, { query: { id: all[0].id } })).body.pod;
+    expect(pop).toMatchObject({ kind: 'pickup', receiverName: 'Petugas gudang', integrity: 'ok' });
+    const al = (await call(podH, { query: { list: '1' } })).body.pods;
+    expect(al).toHaveLength(2);
+    expect(al[0]).toMatchObject({ doNo: 'DO-P', vendorName: 'V', plate: 'B 1' });
+    expect((await call(podH, { query: { list: '1', kind: 'pickup' } })).body.pods).toHaveLength(1);
+    expect((await call(podH, { query: { list: '1', q: 'toko 1' } })).body.pods).toHaveLength(1);
+    expect((await call(podH, { query: { list: '1', q: 'zzz' } })).body.pods).toHaveLength(0);
+    const list = all.filter((p) => p.kind === 'delivery');
     expect(list[0]).toMatchObject({ receiverName: 'Pak Iwan', hasDiff: true, photos: 2, stopSeq: 2 });
     const full = (await call(podH, { query: { id: list[0].id } })).body.pod;
     expect(full.integrity).toBe('ok');
@@ -119,7 +131,7 @@ describe('POD', () => {
     await post({ t, action: 'event', seq: ++seq });
     expect((await post(podBody(t, 10))).body.finished).toBe(true);
     expect((await call(orderH, { query: { id: o.id } })).body.order.status).toBe('done');
-    expect((await call(dispatchH, { query: { orderId: o.id } })).body.pods.map((p) => p.stopSeq)).toEqual([2, 3]);
+    expect((await call(dispatchH, { query: { orderId: o.id } })).body.pods.map((p) => `${p.kind}${p.stopSeq}`)).toEqual(['pickup1', 'delivery2', 'delivery3']);
   });
 
   it('retensi: foto & tanda tangan dihapus setelah masa simpan, metadata + hash tetap', async () => {

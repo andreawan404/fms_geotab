@@ -2,6 +2,12 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v2.3.1 - 2026-10-21
+
+- Menu baru "Bukti": daftar semua POP (Proof of Pickup) dan POD (Proof of Delivery) dari seluruh DO. Filter jenis dan periode, cari berdasarkan DO / customer / lokasi / penerima / vendor / plat, lalu klik baris untuk membuka dokumen.
+- POP ditambahkan: saat "Selesai muat", vendor mengisi petugas gudang, qty yang dimuat (alasan wajib bila beda dari DO), foto, dan tanda tangan. Sama seperti POD: terkunci, ber-hash, dan punya QR verifikasi.
+- Daftar POP / POD juga tampil di dialog Alokasi tiap DO.
+
 ## v2.3.0 - 2026-10-21
 
 - Tahap 4: POD (bukti serah terima) di portal vendor. "Selesai bongkar" kini lewat form: nama penerima, qty diterima per barang (alasan wajib bila beda dari qty kirim), 1-4 foto yang otomatis diberi cap DO, lokasi, waktu (WIB) dan GPS, tanda tangan penerima, serta catatan.

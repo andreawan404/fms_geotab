@@ -228,6 +228,11 @@ export const MIGRATIONS = [
       )`,
     ],
   },
+  {
+    version: 5,
+    name: 'pod_kind',
+    statements: [`ALTER TABLE pods ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'delivery'`],
+  },
 ];
 
 const done = new WeakSet();

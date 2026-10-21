@@ -151,6 +151,7 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
                   {disp.pods.map((p) => (
                     <li key={p.id}>
                       <time>{fmtDateTime(p.submittedAt)}</time>
+                      <span className={`tms-badge ${p.kind === 'pickup' ? 'blue' : 'green'}`}>{p.kind === 'pickup' ? 'POP' : 'POD'}</span>
                       <span>{p.stopName} · {p.receiverName}</span>
                       {p.hasDiff && <span className="tms-badge amber">{t('pod.diff')}</span>}
                       {p.outside && <span className="tms-badge amber">{t('trip.outside', { m: fmtNum(p.distM) })}</span>}

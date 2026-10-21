@@ -18,6 +18,11 @@ const hostOf = () => {
 
 export const portalBase = () => hostOf();
 
+const DEMO_PODS = [
+  { id: 'dp1', kind: 'pickup', doNo: 'DO-DEMO-001', customer: 'PT Contoh', stopName: 'Gudang Cikarang', receiverName: 'Iwan (gudang)', receiverTitle: '', receiverPhone: '', note: '', hasDiff: false, outside: false, distM: 20, submittedAt: new Date(Date.now() - 3 * 3600e3).toISOString(), verifyCode: 'demo-pop', hash: 'a'.repeat(64), photos: 2, amendments: 0, purged: false, vendorName: 'CV Trans Mandiri', plate: 'B 9001 SMA' },
+  { id: 'dp2', kind: 'delivery', doNo: 'DO-DEMO-001', customer: 'PT Contoh', stopName: 'Toko Bogor', receiverName: 'Pak Andi', receiverTitle: 'Kepala toko', receiverPhone: '', note: '', hasDiff: true, outside: false, distM: 35, submittedAt: new Date(Date.now() - 1 * 3600e3).toISOString(), verifyCode: 'demo-pod', hash: 'b'.repeat(64), photos: 3, amendments: 0, purged: false, vendorName: 'CV Trans Mandiri', plate: 'B 9001 SMA' },
+];
+
 export function createOrdersApi({ geotab, isMock }) {
   if (isMock) return createMockOrdersApi();
   async function req(method, path, body) {
@@ -59,7 +64,7 @@ export function createOrdersApi({ geotab, isMock }) {
       remove: (kind, id) => req('DELETE', `/master/${kind}?id=${id}`),
     },
     // penawaran / alokasi
-    pod: { get: (id) => req('GET', `/pod?id=${encodeURIComponent(id)}`).then((r) => r.pod) },
+    pod: { list: ({ kind, q, days } = {}) => req('GET', `/pod?list=1&kind=${kind || ''}&q=${encodeURIComponent(q || '')}&days=${days || 30}`).then((r) => r.pods), get: (id) => req('GET', `/pod?id=${encodeURIComponent(id)}`).then((r) => r.pod) },
     dispatch: {
       get: (orderId) => req('GET', `/dispatch?orderId=${orderId}`),
       offer: (orderId, vendorIds, expiryMin = 60) => req('POST', '/dispatch', { orderId, action: 'offer', vendorIds, expiryMin }),
@@ -129,7 +134,15 @@ function createMockOrdersApi() {
       async update(kind, id, item) { const i = M[kind].findIndex((x) => x.id === id); if (i < 0) throw err(404, 'not_found'); M[kind][i] = { ...M[kind][i], ...item }; return { ...M[kind][i] }; },
       async remove(kind, id) { M[kind] = M[kind].filter((x) => x.id !== id); return { ok: true }; },
     },
-    pod: { async get() { throw err(404, 'not_found'); } },
+    pod: {
+      async list({ kind } = {}) { return DEMO_PODS.filter((p) => !kind || p.kind === kind); },
+      async get(id) {
+        const p = DEMO_PODS.find((x) => x.id === id);
+        if (!p) throw err(404, 'not_found');
+        const it = p.kind === 'pickup' ? [{ description: 'Air mineral 600ml', sku: '', unit: 'box', sentQty: 100, receivedQty: 100, reason: '' }] : [{ description: 'Air mineral 600ml', sku: '', unit: 'box', sentQty: 100, receivedQty: 95, reason: 'Rusak 5 box' }];
+        return { ...p, items: it, lat: -6.59, lng: 106.79, accuracyM: 12, capturedAt: p.submittedAt, signature: '', photoData: [], amendmentList: [], integrity: 'ok', order: { id: 'demo', doNo: p.doNo, customer: p.customer, vendorName: p.vendorName, plate: p.plate, driverName: 'Budi' } };
+      },
+    },
     dispatch: {
       async amendPod() { throw err(404, 'not_found'); },
       async get(orderId) {

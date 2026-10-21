@@ -124,7 +124,10 @@ describe('portal vendor', () => {
     expect(near.body.outside).toBe(false);
     expect(near.body.distM).toBeLessThan(30);
     await post({ t: tA, action: 'event', seq: 3 });
-    await post({ t: tA, action: 'event', seq: 4 });
+    expect((await post({ t: tA, action: 'event', seq: 4 })).body.error.code).toBe('pod_required');
+    const pop = await post({ t: tA, action: 'pod', seq: 4, receiverName: 'Iwan gudang', photos: [{ b64: JPG }], signature: PNG, lat: -6.3001, lng: 107.1001, accuracy: 10 });
+    expect(pop.code).toBe(200);
+    expect(pop.body.finished).toBe(false);
     const far = await post({ t: tA, action: 'event', seq: 5, lat: -6.5, lng: 106.5, accuracy: 20 });
     expect(far.body.outside).toBe(true);
     await post({ t: tA, action: 'event', seq: 6 });

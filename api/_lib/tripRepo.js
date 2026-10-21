@@ -49,7 +49,7 @@ export async function portalView(db, token) {
     ]);
     const steps = buildSteps(order.stops);
     const pods = await listPods(db, order.id);
-    return { mode: 'trip', ...base, vehicle: veh[0] || null, driver: drv[0] || null, steps, events, next: steps[events.length] || null, finished: order.status === 'done', pods: pods.map((p) => ({ stopSeq: p.stopSeq, receiverName: p.receiverName, submittedAt: p.submittedAt, hasDiff: p.hasDiff, verifyCode: p.verifyCode })) };
+    return { mode: 'trip', ...base, vehicle: veh[0] || null, driver: drv[0] || null, steps, events, next: steps[events.length] || null, finished: order.status === 'done', pods: pods.map((p) => ({ kind: p.kind, stopSeq: p.stopSeq, receiverName: p.receiverName, submittedAt: p.submittedAt, hasDiff: p.hasDiff, verifyCode: p.verifyCode })) };
   }
   return { mode: 'closed', ...base, reason: offer.status === 'accepted' ? 'released' : offer.status };
 }
@@ -85,7 +85,7 @@ export async function portalEvent(db, token, { seq, lat, lng, accuracy, note }) 
   const step = steps[count];
   if (!step) throw new ApiError(409, 'trip_closed', 'Perjalanan sudah selesai');
   if (Number(seq) !== step.seq) throw new ApiError(409, 'out_of_date', 'Status sudah berubah, muat ulang', { next: step.seq });
-  if (step.type === 'depart' && step.stopType === 'delivery') throw new ApiError(422, 'pod_required', 'Selesai bongkar harus lewat POD');
+  if (step.type === 'depart') throw new ApiError(422, 'pod_required', 'Selesai muat / bongkar harus lewat POP / POD');
   const la = Number.isFinite(Number(lat)) && lat !== null && lat !== '' ? Number(lat) : null;
   const ln = Number.isFinite(Number(lng)) && lng !== null && lng !== '' ? Number(lng) : null;
   const acc = Number.isFinite(Number(accuracy)) && accuracy !== null && accuracy !== '' ? Number(accuracy) : null;
@@ -122,10 +122,10 @@ export async function portalPod(db, token, input) {
   const step = steps[count];
   if (!step) throw new ApiError(409, 'trip_closed', 'Perjalanan sudah selesai');
   if (Number(input.seq) !== step.seq) throw new ApiError(409, 'out_of_date', 'Status sudah berubah, muat ulang', { next: step.seq });
-  if (!(step.type === 'depart' && step.stopType === 'delivery')) throw new ApiError(409, 'out_of_date', 'POD belum waktunya, muat ulang', { next: step.seq });
+  if (step.type !== 'depart') throw new ApiError(409, 'out_of_date', 'POD belum waktunya, muat ulang', { next: step.seq });
   const stop = order.stops[step.stopIdx];
   const pod = preparePod(stop, step.stopIdx + 1, input);
-  const r = await insertPodWithEvent(db, { order, offer, step, steps, pod, stopSeq: step.stopIdx + 1, stopName: stop.name });
+  const r = await insertPodWithEvent(db, { order, offer, step, steps, pod, stopSeq: step.stopIdx + 1, stopName: stop.name, kind: step.stopType === 'pickup' ? 'pickup' : 'delivery' });
   purgeOldPods(db);
   return r;
 }

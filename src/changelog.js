@@ -2,6 +2,20 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '2.3.1',
+    date: '2026-10-21',
+    id: [
+      'Menu baru "Bukti": daftar semua POP (Proof of Pickup) dan POD (Proof of Delivery) dari seluruh DO. Filter jenis dan periode, cari berdasarkan DO / customer / lokasi / penerima / vendor / plat, lalu klik baris untuk membuka dokumen.',
+      'POP ditambahkan: saat "Selesai muat", vendor mengisi petugas gudang, qty yang dimuat (alasan wajib bila beda dari DO), foto, dan tanda tangan. Sama seperti POD: terkunci, ber-hash, dan punya QR verifikasi.',
+      'Daftar POP / POD juga tampil di dialog Alokasi tiap DO.',
+    ],
+    en: [
+      'New "Evidence" menu: a list of all POP (Proof of Pickup) and POD (Proof of Delivery) across every DO. Filter by type and period, search by DO / customer / location / receiver / vendor / plate, then click a row to open the document.',
+      'POP added: on "Done loading" the vendor fills in the warehouse officer, quantity loaded (reason required if different from the DO), photos and signature. Like POD: locked, hashed, with a verification QR.',
+      'The POP / POD list also appears in each DO\'s Allocation dialog.',
+    ],
+  },
+  {
     v: '2.3.0',
     date: '2026-10-21',
     id: [

@@ -25,7 +25,7 @@ export default function PodDocument({ podId, onClose, onChanged }) {
   };
 
   return (
-    <Modal title={t('pod.docTitle')} onClose={onClose} xwide footer={<button className="tms-btn" onClick={onClose}>{t("close")}</button>}>
+    <Modal title={t(pod?.kind === 'pickup' ? 'pod.docTitlePop' : 'pod.docTitle')} onClose={onClose} xwide footer={<button className="tms-btn" onClick={onClose}>{t("close")}</button>}>
       {err && <div className="tms-banner err">{err}</div>}
       {!pod && !err && <Spinner />}
       {pod && (
