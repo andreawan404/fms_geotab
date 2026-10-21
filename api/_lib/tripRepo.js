@@ -6,6 +6,7 @@ import { normalizeOrder, totals } from '../../src/core/orders.js';
 import { vehicleFit } from '../../src/core/capacity.js';
 import { buildSteps } from '../../src/core/trip.js';
 import { haversine } from '../../src/core/geometry.js';
+import { insertPodWithEvent, preparePod, purgeOldPods, listPods } from './podRepo.js';
 
 const iso = (v) => (v == null ? '' : v instanceof Date ? v.toISOString() : new Date(v).toISOString());
 
@@ -47,7 +48,8 @@ export async function portalView(db, token) {
       order.driverId ? db.query('SELECT name, phone FROM drivers WHERE id = $1', [order.driverId]) : [],
     ]);
     const steps = buildSteps(order.stops);
-    return { mode: 'trip', ...base, vehicle: veh[0] || null, driver: drv[0] || null, steps, events, next: steps[events.length] || null, finished: order.status === 'done' };
+    const pods = await listPods(db, order.id);
+    return { mode: 'trip', ...base, vehicle: veh[0] || null, driver: drv[0] || null, steps, events, next: steps[events.length] || null, finished: order.status === 'done', pods: pods.map((p) => ({ stopSeq: p.stopSeq, receiverName: p.receiverName, submittedAt: p.submittedAt, hasDiff: p.hasDiff, verifyCode: p.verifyCode })) };
   }
   return { mode: 'closed', ...base, reason: offer.status === 'accepted' ? 'released' : offer.status };
 }
@@ -83,6 +85,7 @@ export async function portalEvent(db, token, { seq, lat, lng, accuracy, note }) 
   const step = steps[count];
   if (!step) throw new ApiError(409, 'trip_closed', 'Perjalanan sudah selesai');
   if (Number(seq) !== step.seq) throw new ApiError(409, 'out_of_date', 'Status sudah berubah, muat ulang', { next: step.seq });
+  if (step.type === 'depart' && step.stopType === 'delivery') throw new ApiError(422, 'pod_required', 'Selesai bongkar harus lewat POD');
   const la = Number.isFinite(Number(lat)) && lat !== null && lat !== '' ? Number(lat) : null;
   const ln = Number.isFinite(Number(lng)) && lng !== null && lng !== '' ? Number(lng) : null;
   const acc = Number.isFinite(Number(accuracy)) && accuracy !== null && accuracy !== '' ? Number(accuracy) : null;
@@ -108,4 +111,21 @@ export async function portalEvent(db, token, { seq, lat, lng, accuracy, note }) 
   });
   if (Number(rows[0].n) !== 1) throw new ApiError(409, 'trip_closed', 'Perjalanan tidak dapat diubah');
   return { ok: true, outside, distM: dist, finished: isLast };
+}
+
+/** Kirim POD di langkah "selesai bongkar" sekaligus mencatat event keberangkatan (atomik). */
+export async function portalPod(db, token, input) {
+  const { offer, order } = await ctxByToken(db, token);
+  if (!tripOpen(offer, order) || order.status !== 'running') throw new ApiError(409, 'trip_closed', 'Perjalanan tidak dapat diubah');
+  const steps = buildSteps(order.stops);
+  const count = Number((await db.query('SELECT count(*)::int AS n FROM trip_events WHERE order_id = $1', [order.id]))[0].n);
+  const step = steps[count];
+  if (!step) throw new ApiError(409, 'trip_closed', 'Perjalanan sudah selesai');
+  if (Number(input.seq) !== step.seq) throw new ApiError(409, 'out_of_date', 'Status sudah berubah, muat ulang', { next: step.seq });
+  if (!(step.type === 'depart' && step.stopType === 'delivery')) throw new ApiError(409, 'out_of_date', 'POD belum waktunya, muat ulang', { next: step.seq });
+  const stop = order.stops[step.stopIdx];
+  const pod = preparePod(stop, step.stopIdx + 1, input);
+  const r = await insertPodWithEvent(db, { order, offer, step, steps, pod, stopSeq: step.stopIdx + 1, stopName: stop.name });
+  purgeOldPods(db);
+  return r;
 }

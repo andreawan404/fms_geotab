@@ -39,7 +39,8 @@ a{color:var(--pri)}
   'use strict';
   var app = document.getElementById('app');
   var token = (location.hash.match(/#\/o\/([A-Za-z0-9_-]+)/) || [])[1] || '';
-  var state = null, busy = false, flash = null, timer = null;
+  var state = null, busy = false, flash = null, timer = null, view = 'main', pod = null, lastPos = null;
+  var vcode = (location.hash.match(/#\/v\/([A-Za-z0-9_-]+)/) || [])[1] || '';
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function wib(iso, opt) { if (!iso) return '-'; return new Date(iso).toLocaleString('id-ID', Object.assign({ timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }, opt || {})) + ' WIB'; }
@@ -50,7 +51,7 @@ a{color:var(--pri)}
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error((j.error && j.error.message) || 'Gagal'); e.code = j.error && j.error.code; e.details = j.error && j.error.details; throw e; } return j; }); });
   }
   var WHY = { weight: function (r) { return 'berat ' + num(r.need, 1) + ' > ' + num(r.have, 1) + ' kg'; }, volume: function (r) { return 'volume ' + num(r.need, 1) + ' > ' + num(r.have, 1) + ' m³'; }, pallets: function (r) { return 'pallet ' + num(r.need, 1) + ' > ' + num(r.have, 1); }, colli: function (r) { return 'koli ' + num(r.need) + ' > ' + num(r.have); }, length: function () { return 'barang terlalu panjang'; }, width: function () { return 'barang terlalu lebar'; }, height: function () { return 'barang terlalu tinggi'; }, temp_control: function () { return 'tidak berpendingin'; }, temp_range: function () { return 'rentang suhu tidak cukup'; }, hazardous: function () { return 'tidak boleh angkut B3'; } };
-  var ERR = { offer_closed: 'Penawaran sudah ditutup (kemungkinan sudah diambil vendor lain atau kedaluwarsa).', vehicle_not_fit: 'Kendaraan tidak sesuai kapasitas muatan.', vehicle_invalid: 'Pilih kendaraan Anda.', driver_required: 'Pilih driver atau isi nama driver.', reason_required: 'Isi alasan penolakan (minimal 3 huruf).', out_of_date: 'Status sudah berubah. Halaman dimuat ulang.', trip_closed: 'Perjalanan tidak dapat diubah lagi.' };
+  var ERR = { offer_closed: 'Penawaran sudah ditutup (kemungkinan sudah diambil vendor lain atau kedaluwarsa).', vehicle_not_fit: 'Kendaraan tidak sesuai kapasitas muatan.', vehicle_invalid: 'Pilih kendaraan Anda.', driver_required: 'Pilih driver atau isi nama driver.', reason_required: 'Isi alasan penolakan (minimal 3 huruf).', out_of_date: 'Status sudah berubah. Halaman dimuat ulang.', trip_closed: 'Perjalanan tidak dapat diubah lagi.', pod_required: 'Isi POD untuk menyelesaikan bongkar.', receiver_required: 'Nama penerima wajib diisi.', photo_required: 'Minimal 1 foto bukti.', photo_max: 'Maksimal 4 foto.', signature_required: 'Tanda tangan penerima wajib.', diff_reason_required: 'Isi alasan untuk qty yang berbeda.', pod_invalid: 'Foto / tanda tangan tidak valid, ulangi.', pod_too_big: 'Foto terlalu besar, ambil ulang.', qty_invalid: 'Qty diterima tidak valid.' };
   function errText(e) { return ERR[e.code] || e.message || 'Terjadi kesalahan'; }
 
   var TYPE = { pickup: 'Lokasi muat', delivery: 'Lokasi bongkar' };
@@ -144,12 +145,15 @@ a{color:var(--pri)}
     if (d.finished) action = '<div class="msg ok"><b>Perjalanan selesai.</b> Terima kasih. Bukti serah terima (POD) menyusul di versi berikutnya.</div>';
     else if (next) {
       var stopName = next.stopIdx >= 0 ? o.stops[next.stopIdx].name : '';
-      action = '<div class="bar"><div><div class="sm mut" style="margin-bottom:6px">Langkah berikutnya' + (stopName ? ' · ' + esc(stopName) : '') + '</div><button class="big" id="go">' + esc(ACTION[key(next)]) + '</button><div class="sm mut" style="margin-top:6px;text-align:center">Lokasi HP Anda dicatat saat menekan tombol (bila diizinkan).</div></div></div>';
+      var needPod = next.type === 'depart' && next.stopType === 'delivery';
+      action = '<div class="bar"><div><div class="sm mut" style="margin-bottom:6px">Langkah berikutnya' + (stopName ? ' · ' + esc(stopName) : '') + '</div><button class="big" id="' + (needPod ? 'podgo' : 'go') + '">' + esc(needPod ? 'Selesai bongkar & isi POD' : ACTION[key(next)]) + '</button><div class="sm mut" style="margin-top:6px;text-align:center">Lokasi HP Anda dicatat saat menekan tombol (bila diizinkan).</div></div></div>';
     }
     app.innerHTML = flashHtml() +
       '<div class="card"><div class="row"><h2 class="grow">' + esc(o.doNo) + '</h2><span class="badge ' + (d.finished ? 'ok' : 'blue') + '">' + (d.finished ? 'Selesai' : n ? 'Berjalan' : 'Siap berangkat') + '</span></div>' +
       '<div class="mut sm">' + esc(o.customer) + '</div><div class="sm" style="margin-top:6px">' + (d.vehicle ? '<b>' + esc(d.vehicle.plate) + '</b>' : '') + (d.driver ? ' · ' + esc(d.driver.name) + (d.driver.phone ? ' (' + esc(d.driver.phone) + ')' : '') : '') + '</div></div>' +
-      action + '<div class="card"><h3>Rute</h3>' + stopsHtml(o, prog) + '</div>' + (log ? '<div class="card"><h3>Riwayat</h3><ul class="tl">' + log + '</ul></div>' : '');
+      action + '<div class="card"><h3>Rute</h3>' + stopsHtml(o, prog) + '</div>' + (d.pods && d.pods.length ? '<div class="card"><h3>POD terkirim</h3>' + d.pods.map(function (p) { return '<div class="sm">Stop ' + p.stopSeq + ' · diterima ' + esc(p.receiverName) + ' · ' + wib(p.submittedAt) + (p.hasDiff ? ' <span class="badge warn">ada selisih qty</span>' : '') + '</div>'; }).join('') + '</div>' : '') + (log ? '<div class="card"><h3>Riwayat</h3><ul class="tl">' + log + '</ul></div>' : '');
+    var pg = document.getElementById('podgo');
+    if (pg) pg.onclick = function () { pod = { photos: [], signed: false, recv: {} }; view = 'pod'; flash = null; render(); window.scrollTo(0, 0); locate(function (p) { if (p) lastPos = p; }); };
     var go = document.getElementById('go');
     if (go) go.onclick = function () {
       go.disabled = true; go.textContent = 'Mencatat…';
@@ -159,6 +163,125 @@ a{color:var(--pri)}
         act(function () { return api('POST', body); }, null, function (r) { if (r && r.outside) setFlash('warn', 'Posisi Anda ' + num(r.distM) + ' m dari titik stop (di luar radius). Tetap tercatat.'); });
       });
     };
+  }
+
+
+  // ---------- POD ----------
+  function wm(ctxLines, w, h, c) {
+    var bar = Math.round(Math.max(54, h * 0.1)), fs = Math.round(bar / 4.4);
+    c.fillStyle = 'rgba(0,0,0,.62)'; c.fillRect(0, h - bar, w, bar);
+    c.fillStyle = '#fff'; c.font = '600 ' + fs + 'px Arial,sans-serif'; c.textBaseline = 'top';
+    ctxLines.forEach(function (t, i) { c.fillText(t, 10, h - bar + 6 + i * (fs + 3), w - 20); });
+  }
+  function photoLines(d) {
+    var st = d.order.stops[d.next.stopIdx], n = new Date();
+    var when = n.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
+    var gps = lastPos ? lastPos.latitude.toFixed(5) + ', ' + lastPos.longitude.toFixed(5) + ' (±' + Math.round(lastPos.accuracy) + ' m)' : 'GPS tidak tersedia';
+    return [d.order.doNo + ' · ' + st.name, when, gps + (d.vehicle ? ' · ' + d.vehicle.plate : '')];
+  }
+  function processPhoto(file, d) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image(), url = URL.createObjectURL(file);
+      img.onload = function () {
+        var max = 1024, sc = Math.min(1, max / Math.max(img.width, img.height)), w = Math.round(img.width * sc), h = Math.round(img.height * sc);
+        var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        var c = cv.getContext('2d'); c.drawImage(img, 0, 0, w, h); URL.revokeObjectURL(url);
+        wm(photoLines(d), w, h, c);
+        var q = 0.7, out = cv.toDataURL('image/jpeg', q);
+        while (out.length * 0.75 > 380 * 1024 && q > 0.3) { q -= 0.1; out = cv.toDataURL('image/jpeg', q); }
+        resolve({ b64: out.split(',')[1], url: out, takenAt: new Date().toISOString() });
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('Foto tidak dapat dibaca')); };
+      img.src = url;
+    });
+  }
+  function sigPad(canvas, onDraw) {
+    var c = canvas.getContext('2d'), drawing = false, last = null;
+    var r = canvas.getBoundingClientRect(); canvas.width = Math.round(r.width * 2); canvas.height = Math.round(r.height * 2);
+    c.scale(2, 2); c.lineWidth = 2.2; c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = '#111';
+    function pos(e) { var b = canvas.getBoundingClientRect(), t = e.touches ? e.touches[0] : e; return [t.clientX - b.left, t.clientY - b.top]; }
+    function down(e) { e.preventDefault(); drawing = true; last = pos(e); c.beginPath(); c.moveTo(last[0], last[1]); c.lineTo(last[0] + 0.1, last[1] + 0.1); c.stroke(); }
+    function move(e) { if (!drawing) return; e.preventDefault(); var p = pos(e); c.beginPath(); c.moveTo(last[0], last[1]); c.lineTo(p[0], p[1]); c.stroke(); last = p; onDraw(); }
+    function up() { drawing = false; }
+    canvas.addEventListener('mousedown', down); canvas.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+    canvas.addEventListener('touchstart', down, { passive: false }); canvas.addEventListener('touchmove', move, { passive: false }); canvas.addEventListener('touchend', up);
+    return { clear: function () { c.clearRect(0, 0, canvas.width, canvas.height); }, png: function () { return canvas.toDataURL('image/png').split(',')[1]; } };
+  }
+  function renderPod(d) {
+    var st = d.order.stops[d.next.stopIdx];
+    var items = st.items.map(function (it, i) {
+      return '<div class="card" style="margin:8px 0;padding:10px"><b>' + esc(it.description) + '</b><div class="sm mut">Dikirim: ' + num(it.qty) + ' ' + esc(it.unit) + '</div>' +
+        '<label>Qty diterima</label><input type="number" inputmode="decimal" min="0" step="any" data-rq="' + i + '" value="' + (pod.recv[i] ? pod.recv[i].q : it.qty) + '">' +
+        '<div data-rw="' + i + '" style="display:none"><label>Alasan selisih (wajib)</label><input data-rr="' + i + '" placeholder="mis. rusak, kurang, ditolak" value="' + esc(pod.recv[i] ? pod.recv[i].r : '') + '"></div></div>';
+    }).join('');
+    app.innerHTML = flashHtml() +
+      '<div class="card"><div class="row"><h2 class="grow">POD · ' + esc(st.name) + '</h2></div><div class="sm mut">' + esc(d.order.doNo) + ' · Bukti serah terima tidak dapat diubah setelah dikirim.</div></div>' +
+      '<div class="card"><h3>Barang diterima</h3>' + items + '</div>' +
+      '<div class="card"><h3>Penerima</h3><label>Nama penerima *</label><input id="rn" autocomplete="off" value="' + esc(pod.recv.name || '') + '"><label>Jabatan</label><input id="rt" autocomplete="off" value="' + esc(pod.recv.title || '') + '"><label>No. HP penerima</label><input id="rp" inputmode="tel" autocomplete="off" value="' + esc(pod.recv.phone || '') + '"></div>' +
+      '<div class="card"><h3>Foto bukti * <span class="mut sm">(maks. 4, otomatis diberi cap waktu & lokasi)</span></h3><div id="thumbs" class="row" style="gap:8px"></div><div style="margin-top:8px"><input id="pf" type="file" accept="image/*" capture="environment" style="display:none"><button class="sec" id="addp">+ Ambil / pilih foto</button></div></div>' +
+      '<div class="card"><h3>Tanda tangan penerima *</h3><canvas id="sig" style="width:100%;height:170px;border:1px dashed #9aa7b5;border-radius:8px;background:#fff;touch-action:none"></canvas><div style="margin-top:6px"><button class="sec" id="sigc">Hapus tanda tangan</button></div></div>' +
+      '<div class="card"><label style="margin-top:0">Catatan</label><textarea id="nt" rows="2">' + esc(pod.recv.note || '') + '</textarea></div>' +
+      '<div class="bar"><div class="row"><button class="sec" id="pcancel" style="flex:1">Kembali</button><button id="psend" style="flex:2">Kirim POD</button></div></div>';
+    function thumbs() {
+      document.getElementById('thumbs').innerHTML = pod.photos.map(function (p, i) { return '<div style="position:relative"><img src="' + p.url + '" style="width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid #d9dee5"><button data-rm="' + i + '" style="position:absolute;top:-6px;right:-6px;padding:0;width:24px;height:24px;border-radius:50%;background:#d63a3a">×</button></div>'; }).join('');
+      document.getElementById('addp').disabled = pod.photos.length >= 4;
+      Array.prototype.forEach.call(document.querySelectorAll('[data-rm]'), function (b) { b.onclick = function () { pod.photos.splice(Number(b.getAttribute('data-rm')), 1); thumbs(); }; });
+    }
+    thumbs();
+    function diffs() {
+      Array.prototype.forEach.call(document.querySelectorAll('[data-rq]'), function (inp) {
+        var i = Number(inp.getAttribute('data-rq')), differ = Math.abs(Number(inp.value) - st.items[i].qty) > 1e-9;
+        document.querySelector('[data-rw="' + i + '"]').style.display = differ ? 'block' : 'none';
+      });
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-rq]'), function (inp) { inp.oninput = diffs; });
+    diffs();
+    var pad = sigPad(document.getElementById('sig'), function () { pod.signed = true; });
+    pod.signed = false;
+    document.getElementById('sigc').onclick = function () { pad.clear(); pod.signed = false; };
+    var pf = document.getElementById('pf');
+    document.getElementById('addp').onclick = function () { locate(function (p) { if (p) lastPos = p; }); pf.click(); };
+    pf.onchange = function () {
+      var f = pf.files && pf.files[0]; pf.value = '';
+      if (!f) return;
+      processPhoto(f, d).then(function (r) { pod.photos.push(r); thumbs(); }).catch(function (e) { setFlash('err', e.message); });
+    };
+    document.getElementById('pcancel').onclick = function () { view = 'main'; flash = null; render(); };
+    document.getElementById('psend').onclick = function () {
+      var name = document.getElementById('rn').value.trim(), rec = [];
+      if (name.length < 2) return setFlash('err', ERR.receiver_required);
+      if (!pod.photos.length) return setFlash('err', ERR.photo_required);
+      if (!pod.signed) return setFlash('err', ERR.signature_required);
+      var bad = null;
+      Array.prototype.forEach.call(document.querySelectorAll('[data-rq]'), function (inp) {
+        var i = Number(inp.getAttribute('data-rq')), q = Number(inp.value), r = document.querySelector('[data-rr="' + i + '"]').value.trim();
+        if (inp.value === '' || isNaN(q) || q < 0) bad = ERR.qty_invalid;
+        else if (Math.abs(q - st.items[i].qty) > 1e-9 && r.length < 2) bad = ERR.diff_reason_required;
+        rec.push({ index: i, receivedQty: q, reason: r });
+      });
+      if (bad) return setFlash('err', bad);
+      if (!window.confirm('Kirim POD? Data tidak dapat diubah setelah dikirim.')) return;
+      var btn = document.getElementById('psend'); btn.disabled = true; btn.textContent = 'Mengirim…';
+      locate(function (p) {
+        var pos = p || lastPos;
+        var body = { t: token, action: 'pod', seq: d.next.seq, receiverName: name, receiverTitle: document.getElementById('rt').value, receiverPhone: document.getElementById('rp').value, note: document.getElementById('nt').value,
+          items: rec, photos: pod.photos.map(function (x) { return { b64: x.b64, takenAt: x.takenAt }; }), signature: pad.png() };
+        if (pos) { body.lat = pos.latitude; body.lng = pos.longitude; body.accuracy = pos.accuracy; }
+        pod.recv = { name: name, title: body.receiverTitle, phone: body.receiverPhone, note: body.note };
+        rec.forEach(function (r) { pod.recv[r.index] = { q: r.receivedQty, r: r.reason }; });
+        var ok = function () { view = 'main'; pod = null; };
+        busy = false;
+        act(function () { return api('POST', body).then(function (r) { ok(); return r; }); }, 'POD terkirim. Terima kasih!', function (r) { if (r && r.outside) setFlash('warn', 'POD tercatat, tetapi posisi Anda ' + num(r.distM) + ' m dari titik stop.'); });
+        setTimeout(function () { if (document.getElementById('psend')) { document.getElementById('psend').disabled = false; document.getElementById('psend').textContent = 'Kirim POD'; } }, 4000);
+      });
+    };
+  }
+  function renderVerify(code) {
+    fetch('/api/portal?v=' + encodeURIComponent(code)).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); }).then(function (x) {
+      if (!x.ok) { app.innerHTML = '<div class="card center"><h2>Kode tidak ditemukan</h2><p class="mut">Dokumen POD ini tidak terdaftar di sistem.</p></div>'; return; }
+      var v = x.j;
+      app.innerHTML = '<div class="card"><div class="msg ok"><b>✓ POD terdaftar dan asli</b></div><dl class="kv"><dt>Nomor DO</dt><dd>' + esc(v.doNo) + '</dd><dt>Lokasi</dt><dd>' + esc(v.stopName) + '</dd><dt>Penerima</dt><dd>' + esc(v.receiverName) + '</dd><dt>Waktu kirim</dt><dd>' + wib(v.submittedAt) + '</dd><dt>Selisih qty</dt><dd>' + (v.hasDiff ? 'Ada' : 'Tidak ada') + '</dd><dt>Kode hash</dt><dd style="font-family:monospace;font-size:12px">' + esc(v.hashShort) + '…</dd></dl>' + (v.purged ? '<div class="sm mut" style="margin-top:8px">Foto dan tanda tangan sudah dihapus sesuai masa retensi.</div>' : '') + '<div class="sm mut" style="margin-top:8px">Cocokkan kode hash dengan yang tercetak pada dokumen POD.</div></div>';
+    }).catch(function () { app.innerHTML = '<div class="card center"><h2>Gagal memuat</h2></div>'; });
   }
 
   function locate(cb) {
@@ -177,13 +300,14 @@ a{color:var(--pri)}
   function render() {
     if (!state) return;
     document.getElementById('vendor').textContent = state.offer.vendorName || '';
-    if (state.mode === 'offer') renderOffer(state); else if (state.mode === 'trip') renderTrip(state); else renderClosed(state);
+    if (state.mode === 'offer') renderOffer(state); else if (state.mode === 'trip') { if (view === 'pod' && state.next) renderPod(state); else { view = 'main'; renderTrip(state); } } else renderClosed(state);
   }
   function load(silent) {
     return api('GET').then(function (d) { state = d; render(); }).catch(function (e) {
       if (!silent || !state) app.innerHTML = '<div class="card center"><h2>Tautan tidak valid</h2><p class="mut">' + (e.code === 'not_found' ? 'Tautan tidak ditemukan atau sudah tidak berlaku.' : esc(errText(e))) + '</p></div>';
     });
   }
+  if (vcode) { renderVerify(vcode); return; }
   if (!token) { app.innerHTML = '<div class="card center"><h2>Tautan tidak lengkap</h2><p class="mut">Buka portal ini dari tombol di email penawaran.</p></div>'; return; }
   load();
   timer = setInterval(function () { if (!busy && state && state.mode === 'offer') render(); }, 30000); // segarkan sisa waktu

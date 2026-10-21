@@ -16,6 +16,8 @@ const hostOf = () => {
   return typeof location !== 'undefined' ? location.origin : '';
 };
 
+export const portalBase = () => hostOf();
+
 export function createOrdersApi({ geotab, isMock }) {
   if (isMock) return createMockOrdersApi();
   async function req(method, path, body) {
@@ -57,11 +59,13 @@ export function createOrdersApi({ geotab, isMock }) {
       remove: (kind, id) => req('DELETE', `/master/${kind}?id=${id}`),
     },
     // penawaran / alokasi
+    pod: { get: (id) => req('GET', `/pod?id=${encodeURIComponent(id)}`).then((r) => r.pod) },
     dispatch: {
       get: (orderId) => req('GET', `/dispatch?orderId=${orderId}`),
       offer: (orderId, vendorIds, expiryMin = 60) => req('POST', '/dispatch', { orderId, action: 'offer', vendorIds, expiryMin }),
       assign: (orderId, vendorId, vehicleId, driverId) => req('POST', '/dispatch', { orderId, action: 'assign', vendorId, vehicleId, driverId }),
       release: (orderId) => req('POST', '/dispatch', { orderId, action: 'release' }),
+      amendPod: (podId, note) => req('POST', '/dispatch', { action: 'pod_amend', podId, note }),
     },
   };
 }
@@ -125,9 +129,11 @@ function createMockOrdersApi() {
       async update(kind, id, item) { const i = M[kind].findIndex((x) => x.id === id); if (i < 0) throw err(404, 'not_found'); M[kind][i] = { ...M[kind][i], ...item }; return { ...M[kind][i] }; },
       async remove(kind, id) { M[kind] = M[kind].filter((x) => x.id !== id); return { ok: true }; },
     },
+    pod: { async get() { throw err(404, 'not_found'); } },
     dispatch: {
+      async amendPod() { throw err(404, 'not_found'); },
       async get(orderId) {
-        return { trip: { events: [], steps: [] }, offers: offers.filter((f) => f.orderId === orderId).map((f) => ({ ...f, status: f.status === 'offered' && new Date(f.expiresAt) <= new Date() ? 'expired' : f.status, vendorName: M.vendors.find((v) => v.id === f.vendorId)?.name || '' })), mail: { configured: false, from: 'aan@sumbermas-autorindo.com' } };
+        return { pods: [], trip: { events: [], steps: [] }, offers: offers.filter((f) => f.orderId === orderId).map((f) => ({ ...f, status: f.status === 'offered' && new Date(f.expiresAt) <= new Date() ? 'expired' : f.status, vendorName: M.vendors.find((v) => v.id === f.vendorId)?.name || '' })), mail: { configured: false, from: 'aan@sumbermas-autorindo.com' } };
       },
       async offer(orderId, vendorIds, expiryMin = 60) {
         const o = need(orderId);

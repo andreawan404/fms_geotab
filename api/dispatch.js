@@ -7,6 +7,7 @@ import { getOrder } from './_lib/ordersRepo.js';
 import { dispatchBlockers, normalizeOrder } from '../src/core/orders.js';
 import { tripEvents } from './_lib/tripRepo.js';
 import { buildSteps } from '../src/core/trip.js';
+import { amendPod, listPods } from './_lib/podRepo.js';
 import { mailConfig, offerEmail, sendEmail } from './_lib/mailer.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -21,9 +22,10 @@ export default route({
     const offers = await listOffers(db, id);
     const order = await getOrder(db, id);
     const events = await tripEvents(db, id);
-    return { offers, trip: { events, steps: order ? buildSteps(order.stops) : [] }, mail: { configured: mailConfig().configured, from: mailConfig().from } };
+    return { offers, pods: await listPods(db, id), trip: { events, steps: order ? buildSteps(order.stops) : [] }, mail: { configured: mailConfig().configured, from: mailConfig().from } };
   },
   POST: async ({ db, body, user }) => {
+    if (body.action === 'pod_amend') return amendPod(db, oid(body.podId), body.note, user.userName);
     const orderId = oid(body.orderId);
     const order = await getOrder(db, orderId);
     if (!order) throw new ApiError(404, 'not_found', 'DO tidak ditemukan');

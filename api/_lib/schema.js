@@ -177,6 +177,57 @@ export const MIGRATIONS = [
       `CREATE UNIQUE INDEX IF NOT EXISTS trip_events_seq_uq ON trip_events (order_id, seq)`,
     ],
   },
+  {
+    version: 4,
+    name: 'pod',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS pods (
+        id uuid PRIMARY KEY,
+        order_id uuid NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        stop_seq int NOT NULL,
+        stop_name text NOT NULL,
+        vendor_id uuid,
+        receiver_name text NOT NULL,
+        receiver_title text NOT NULL DEFAULT '',
+        receiver_phone text NOT NULL DEFAULT '',
+        note text NOT NULL DEFAULT '',
+        items jsonb NOT NULL DEFAULT '[]'::jsonb,
+        has_diff boolean NOT NULL DEFAULT false,
+        signature bytea,
+        lat double precision,
+        lng double precision,
+        accuracy_m double precision,
+        dist_m double precision,
+        outside boolean NOT NULL DEFAULT false,
+        captured_at timestamptz,
+        submitted_at timestamptz NOT NULL,
+        verify_code text NOT NULL,
+        sig_sha text NOT NULL DEFAULT '',
+        hash text NOT NULL,
+        purged_at timestamptz
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS pods_stop_uq ON pods (order_id, stop_seq)`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS pods_code_uq ON pods (verify_code)`,
+      `CREATE TABLE IF NOT EXISTS pod_photos (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        pod_id uuid NOT NULL REFERENCES pods(id) ON DELETE CASCADE,
+        ord int NOT NULL,
+        data bytea NOT NULL,
+        mime text NOT NULL DEFAULT 'image/jpeg',
+        sha256 text NOT NULL,
+        bytes int NOT NULL,
+        taken_at timestamptz
+      )`,
+      `CREATE INDEX IF NOT EXISTS pod_photos_pod_idx ON pod_photos (pod_id, ord)`,
+      `CREATE TABLE IF NOT EXISTS pod_amendments (
+        id bigserial PRIMARY KEY,
+        pod_id uuid NOT NULL REFERENCES pods(id) ON DELETE CASCADE,
+        at timestamptz NOT NULL DEFAULT now(),
+        by_user text NOT NULL DEFAULT '',
+        note text NOT NULL
+      )`,
+    ],
+  },
 ];
 
 const done = new WeakSet();

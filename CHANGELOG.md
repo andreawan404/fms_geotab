@@ -2,6 +2,13 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v2.3.0 - 2026-10-21
+
+- Tahap 4: POD (bukti serah terima) di portal vendor. "Selesai bongkar" kini lewat form: nama penerima, qty diterima per barang (alasan wajib bila beda dari qty kirim), 1-4 foto yang otomatis diberi cap DO, lokasi, waktu (WIB) dan GPS, tanda tangan penerima, serta catatan.
+- POD terkunci setelah dikirim: disimpan dengan hash SHA-256 (termasuk foto dan tanda tangan) dan kode verifikasi. Koreksi hanya lewat catatan tambahan (amandemen); data asli tidak pernah berubah. Integritas dicek ulang tiap dokumen dibuka.
+- Di add-in: daftar POD per DO di dialog Alokasi, dokumen POD siap cetak / simpan PDF dengan QR verifikasi. Halaman /portal.html#/v/<kode> memverifikasi keaslian POD tanpa login.
+- Foto dan tanda tangan dihapus otomatis setelah 30 hari (POD_RETENTION_DAYS); data teks dan hash tetap tersimpan.
+
 ## v2.2.0 - 2026-10-21
 
 - Tahap 3: Portal Vendor di /portal.html (tanpa login, cukup tautan dari email penawaran; nyaman di HP). Vendor melihat rute, jadwal, kontak, dan barang tiap stop.

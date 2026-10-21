@@ -5,6 +5,7 @@ import { dispatchBlockers, normalizeOrder, totals } from '../core/orders.js';
 import { fittingVehicles, vehicleFit } from '../core/capacity.js';
 import { fmtDateTime } from '../core/time.js';
 import { stepKey } from '../core/trip.js';
+import PodDocument from './PodDocument.jsx';
 import { apiErrorText, fmtNum, issueText } from '../lib/orderView.js';
 
 const OFFER_CLS = { offered: 'blue', accepted: 'green', rejected: 'red', expired: 'amber', withdrawn: 'gray' };
@@ -22,6 +23,7 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [result, setResult] = useState(null);
+  const [podId, setPodId] = useState(null);
 
   const load = useCallback(async () => {
     const [o, vendors, vehicles, drivers, dp] = await Promise.all([
@@ -141,6 +143,26 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
             </div>
           )}
 
+          {disp.pods?.length > 0 && (
+            <div className="tms-card" style={{ margin: '8px 0' }}>
+              <div className="tms-card-b">
+                <b>{t('pod.title')}</b>
+                <ul className="tms-trip">
+                  {disp.pods.map((p) => (
+                    <li key={p.id}>
+                      <time>{fmtDateTime(p.submittedAt)}</time>
+                      <span>{p.stopName} · {p.receiverName}</span>
+                      {p.hasDiff && <span className="tms-badge amber">{t('pod.diff')}</span>}
+                      {p.outside && <span className="tms-badge amber">{t('trip.outside', { m: fmtNum(p.distM) })}</span>}
+                      {p.amendments > 0 && <span className="tms-badge blue">{t('pod.nAmend', { n: p.amendments })}</span>}
+                      <button className="tms-btn sm" onClick={() => setPodId(p.id)}>{t('pod.open')}</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
           {canAllocate && blockers.length > 0 && (
             <div className="tms-banner" style={{ margin: '8px 0' }}>{t('dsp.notReady')}: {blockers.map((b) => t(`ord.block.${b.code}`, { n: b.n })).join('; ')}</div>
           )}
@@ -252,6 +274,7 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
           </div>
         </div>
       )}
+      {podId && <PodDocument podId={podId} onClose={() => setPodId(null)} onChanged={load} />}
     </Modal>
   );
 }

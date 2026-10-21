@@ -31,6 +31,8 @@ async function call(handler, { method = 'GET', query = {}, body, auth = true } =
   await handler({ method, query, body, headers: auth ? { authorization: creds } : {} }, res);
   return res;
 }
+const JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(200, 7)]).toString('base64');
+const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(200, 3)]).toString('base64');
 const portal = (t) => call(portalH, { query: { t }, auth: false });
 const post = (body) => call(portalH, { method: 'POST', body, auth: false });
 const item = (o = {}) => ({ description: 'Air', qty: 10, unit: 'box', weightKg: 1000, volumeM3: 4, pallets: 2, colli: 10, ...o });
@@ -126,7 +128,9 @@ describe('portal vendor', () => {
     const far = await post({ t: tA, action: 'event', seq: 5, lat: -6.5, lng: 106.5, accuracy: 20 });
     expect(far.body.outside).toBe(true);
     await post({ t: tA, action: 'event', seq: 6 });
-    const last = await post({ t: tA, action: 'event', seq: 7 });
+    expect((await post({ t: tA, action: 'event', seq: 7 })).body.error.code).toBe('pod_required');
+    const last = await post({ t: tA, action: 'pod', seq: 7, receiverName: 'Pak Iwan', photos: [{ b64: JPG }], signature: PNG });
+    expect(last.code).toBe(200);
     expect(last.body.finished).toBe(true);
     const done = (await call(orderH, { query: { id: o.id } })).body.order;
     expect(done).toMatchObject({ status: 'done', tripEvents: 7 });

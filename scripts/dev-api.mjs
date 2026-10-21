@@ -17,6 +17,7 @@ const routes = {
   '/api/portal': (await import('../api/portal.js')).default,
   '/api/orders': (await import('../api/orders/index.js')).default,
   '/api/dispatch': (await import('../api/dispatch.js')).default,
+  '/api/pod': (await import('../api/pod.js')).default,
   '/api/master': (await import('../api/master/[kind].js')).default,
   '/api/health': (await import('../api/health.js')).default,
 };

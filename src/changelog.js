@@ -2,6 +2,22 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '2.3.0',
+    date: '2026-10-21',
+    id: [
+      'Tahap 4: POD (bukti serah terima) di portal vendor. "Selesai bongkar" kini lewat form: nama penerima, qty diterima per barang (alasan wajib bila beda dari qty kirim), 1-4 foto yang otomatis diberi cap DO, lokasi, waktu (WIB) dan GPS, tanda tangan penerima, serta catatan.',
+      'POD terkunci setelah dikirim: disimpan dengan hash SHA-256 (termasuk foto dan tanda tangan) dan kode verifikasi. Koreksi hanya lewat catatan tambahan (amandemen); data asli tidak pernah berubah. Integritas dicek ulang tiap dokumen dibuka.',
+      'Di add-in: daftar POD per DO di dialog Alokasi, dokumen POD siap cetak / simpan PDF dengan QR verifikasi. Halaman /portal.html#/v/<kode> memverifikasi keaslian POD tanpa login.',
+      'Foto dan tanda tangan dihapus otomatis setelah 30 hari (POD_RETENTION_DAYS); data teks dan hash tetap tersimpan.',
+    ],
+    en: [
+      'Stage 4: POD (proof of delivery) in the vendor portal. "Done unloading" now goes through a form: receiver name, received qty per item (reason required when different from sent), 1-4 photos automatically stamped with DO, location, time (WIB) and GPS, receiver signature, and a note.',
+      'POD is locked after submit: stored with a SHA-256 hash (covering photos and signature) and a verification code. Corrections are only possible as additional notes (amendments); the original data never changes. Integrity is re-checked every time a document is opened.',
+      'In the add-in: POD list per DO in the Allocation dialog, a print-ready / save-as-PDF POD document with a verification QR. The page /portal.html#/v/<code> verifies POD authenticity without login.',
+      'Photos and signatures are purged automatically after 30 days (POD_RETENTION_DAYS); text data and the hash are kept.',
+    ],
+  },
+  {
     v: '2.2.0',
     date: '2026-10-21',
     id: [
