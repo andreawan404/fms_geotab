@@ -14,9 +14,9 @@ Dua skenario, bisa dibawakan berurutan (±30 menit) atau dipilih salah satu:
 |---|-------|-----|
 | 1 | Vercel > Settings > Environment Variables (semua **Sensitive**): `BREVO_API_KEY`, `FONNTE_TOKEN` (atau `WA_WEBHOOK_URL`), `CRON_SECRET`, `ENCRYPTION_KEY` (min. 16 karakter acak), `ALLOWED_DATABASES`. **Rotasi dulu API key Brevo yang pernah terekspos.** Redeploy setelah isi. | `https://<host>/api/health` menampilkan `schemaVersion: 10` dan `db: ok` |
 | 2 | cron-job.org: GET tiap 5 menit ke `https://<host>/api/cron?key=<CRON_SECRET>` | Riwayat eksekusi cron-job.org status 200 |
-| 3 | Email: SPF dan DKIM untuk `sumbermas-autorindo.com` di Brevo supaya DO tidak masuk spam | Kirim tes dari Exception > Notifikasi > Kirim tes |
+| 3 | Email: SPF dan DKIM untuk `sumbermas-autorindo.com` di Brevo supaya DO tidak masuk spam | Kirim tes dari Exception > 🔔 Notifikasi > Kirim tes |
 | 4 | Pasang add-in di database MyGeotab demo, buka sekali sebagai admin | Menu muncul, ikon versi 3.2.0 di Pengaturan > Tentang |
-| 5 | Pengaturan > Notifikasi: isi email dan nomor WA admin | Tes terkirim |
+| 5 | Exception > tombol 🔔 Notifikasi: isi email dan nomor WA admin | Tes terkirim |
 
 ### 1.2 Data untuk Skenario A
 1. **Vendor & Armada**: buat 2 vendor (mis. "Vendor Demo A", "Vendor Demo B"), masing-masing 1 kendaraan (plat sama dengan kendaraan di MyGeotab) dan 1 sopir, isi kapasitas.
@@ -45,7 +45,7 @@ Add-in menarik data dari URL https, jadi API customer disimulasikan dengan file 
 
 ### 1.4 Cadangan
 - Rekam layar satu putaran penuh Skenario A dan B (jaga-jaga internet).
-- Mode demo bawaan tanpa MyGeotab: buka add-in dengan `?demo=1` (data contoh, tombol reset lewat muat ulang). Tidak mendemokan GPS asli, tapi semua halaman terisi.
+- Mode demo bawaan tanpa MyGeotab: jalankan `npm run dev` lalu buka http://localhost:5173 (Geotab tiruan, data contoh, reset tiap muat ulang). Tidak mendemokan GPS asli, tapi semua halaman terisi.
 
 ---
 
