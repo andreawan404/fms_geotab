@@ -327,6 +327,11 @@ export const MIGRATIONS = [
     name: 'link_close',
     statements: [`ALTER TABLE orders ADD COLUMN IF NOT EXISTS link_closed_at timestamptz`],
   },
+  {
+    version: 10,
+    name: 'order_fuel',
+    statements: [`ALTER TABLE orders ADD COLUMN IF NOT EXISTS fuel jsonb`],
+  },
 ];
 
 const done = new WeakSet();

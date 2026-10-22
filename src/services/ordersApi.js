@@ -97,6 +97,8 @@ export function createOrdersApi({ geotab, isMock }) {
       test: (c) => req('POST', '/connectors', { action: 'test', ...c }),
       run: (id) => req('POST', '/connectors', { action: 'run', id }),
       orders: () => req('GET', '/orders?source=external&limit=100'),
+      delivery: ({ from, to }) => req('GET', `/connectors?r=delivery&from=${from}&to=${to}`),
+      saveFuel: (orderId, f) => req('POST', '/connectors', { action: 'fuel_save', orderId, ...f }),
       linkInfo: () => req('GET', '/connectors?r=link'),
       link: (b) => req('POST', '/connectors', { action: 'link', ...b }),
       linkClosed: (orderId) => req('POST', '/connectors', { action: 'link_closed', orderId }),
@@ -190,6 +192,16 @@ function createMockOrdersApi() {
       async test() { return { count: 2, sample: JSON.stringify({ id: 'T-1', do_number: 'SO-001', vehicle: { plate: 'B 1234 ABC' }, status: 'ON_THE_WAY', stops: [{ name: 'Gudang A', lat: -6.3, lng: 107.1 }] }, null, 2), mapped: [{ externalId: 'T-1', doNo: 'SO-001', plate: 'B 1234 ABC', status: 'running', extStatus: 'ON_THE_WAY', stops: [{ type: 'pickup', name: 'Gudang A', lat: -6.3, lng: 107.1, windowEnd: '' }, { type: 'delivery', name: 'Toko B', lat: -6.2, lng: 106.9, windowEnd: '' }], problems: [] }] }; },
       async run(id) { const c = demoConn.find((x) => x.id === id); if (c) Object.assign(c, { lastRunAt: now(), lastStatus: 'ok', lastCount: 2, orders: 2 }); return { ok: true, fetched: 2, created: 2, updated: 0, unchanged: 0, skipped: 0, noCoords: 0 }; },
       async orders() { return { orders: [] }; },
+      async delivery() {
+        const iso = (m) => new Date(Date.now() - m * 60000).toISOString();
+        const mk = (id, doNo, status, ext, plate, arr, late) => ({ id, doNo, customer: 'PT Contoh', date: new Date().toISOString().slice(0, 10), status, extStatus: ext, plate, deviceId: 'b1', kg: 8000, fuel: null, arrived: arr, total: 2, measured: arr === 2 ? 1 : 0, onTime: arr === 2 && !late ? 1 : 0,
+          verdict: status === 'done' ? (arr === 2 ? 'consistent' : 'tms_done_no_gps') : arr === 2 ? 'gps_done_tms_open' : 'in_progress',
+          stops: [{ seq: 1, type: 'pickup', name: 'Gudang A', windowEnd: null, arriveAt: arr > 0 ? iso(300) : null, onTime: null, lateMin: null }, { seq: 2, type: 'delivery', name: 'Toko B', windowEnd: iso(200), arriveAt: arr === 2 ? iso(late ? 120 : 230) : null, onTime: arr === 2 ? !late : null, lateMin: late ? 80 : 0 }] });
+        const orders = [mk('d1', 'SO-101', 'done', 'DELIVERED', 'B 1234 ABC', 2, false), mk('d2', 'SO-102', 'done', 'DELIVERED', 'B 9 XY', 2, true), mk('d3', 'SO-103', 'done', 'DELIVERED', 'D 77 ZZ', 0, false), mk('d4', 'SO-104', 'running', 'ON_THE_WAY', 'B 1234 ABC', 1, false)];
+        orders[0].fuel = { fuelL: 52.4, distKm: 188.2, kmPerL: 3.59, lPerTonKm: 0.0348 };
+        return { orders, graceMin: 15, summary: { total: 4, linked: 4, consistent: 2, mismatch: 1, measured: 2, onTime: 1, fuelL: 52.4, distKm: 188.2 } };
+      },
+      async saveFuel() { return { ok: true }; },
       async linkInfo() { return { pending: [], toClose: [], linkedActive: 0, aliases: {} }; },
       async link() { return { ok: true }; },
       async linkClosed() { return { ok: true }; },

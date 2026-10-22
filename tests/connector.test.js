@@ -9,6 +9,8 @@ import cronH from '../api/cron.js';
 import { setConnectorFetch, isPrivateIp, assertPublicUrl } from '../api/_lib/safeFetch.js';
 import { decrypt, encrypt } from '../api/_lib/crypto.js';
 import { matchDevice, planWindow, orderIdOfInstKey } from '../src/core/linkPlan.js';
+import { evalDelivery, fuelMetrics } from '../src/core/deliveryEval.js';
+import { tripWindow, computeOrderFuel } from '../src/services/fuelDo.js';
 import { runAutoLink } from '../src/services/autolink.js';
 import { getPath, mapRecord, normPlate, parseTime, fillTemplate } from '../src/core/extMap.js';
 
@@ -236,6 +238,43 @@ describe('sinkronisasi', () => {
       // alias
       expect((await call(connectorsH, { method: 'POST', body: { action: 'alias', plate: 'D 1 AA', deviceId: 'b4' } })).code).toBe(200);
       expect((await call(connectorsH, { query: { r: 'link' } })).body.aliases).toEqual({ D1AA: 'b4' });
+    });
+  });
+
+  describe('v3.2 laporan pengiriman & BBM', () => {
+    const iso = (m) => new Date(Date.parse('2026-10-22T05:00:00Z') + m * 60000).toISOString();
+    const stops = (a1, a2) => [{ seq: 1, type: 'pickup', name: 'A', windowEnd: null, arriveAt: a1 }, { seq: 2, type: 'delivery', name: 'B', windowEnd: iso(120), arriveAt: a2 }];
+    it('evalDelivery: verdict & tepat waktu', () => {
+      expect(evalDelivery({ status: 'done', linked: true, stops: stops(iso(0), iso(130)) }).verdict).toBe('consistent');
+      const late = evalDelivery({ status: 'done', linked: true, stops: stops(iso(0), iso(150)) });
+      expect(late.onTime).toBe(0); expect(late.stops[1].lateMin).toBe(30);
+      expect(evalDelivery({ status: 'done', linked: true, stops: stops(iso(0), null) }).verdict).toBe('tms_done_no_gps');
+      expect(evalDelivery({ status: 'running', linked: true, stops: stops(iso(0), iso(100)) }).verdict).toBe('gps_done_tms_open');
+      expect(evalDelivery({ status: 'running', linked: false, stops: stops(null, null) }).verdict).toBe('not_linked');
+      expect(fuelMetrics({ fuelL: 50, distKm: 200, kg: 10000 })).toMatchObject({ kmPerL: 4, lPerTonKm: 0.025 });
+    });
+    it('computeOrderFuel dengan Geotab tiruan', async () => {
+      const o = { deviceId: 'b1', kg: 10000, arrived: 2, total: 2, stops: stops(iso(0), iso(120)) };
+      expect(tripWindow({ ...o, stops: stops(null, null) })).toBeNull();
+      const geotab = { getLogs: async () => [{ lat: -6.0, lng: 107.0 }, { lat: -6.9, lng: 107.0 }] }; // ~100 km
+      const ok = await computeOrderFuel({ geotab, sensorWindows: async () => ({ hasFuel: true, items: [{ fuelL: 25, approx: false }] }), order: o });
+      expect(ok.ok).toBe(true); expect(ok.fuel.kmPerL).toBeGreaterThan(3.9);
+      expect((await computeOrderFuel({ geotab, sensorWindows: async () => ({ hasFuel: false, items: [{ fuelL: null }] }), order: o })).reason).toBe('no_sensor');
+    });
+    it('endpoint laporan + simpan BBM', async () => {
+      await save();
+      await call(connectorsH, { method: 'POST', body: { action: 'run', id: (await call(connectorsH)).body.connectors[0].id } });
+      const o = (await call(ordersH, { query: { source: 'external' } })).body.orders[0];
+      const day = new Date().toISOString().slice(0, 10);
+      const rep = await call(connectorsH, { query: { r: 'delivery', from: '2020-01-01', to: '2030-01-01' } });
+      expect(rep.code).toBe(200);
+      expect(rep.body.orders[0]).toMatchObject({ doNo: 'SO-001', verdict: 'not_linked', total: 2, arrived: 0 });
+      expect((await call(connectorsH, { query: { r: 'delivery', from: 'x', to: day } })).code).toBe(422);
+      expect((await call(connectorsH, { method: 'POST', body: { action: 'fuel_save', orderId: o.id, fuelL: 40.123, distKm: 150, kmPerL: 3.75 } })).code).toBe(200);
+      expect((await call(connectorsH, { method: 'POST', body: { action: 'fuel_save', orderId: o.id, fuelL: -1 } })).code).toBe(422);
+      const again = await call(connectorsH, { query: { r: 'delivery', from: '2020-01-01', to: '2030-01-01' } });
+      expect(again.body.orders[0].fuel.fuelL).toBe(40.12);
+      expect(again.body.summary.fuelL).toBe(40.12);
     });
   });
 });

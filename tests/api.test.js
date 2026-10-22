@@ -42,7 +42,7 @@ describe('API order', () => {
   it('health: tanpa otentikasi, menjalankan migrasi', async () => {
     const r = await call(health, { auth: null });
     expect(r.code).toBe(200);
-    expect(r.body).toMatchObject({ ok: true, db: 'ok', schemaVersion: 9, auth: 'configured' });
+    expect(r.body).toMatchObject({ ok: true, db: 'ok', schemaVersion: 10, auth: 'configured' });
   });
 
   it('otentikasi: tanpa header 401, sesi salah 401, database lain 403, belum dikonfigurasi 503', async () => {

@@ -2,6 +2,12 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.2.0 - 2026-10-22
+
+- Laporan Pengiriman (menu baru "Pengiriman") untuk DO dari TMS customer: status TMS dibandingkan dengan bukti kedatangan GPS. DO yang selesai di TMS tetapi GPS tidak lengkap, atau GPS sudah tiba tetapi TMS belum selesai, ditandai agar mudah ditindaklanjuti.
+- Ketepatan waktu per stop dari jam GPS terhadap batas waktu di TMS customer (dengan toleransi), beserta berapa menit terlambatnya.
+- BBM per DO dari sensor GO device: liter, jarak, km/L, dan liter per ton-km (dari berat barang di DO). Hasil disimpan sehingga ikut masuk ekspor CSV.
+
 ## v3.1.0 - 2026-10-22
 
 - Integrasi TMS customer, tahap 2: perkawinan dengan MyGeotab. Selama add-in terbuka, DO aktif dari TMS customer otomatis dicocokkan lewat plat ke kendaraan Geotab, lalu dibuatkan rute (dari titik stop beserta radius) dan penugasan. Mesin monitor yang sama langsung memantau kendaraan keluar rute, terlambat, dan belum berangkat.

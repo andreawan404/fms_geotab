@@ -2,6 +2,20 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.2.0',
+    date: '2026-10-22',
+    id: [
+      'Laporan Pengiriman (menu baru "Pengiriman") untuk DO dari TMS customer: status TMS dibandingkan dengan bukti kedatangan GPS. DO yang selesai di TMS tetapi GPS tidak lengkap, atau GPS sudah tiba tetapi TMS belum selesai, ditandai agar mudah ditindaklanjuti.',
+      'Ketepatan waktu per stop dari jam GPS terhadap batas waktu di TMS customer (dengan toleransi), beserta berapa menit terlambatnya.',
+      'BBM per DO dari sensor GO device: liter, jarak, km/L, dan liter per ton-km (dari berat barang di DO). Hasil disimpan sehingga ikut masuk ekspor CSV.',
+    ],
+    en: [
+      'Delivery Report (new "Deliveries" menu) for DOs from the customer TMS: the TMS status is compared with GPS arrival evidence. DOs done in the TMS with incomplete GPS, or GPS-arrived but still open in the TMS, are flagged for follow-up.',
+      'Per-stop on-time from GPS time against the customer TMS deadline (with tolerance), including minutes late.',
+      'Fuel per DO from the GO device sensor: litres, distance, km/L and litres per ton-km (from the DO goods weight). Results are stored and included in the CSV export.',
+    ],
+  },
+  {
     v: '3.1.0',
     date: '2026-10-22',
     id: [

@@ -1,4 +1,5 @@
 // Konektor TMS customer: tarik DO lewat API mereka (tanpa coding, cukup pemetaan field), simpan sebagai DO "eksternal" untuk dimonitor.
+import { evalDelivery } from '../../src/core/deliveryEval.js';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from './errors.js';
 import { decrypt, encrypt, encryptionReady } from './crypto.js';
@@ -282,4 +283,43 @@ export async function gpsArrivals(db, list) {
      SELECT x.order_id, 1000 + x.stop_seq, 'arrive', x.stop_seq, x.at, 'GPS', 'gps' FROM jsonb_to_recordset($1::jsonb) AS x(order_id uuid, stop_seq int, at timestamptz)
       WHERE EXISTS (SELECT 1 FROM orders o WHERE o.id = x.order_id AND o.source = 'external') ON CONFLICT DO NOTHING RETURNING seq`, [JSON.stringify(rows)]);
   return { ok: true, inserted: r.length };
+}
+
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** Laporan pengiriman gabungan: status TMS customer vs kedatangan GPS (+ BBM bila sudah dihitung). */
+export async function deliveryReport(db, { from, to }) {
+  if (!DATE.test(String(from)) || !DATE.test(String(to))) throw new ApiError(422, 'validation', 'Rentang tanggal tidak valid', [{ path: 'from', code: 'invalid' }]);
+  const grace = Number(process.env.EXC_LATE_GRACE_MIN) || 15;
+  const rows = await db.query(
+    `SELECT o.id, o.do_no, o.customer, o.order_date::text AS order_date, o.status, o.ext_plate, o.ext_status, o.linked_device_id, o.linked_route_id, o.fuel,
+            (SELECT jsonb_agg(jsonb_build_object('seq', s.seq, 'type', s.type, 'name', s.name, 'windowEnd', s.window_end,
+                     'arriveAt', (SELECT min(e.at) FROM trip_events e WHERE e.order_id = o.id AND e.type = 'arrive' AND e.stop_seq = s.seq)) ORDER BY s.seq) FROM stops s WHERE s.order_id = o.id) AS stops,
+            coalesce((SELECT sum(i.weight_kg) FROM items i JOIN stops s ON s.id = i.stop_id WHERE i.order_id = o.id AND s.type = 'delivery'), 0)::float8 AS kg
+       FROM orders o WHERE o.source = 'external' AND o.order_date BETWEEN $1::date AND $2::date ORDER BY o.order_date DESC, o.created_at DESC LIMIT 500`, [from, to]);
+  const orders = rows.map((r) => {
+    const stops = (typeof r.stops === 'string' ? JSON.parse(r.stops) : r.stops) || [];
+    const ev = evalDelivery({ status: r.status, linked: !!r.linked_route_id, stops: stops.map((s) => ({ ...s, arriveAt: s.arriveAt ? new Date(s.arriveAt).toISOString() : null })) }, { graceMin: grace });
+    const fuel = typeof r.fuel === 'string' ? JSON.parse(r.fuel) : r.fuel;
+    return { id: r.id, doNo: r.do_no, customer: r.customer, date: r.order_date, status: r.status, extStatus: r.ext_status || '', plate: r.ext_plate || '', deviceId: r.linked_device_id || '', kg: r.kg, fuel: fuel || null, ...ev };
+  });
+  const sum = (f) => orders.reduce((a, o) => a + f(o), 0);
+  const fuelOrders = orders.filter((o) => o.fuel?.fuelL > 0);
+  const summary = {
+    total: orders.length,
+    linked: orders.filter((o) => o.verdict !== 'not_linked').length,
+    consistent: orders.filter((o) => o.verdict === 'consistent').length,
+    mismatch: orders.filter((o) => o.verdict === 'tms_done_no_gps' || o.verdict === 'gps_done_tms_open').length,
+    measured: sum((o) => o.measured), onTime: sum((o) => o.onTime),
+    fuelL: fuelOrders.reduce((a, o) => a + o.fuel.fuelL, 0), distKm: fuelOrders.reduce((a, o) => a + (o.fuel.distKm || 0), 0),
+  };
+  return { orders, summary, graceMin: grace };
+}
+
+export async function saveFuel(db, orderId, f) {
+  const n = (v, max) => { const x = Number(v); return Number.isFinite(x) && x >= 0 && x <= max ? Math.round(x * 100) / 100 : null; };
+  const fuel = { fuelL: n(f?.fuelL, 1e5), distKm: n(f?.distKm, 1e5), kmPerL: n(f?.kmPerL, 1e3), lPerTonKm: n(f?.lPerTonKm, 1e3), approx: !!f?.approx, fromMs: Number(f?.fromMs) || null, toMs: Number(f?.toMs) || null, at: new Date().toISOString() };
+  if (fuel.fuelL == null) throw new ApiError(422, 'validation', 'Data BBM tidak valid', [{ path: 'fuelL', code: 'invalid' }]);
+  const r = await db.query(`UPDATE orders SET fuel = $2::jsonb WHERE id = $1 AND source = 'external' RETURNING id`, [orderId, JSON.stringify(fuel)]);
+  if (!r.length) throw new ApiError(404, 'not_found', 'DO eksternal tidak ditemukan');
+  return { ok: true };
 }

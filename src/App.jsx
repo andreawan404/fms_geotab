@@ -6,6 +6,7 @@ import RoutesPage from './pages/RoutesPage.jsx';
 import AssignmentsPage from './pages/AssignmentsPage.jsx';
 import IntegrationPage from './pages/IntegrationPage.jsx';
 import ExceptionsPage from './pages/ExceptionsPage.jsx';
+import DeliveryPage from './pages/DeliveryPage.jsx';
 import PerformancePage from './pages/PerformancePage.jsx';
 import EvidencePage from './pages/EvidencePage.jsx';
 import OrdersPage from './pages/OrdersPage.jsx';
@@ -14,7 +15,7 @@ import MonitorPage from './pages/MonitorPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 
-const TABS = ['fleet', 'orders', 'exceptions', 'evidence', 'perf', 'master', 'integration', 'routes', 'assignments', 'monitor', 'reports', 'settings'];
+const TABS = ['fleet', 'orders', 'exceptions', 'evidence', 'perf', 'delivery', 'master', 'integration', 'routes', 'assignments', 'monitor', 'reports', 'settings'];
 // Mode Monitor (TMS customer sendiri): menu proses TMS disembunyikan
 const HIDDEN_IN_MONITOR = new Set(['orders', 'evidence', 'master']);
 
@@ -69,6 +70,7 @@ export default function App({ addInId }) {
       {tab === 'exceptions' && <ExceptionsPage onCount={setExcOpen} />}
       {tab === 'integration' && <IntegrationPage mode={mode} onMode={setMode} />}
       {tab === 'perf' && <PerformancePage />}
+      {tab === 'delivery' && <DeliveryPage />}
       {tab === 'evidence' && <EvidencePage />}
       {tab === 'master' && <MasterPage />}
       {tab === 'routes' && <RoutesPage />}
