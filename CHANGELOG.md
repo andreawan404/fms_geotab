@@ -2,6 +2,12 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.1.0 - 2026-10-22
+
+- Integrasi TMS customer, tahap 2: perkawinan dengan MyGeotab. Selama add-in terbuka, DO aktif dari TMS customer otomatis dicocokkan lewat plat ke kendaraan Geotab, lalu dibuatkan rute (dari titik stop beserta radius) dan penugasan. Mesin monitor yang sama langsung memantau kendaraan keluar rute, terlambat, dan belum berangkat.
+- Kedatangan di tiap stop dibaca dari GPS dan dikirim ke server, sehingga laporan ketepatan waktu dan exception memakai waktu GPS, bukan input manual. Rute / penugasan ditutup otomatis saat DO selesai atau dibatalkan di TMS customer.
+- Panel "Penautan ke kendaraan Geotab" di menu Integrasi TMS: ringkasan, DO yang belum cocok beserta alasannya (plat kosong, tidak ada di Geotab, ganda, koordinat kurang), dan pemetaan plat ke kendaraan secara manual.
+
 ## v3.0.0 - 2026-10-22
 
 - Mode Integrasi TMS customer, tahap 1 (konektor tarik data). Menu "Integrasi TMS": buat konektor ke API TMS milik customer tanpa coding. Atur URL, autentikasi (Bearer / API key / Basic), request, pagination, lalu petakan field JSON mereka ke DO kita (nomor DO, plat, status, stop dengan koordinat dan jadwal, barang).

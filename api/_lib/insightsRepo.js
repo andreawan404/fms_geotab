@@ -21,7 +21,7 @@ export async function syncExceptions(db, { force = false, nowMs = Date.now() } =
   lastSync = Date.now();
   await expireOffers(db);
   const orders = await db.query(
-    `SELECT o.id, o.do_no, o.status, o.vendor_id, (SELECT count(*) FROM offers f WHERE f.order_id = o.id)::int AS offers, (SELECT count(*) FROM offers f WHERE f.order_id = o.id AND f.status = 'offered')::int AS open_offers
+    `SELECT o.id, o.do_no, o.status, o.source, o.vendor_id, (SELECT count(*) FROM offers f WHERE f.order_id = o.id)::int AS offers, (SELECT count(*) FROM offers f WHERE f.order_id = o.id AND f.status = 'offered')::int AS open_offers
        FROM orders o WHERE o.status IN ('offered', 'assigned', 'running') OR (o.status = 'draft' AND EXISTS (SELECT 1 FROM offers f WHERE f.order_id = o.id)) OR (o.status = 'done' AND o.finished_at > now() - interval '7 days')
        ORDER BY o.created_at DESC LIMIT 1000`);
   if (!orders.length) { await notifyPending(db); return; }
@@ -35,7 +35,7 @@ export async function syncExceptions(db, { force = false, nowMs = Date.now() } =
   const group = (rows) => { const m = new Map(); for (const r of rows) (m.get(r.order_id) || m.set(r.order_id, []).get(r.order_id)).push(r); return m; };
   const gs = group(stops); const ge = group(events); const gp = group(pods);
   const input = orders.map((o) => ({
-    id: o.id, doNo: o.do_no, status: o.status, offers: o.offers, openOffers: o.open_offers,
+    id: o.id, doNo: o.do_no, status: o.status, source: o.source, offers: o.offers, openOffers: o.open_offers,
     stops: (gs.get(o.id) || []).map((s) => ({ name: s.name, windowStart: iso(s.window_start), windowEnd: iso(s.window_end) })),
     events: (ge.get(o.id) || []).map((e) => ({ seq: e.seq, type: e.type, stopSeq: e.stop_seq, at: iso(e.at), outside: e.outside, distM: e.dist_m })),
     pods: (gp.get(o.id) || []).map((p) => ({ stopSeq: p.stop_seq, stopName: p.stop_name, receiverName: p.receiver_name, kind: p.kind, hasDiff: p.has_diff })),

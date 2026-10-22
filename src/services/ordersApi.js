@@ -97,6 +97,11 @@ export function createOrdersApi({ geotab, isMock }) {
       test: (c) => req('POST', '/connectors', { action: 'test', ...c }),
       run: (id) => req('POST', '/connectors', { action: 'run', id }),
       orders: () => req('GET', '/orders?source=external&limit=100'),
+      linkInfo: () => req('GET', '/connectors?r=link'),
+      link: (b) => req('POST', '/connectors', { action: 'link', ...b }),
+      linkClosed: (orderId) => req('POST', '/connectors', { action: 'link_closed', orderId }),
+      setAlias: (plate, deviceId) => req('POST', '/connectors', { action: 'alias', plate, deviceId }),
+      gpsArrivals: (arrivals) => req('POST', '/connectors', { action: 'gps_arrivals', arrivals }),
     },
     insights: {
       exceptions: ({ status = 'open', kind = '', q = '' } = {}) => req('GET', `/insights?status=${status}&kind=${kind}&q=${encodeURIComponent(q)}`),
@@ -185,6 +190,11 @@ function createMockOrdersApi() {
       async test() { return { count: 2, sample: JSON.stringify({ id: 'T-1', do_number: 'SO-001', vehicle: { plate: 'B 1234 ABC' }, status: 'ON_THE_WAY', stops: [{ name: 'Gudang A', lat: -6.3, lng: 107.1 }] }, null, 2), mapped: [{ externalId: 'T-1', doNo: 'SO-001', plate: 'B 1234 ABC', status: 'running', extStatus: 'ON_THE_WAY', stops: [{ type: 'pickup', name: 'Gudang A', lat: -6.3, lng: 107.1, windowEnd: '' }, { type: 'delivery', name: 'Toko B', lat: -6.2, lng: 106.9, windowEnd: '' }], problems: [] }] }; },
       async run(id) { const c = demoConn.find((x) => x.id === id); if (c) Object.assign(c, { lastRunAt: now(), lastStatus: 'ok', lastCount: 2, orders: 2 }); return { ok: true, fetched: 2, created: 2, updated: 0, unchanged: 0, skipped: 0, noCoords: 0 }; },
       async orders() { return { orders: [] }; },
+      async linkInfo() { return { pending: [], toClose: [], linkedActive: 0, aliases: {} }; },
+      async link() { return { ok: true }; },
+      async linkClosed() { return { ok: true }; },
+      async setAlias() { return { ok: true }; },
+      async gpsArrivals() { return { ok: true, inserted: 0 }; },
     },
     insights: {
       async exceptions({ status = 'open', kind = '' } = {}) {

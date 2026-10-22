@@ -8,6 +8,8 @@ import ordersH from '../api/orders/index.js';
 import cronH from '../api/cron.js';
 import { setConnectorFetch, isPrivateIp, assertPublicUrl } from '../api/_lib/safeFetch.js';
 import { decrypt, encrypt } from '../api/_lib/crypto.js';
+import { matchDevice, planWindow, orderIdOfInstKey } from '../src/core/linkPlan.js';
+import { runAutoLink } from '../src/services/autolink.js';
 import { getPath, mapRecord, normPlate, parseTime, fillTemplate } from '../src/core/extMap.js';
 
 let pg;
@@ -172,5 +174,68 @@ describe('sinkronisasi', () => {
     expect((await call(connectorsH, { method: 'POST', body: { action: 'set_mode', mode: 'monitor' } })).code).toBe(200);
     expect((await call(connectorsH, { query: { r: 'mode' } })).body.mode).toBe('monitor');
     expect((await call(connectorsH, { method: 'POST', body: { action: 'set_mode', mode: 'x' } })).code).toBe(422);
+  });
+
+  describe('v3.1 penautan Geotab', () => {
+    const devices = [{ id: 'b1', name: 'Truk 1', plate: 'B 1234 ABC' }, { id: 'b2', name: 'Truk 2', plate: 'B 9 XY' }, { id: 'b3', name: 'Dup', plate: 'D 1 AA' }, { id: 'b4', name: 'Dup2', plate: 'D1AA' }];
+    it('matchDevice & planWindow & kunci instance', () => {
+      expect(matchDevice('b1234abc', devices).device.id).toBe('b1');
+      expect(matchDevice('', devices).reason).toBe('no_plate');
+      expect(matchDevice('Z 1 Z', devices).reason).toBe('no_device');
+      expect(matchDevice('D 1 AA', devices).reason).toBe('ambiguous');
+      expect(matchDevice('D 1 AA', devices, { D1AA: 'b4' }).device.id).toBe('b4');
+      const now = Date.parse('2026-10-22T05:00:00Z');
+      const w = planWindow([{ windowStart: '' }, { windowEnd: new Date(now + 3 * 3600000).toISOString() }], { nowMs: now });
+      expect(w.endMs).toBeGreaterThanOrEqual(now + 2 * 3600000);
+      expect(w.endMs - w.startMs).toBeLessThan(24 * 3600000);
+      expect(orderIdOfInstKey('xa-abc-123@2026-10-22')).toBe('abc-123');
+      expect(orderIdOfInstKey('asg1@2026-10-22')).toBeNull();
+    });
+
+    it('menautkan DO, menutup bila selesai, GPS arrival masuk laporan, alias', async () => {
+      await save();
+      await call(connectorsH, { method: 'POST', body: { action: 'run', id: (await call(connectorsH)).body.connectors[0].id } });
+      const api = { integration: {
+        linkInfo: async () => (await call(connectorsH, { query: { r: 'link' } })).body,
+        link: async (b) => (await call(connectorsH, { method: 'POST', body: { action: 'link', ...b } })).body,
+        linkClosed: async (orderId) => (await call(connectorsH, { method: 'POST', body: { action: 'link_closed', orderId } })).body,
+      } };
+      const routes = []; const asgs = [];
+      const data = { settings: { defaults: { widthM: 100, radius: 150 }, routing: { profile: 'driving-car' } }, routes, assignments: asgs };
+      const route = async () => [{ path: [[-6.3, 107.1], [-6.2, 106.9]], legs: [{ durationS: 3600 }], distanceM: 30000, durationS: 3600 }];
+      const saveRoute = async (r) => { routes.push(r); return r; };
+      const saveAssignment = async (a) => { const i = asgs.findIndex((x) => x.id === a.id); if (i >= 0) asgs[i] = a; else asgs.push(a); return a; };
+      const run = (devs) => runAutoLink({ api, devices: devs, data, saveRoute, saveAssignment, route });
+
+      let r = await run([]);
+      expect(r.unmatched[0]).toMatchObject({ plate: 'B 1234 ABC', reason: 'no_device' });
+      r = await run(devices);
+      expect(r.linked).toHaveLength(1);
+      expect(routes[0].checkpoints).toHaveLength(2);
+      expect(routes[0].checkpoints[1].etaOffsetS).toBe(3600);
+      expect(asgs[0]).toMatchObject({ deviceId: 'b1', active: true });
+      expect((await run(devices)).linked).toHaveLength(0); // sudah tertaut
+
+      // kedatangan GPS
+      const order = (await call(ordersH, { query: { source: 'external' } })).body.orders[0];
+      expect(order.linkedAsgId).toBe(asgs[0].id);
+      const at = Date.now() - 60000;
+      const g = await call(connectorsH, { method: 'POST', body: { action: 'gps_arrivals', arrivals: [{ orderId: order.id, stopSeq: 1, at }, { orderId: order.id, stopSeq: 1, at }, { orderId: '00000000-0000-0000-0000-000000000000', stopSeq: 1, at }] } });
+      expect(g.body.inserted).toBe(1);
+      const ev = await pg.query(`SELECT type, stop_seq, source FROM trip_events WHERE order_id = $1`, [order.id]);
+      expect(ev.rows).toEqual([{ type: 'arrive', stop_seq: 1, source: 'gps' }]);
+
+      // DO selesai di TMS -> penugasan ditutup
+      payload.data.items[0].status = 'DELIVERED';
+      await call(connectorsH, { method: 'POST', body: { action: 'run', id: (await call(connectorsH)).body.connectors[0].id } });
+      r = await run(devices);
+      expect(r.closed).toBe(1);
+      expect(asgs[0].active).toBe(false);
+      expect((await run(devices)).closed).toBe(0);
+
+      // alias
+      expect((await call(connectorsH, { method: 'POST', body: { action: 'alias', plate: 'D 1 AA', deviceId: 'b4' } })).code).toBe(200);
+      expect((await call(connectorsH, { query: { r: 'link' } })).body.aliases).toEqual({ D1AA: 'b4' });
+    });
   });
 });

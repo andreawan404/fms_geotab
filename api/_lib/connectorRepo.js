@@ -157,7 +157,7 @@ async function upsertExternal(db, conn, m) {
     const { stops, items } = flatten(order);
     await db.query(
       `WITH d AS (DELETE FROM stops WHERE order_id = $1),
-       u AS (UPDATE orders SET customer = $2, status = $3, summary = $4::jsonb, ext_plate = $5, ext_status = $6, ext_sig = $7, ext_synced_at = now(), linked_route_id = NULL, linked_asg_id = NULL, linked_device_id = NULL, linked_at = NULL, version = version + 1, updated_at = now(),
+       u AS (UPDATE orders SET customer = $2, status = $3, summary = $4::jsonb, ext_plate = $5, ext_status = $6, ext_sig = $7, ext_synced_at = now(), linked_route_id = NULL, linked_asg_id = NULL, linked_device_id = NULL, linked_at = NULL, link_closed_at = NULL, version = version + 1, updated_at = now(),
                     started_at = COALESCE(started_at, CASE WHEN $3 IN ('running', 'done') THEN now() END), finished_at = COALESCE(finished_at, CASE WHEN $3 = 'done' THEN now() END) WHERE id = $1 RETURNING id),
        s AS (${INS_STOPS('(SELECT id FROM u)', '$8')} WHERE EXISTS (SELECT 1 FROM u) RETURNING id)
        ${INS_ITEMS('(SELECT id FROM u)', '$9')} WHERE EXISTS (SELECT 1 FROM u)`,
@@ -219,4 +219,67 @@ export async function setMode(db, mode) {
   if (!['full', 'monitor'].includes(mode)) throw new ApiError(422, 'validation', 'Mode tidak valid', [{ path: 'mode', code: 'invalid' }]);
   await db.query(`INSERT INTO app_settings (key, value) VALUES ('mode', $1::jsonb) ON CONFLICT (key) DO UPDATE SET value = $1::jsonb, updated_at = now()`, [JSON.stringify(mode)]);
   return { mode };
+}
+
+// ---- Perkawinan dengan Geotab: add-in (browser admin) mencocokkan plat -> kendaraan, membuat rute + penugasan, lalu melapor ke sini ----
+const normPlate = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+async function getAliases(db) {
+  const r = await db.query(`SELECT value FROM app_settings WHERE key = 'plateAlias'`);
+  const v = r[0] ? (typeof r[0].value === 'string' ? JSON.parse(r[0].value) : r[0].value) : {};
+  return v && typeof v === 'object' ? v : {};
+}
+
+export async function linkInfo(db) {
+  const pending = await db.query(
+    `SELECT o.id, o.do_no, o.customer, o.status, o.ext_plate,
+            (SELECT jsonb_agg(jsonb_build_object('type', s.type, 'name', s.name, 'lat', s.lat, 'lng', s.lng, 'radiusM', s.radius_m, 'windowStart', s.window_start, 'windowEnd', s.window_end) ORDER BY s.seq) FROM stops s WHERE s.order_id = o.id) AS stops
+       FROM orders o WHERE o.source = 'external' AND o.status IN ('assigned', 'running') AND o.linked_route_id IS NULL ORDER BY o.created_at DESC LIMIT 50`);
+  const toClose = await db.query(
+    `SELECT id, linked_asg_id FROM orders WHERE source = 'external' AND linked_asg_id IS NOT NULL AND link_closed_at IS NULL AND status IN ('done', 'cancelled') LIMIT 50`);
+  const linked = await db.query(`SELECT count(*)::int AS n FROM orders WHERE source = 'external' AND linked_route_id IS NOT NULL AND link_closed_at IS NULL`);
+  return {
+    pending: pending.map((r) => ({ id: r.id, doNo: r.do_no, customer: r.customer, status: r.status, plate: r.ext_plate || '', stops: (typeof r.stops === 'string' ? JSON.parse(r.stops) : r.stops) || [] })),
+    toClose: toClose.map((r) => ({ orderId: r.id, asgId: r.linked_asg_id })),
+    linkedActive: linked[0].n,
+    aliases: await getAliases(db),
+  };
+}
+
+const ID = /^[A-Za-z0-9_.@:-]{1,80}$/;
+export async function linkOrder(db, { orderId, routeId, asgId, deviceId }) {
+  if (![routeId, asgId, deviceId].every((v) => ID.test(String(v || '')))) throw new ApiError(422, 'validation', 'ID tautan tidak valid', [{ path: 'routeId', code: 'invalid' }]);
+  const r = await db.query(
+    `UPDATE orders SET linked_route_id = $2, linked_asg_id = $3, linked_device_id = $4, linked_at = now(), link_closed_at = NULL WHERE id = $1 AND source = 'external' RETURNING id`, [orderId, routeId, asgId, deviceId]);
+  if (!r.length) throw new ApiError(404, 'not_found', 'DO eksternal tidak ditemukan');
+  return { ok: true };
+}
+export async function linkClosed(db, orderId) {
+  await db.query(`UPDATE orders SET link_closed_at = now() WHERE id = $1 AND source = 'external'`, [orderId]);
+  return { ok: true };
+}
+export async function setAlias(db, plate, deviceId) {
+  const k = normPlate(plate);
+  if (k.length < 3 || k.length > 12) throw new ApiError(422, 'validation', 'Plat tidak valid', [{ path: 'plate', code: 'invalid' }]);
+  const cur = await getAliases(db);
+  if (deviceId) { if (!ID.test(String(deviceId))) throw new ApiError(422, 'validation', 'Kendaraan tidak valid', [{ path: 'deviceId', code: 'invalid' }]); cur[k] = String(deviceId); } else delete cur[k];
+  if (Object.keys(cur).length > 500) throw new ApiError(422, 'validation', 'Terlalu banyak alias plat', [{ path: 'plate', code: 'too_many' }]);
+  await db.query(`INSERT INTO app_settings (key, value) VALUES ('plateAlias', $1::jsonb) ON CONFLICT (key) DO UPDATE SET value = $1::jsonb, updated_at = now()`, [JSON.stringify(cur)]);
+  // plat ini perlu dihubungkan ulang
+  await db.query(`UPDATE orders SET linked_route_id = NULL, linked_asg_id = NULL, linked_device_id = NULL, linked_at = NULL, link_closed_at = NULL WHERE source = 'external' AND status IN ('assigned', 'running') AND regexp_replace(upper(coalesce(ext_plate, '')), '[^A-Z0-9]', '', 'g') = $1`, [k]);
+  return { ok: true };
+}
+
+/** Kedatangan di stop hasil deteksi GPS (mesin rute add-in) -> trip_events, sehingga laporan tepat waktu & exception memakai waktu GPS. */
+export async function gpsArrivals(db, list) {
+  const now = Date.now();
+  const rows = (Array.isArray(list) ? list : []).slice(0, 50).map((x) => ({ order_id: String(x.orderId || ''), stop_seq: Math.round(Number(x.stopSeq)), at: Number(x.at) }))
+    .filter((x) => /^[0-9a-f-]{36}$/i.test(x.order_id) && x.stop_seq >= 1 && x.stop_seq <= 60 && Number.isFinite(x.at) && x.at < now + 5 * 60000 && x.at > now - 3 * 864e5)
+    .map((x) => ({ ...x, at: new Date(x.at).toISOString() }));
+  if (!rows.length) return { ok: true, inserted: 0 };
+  const r = await db.query(
+    `INSERT INTO trip_events (order_id, seq, type, stop_seq, at, note, source)
+     SELECT x.order_id, 1000 + x.stop_seq, 'arrive', x.stop_seq, x.at, 'GPS', 'gps' FROM jsonb_to_recordset($1::jsonb) AS x(order_id uuid, stop_seq int, at timestamptz)
+      WHERE EXISTS (SELECT 1 FROM orders o WHERE o.id = x.order_id AND o.source = 'external') ON CONFLICT DO NOTHING RETURNING seq`, [JSON.stringify(rows)]);
+  return { ok: true, inserted: r.length };
 }

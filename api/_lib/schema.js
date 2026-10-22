@@ -322,6 +322,11 @@ export const MIGRATIONS = [
       `CREATE TABLE IF NOT EXISTS app_settings (key text PRIMARY KEY, value jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now())`,
     ],
   },
+  {
+    version: 9,
+    name: 'link_close',
+    statements: [`ALTER TABLE orders ADD COLUMN IF NOT EXISTS link_closed_at timestamptz`],
+  },
 ];
 
 const done = new WeakSet();

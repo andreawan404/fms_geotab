@@ -7,7 +7,9 @@ import { STATUS_CLS, apiErrorText } from '../lib/orderView.js';
 
 /** Integrasi TMS customer: pilih mode, atur konektor penarik DO, lihat DO yang masuk. */
 export default function IntegrationPage({ mode, onMode }) {
-  const { t, ordersApi, toast } = useApp();
+  const { t, ordersApi, toast, devices, linkState, runLink } = useApp();
+  const [aliasSel, setAliasSel] = useState({});
+  const [linking, setLinking] = useState(false);
   const [data, setData] = useState(null);
   const [orders, setOrders] = useState([]);
   const [edit, setEdit] = useState(null); // null | {} (baru) | konektor
@@ -41,6 +43,13 @@ export default function IntegrationPage({ mode, onMode }) {
     try { await ordersApi.integration.setMode(m); onMode(m); toast(t('int.modeSaved')); } catch (e) { toast(apiErrorText(t, e), 'err'); }
   };
 
+  const linkNow = async () => { setLinking(true); await runLink(); setLinking(false); load(); };
+  const saveAlias = async (u) => {
+    const dev = aliasSel[u.orderId];
+    if (!dev) return;
+    try { await ordersApi.integration.setAlias(u.plate, dev); toast(t('int.aliasSaved')); await linkNow(); } catch (e) { toast(apiErrorText(t, e), 'err'); }
+  };
+
   return (
     <div className="tms-page">
       <div className="tms-row" style={{ marginBottom: 10 }}>
@@ -62,6 +71,32 @@ export default function IntegrationPage({ mode, onMode }) {
             </label>
           ))}
         </div>
+      </div></div>
+
+      <div className="tms-card" style={{ marginBottom: 12 }}><div className="tms-card-b">
+        <div className="tms-row" style={{ gap: 8 }}>
+          <b className="tms-grow">{t('int.link')}</b>
+          <button className="tms-btn sm" disabled={linking} onClick={linkNow}>{linking ? '…' : t('int.linkNow')}</button>
+        </div>
+        <div className="tms-sm tms-muted">{t('int.linkHint')}</div>
+        {linkState && (
+          <div className="tms-sm" style={{ marginTop: 6 }}>
+            {t('int.linkSummary', { a: linkState.linkedActive ?? 0, l: linkState.linked.length, u: linkState.unmatched.length, c: linkState.closed })}
+            {linkState.errors.map((e, i) => <div key={i} style={{ color: '#c62828' }}>{e}</div>)}
+          </div>
+        )}
+        {linkState?.unmatched.length > 0 && (
+          <div className="tms-tablewrap" style={{ marginTop: 6 }}><table>
+            <thead><tr><th>{t('ord.doNo')}</th><th>{t('int.f.plate')}</th><th>{t('int.reason')}</th><th>{t('int.pickVehicle')}</th><th /></tr></thead>
+            <tbody>{linkState.unmatched.map((u) => (
+              <tr key={u.orderId}><td><b>{u.doNo}</b></td><td>{u.plate || '—'}</td><td>{t(`int.reason.${u.reason}`)}</td>
+                <td>{u.reason === 'no_coords' || u.reason === 'no_plate' ? '—' : (
+                  <select value={aliasSel[u.orderId] || ''} onChange={(e) => setAliasSel((m) => ({ ...m, [u.orderId]: e.target.value }))}>
+                    <option value="">—</option>{devices.map((d) => <option key={d.id} value={d.id}>{d.name}{d.plate ? ` · ${d.plate}` : ''}</option>)}
+                  </select>)}</td>
+                <td>{u.reason !== 'no_coords' && u.reason !== 'no_plate' && <button className="tms-btn sm" disabled={!aliasSel[u.orderId]} onClick={() => saveAlias(u)}>{t('save')}</button>}</td></tr>
+            ))}</tbody></table></div>
+        )}
       </div></div>
 
       {!data ? <Spinner /> : data.connectors.length === 0 ? <Empty>{t('int.empty')}</Empty> : data.connectors.map((c) => (

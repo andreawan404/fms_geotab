@@ -2,6 +2,20 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.1.0',
+    date: '2026-10-22',
+    id: [
+      'Integrasi TMS customer, tahap 2: perkawinan dengan MyGeotab. Selama add-in terbuka, DO aktif dari TMS customer otomatis dicocokkan lewat plat ke kendaraan Geotab, lalu dibuatkan rute (dari titik stop beserta radius) dan penugasan. Mesin monitor yang sama langsung memantau kendaraan keluar rute, terlambat, dan belum berangkat.',
+      'Kedatangan di tiap stop dibaca dari GPS dan dikirim ke server, sehingga laporan ketepatan waktu dan exception memakai waktu GPS, bukan input manual. Rute / penugasan ditutup otomatis saat DO selesai atau dibatalkan di TMS customer.',
+      'Panel "Penautan ke kendaraan Geotab" di menu Integrasi TMS: ringkasan, DO yang belum cocok beserta alasannya (plat kosong, tidak ada di Geotab, ganda, koordinat kurang), dan pemetaan plat ke kendaraan secara manual.',
+    ],
+    en: [
+      'Customer TMS integration, stage 2: marrying it to MyGeotab. While the add-in is open, active DOs from the customer TMS are matched by plate to a Geotab vehicle, then a route (from stop points and radius) and an assignment are created. The same monitor engine immediately watches for off-route, late and not-started vehicles.',
+      'Arrivals at each stop are read from GPS and sent to the server, so on-time reports and exceptions use GPS time instead of manual input. Routes / assignments are closed automatically when the DO is done or cancelled in the customer TMS.',
+      'New "Linking to Geotab vehicles" panel in TMS Integration: summary, unmatched DOs with reasons (empty plate, not in Geotab, duplicate, missing coordinates), and manual plate-to-vehicle mapping.',
+    ],
+  },
+  {
     v: '3.0.0',
     date: '2026-10-22',
     id: [

@@ -1,5 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createGeotab, errMessage } from './services/geotab.js';
+import { runAutoLink } from './services/autolink.js';
+import { orderIdOfInstKey } from './core/linkPlan.js';
 import { createOrdersApi } from './services/ordersApi.js';
 import { createStore, DEFAULT_SETTINGS } from './services/store.js';
 import { Monitor } from './services/monitor.js';
@@ -90,6 +92,9 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
   const soundRef = useRef(sound);
   soundRef.current = sound;
   const seen = useRef(new Set());
+  const sentArr = useRef(new Set());
+  const ordersApiRef = useRef(null);
+  ordersApiRef.current = ordersApi;
   const busy = useRef(false);
   const evalCache = useRef(new Map());
   const rulesCache = useRef(null);
@@ -167,6 +172,20 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
       }
       // semua jenis kejadian disimpan ke riwayat (log harian); event lama yang belum tersimpan ikut terisi (backfill)
       store.appendAlerts(fresh).catch(() => {});
+      // kedatangan di stop dari DO eksternal -> server (waktu GPS dipakai laporan tepat waktu & exception)
+      const arrivals = [];
+      for (const e of events) {
+        if (e.type !== 'start_reached' && e.type !== 'checkpoint_arrived') continue;
+        const orderId = orderIdOfInstKey(e.instKey);
+        if (orderId == null || !Number.isFinite(e.index)) continue;
+        const key = `${e.instKey}:${e.index}`;
+        if (sentArr.current.has(key)) continue;
+        sentArr.current.add(key);
+        arrivals.push({ orderId, stopSeq: e.index + 1, at: e.t, key });
+      }
+      if (arrivals.length) {
+        ordersApiRef.current.integration.gpsArrivals(arrivals.map(({ key, ...a }) => a)).catch(() => arrivals.forEach((a) => sentArr.current.delete(a.key)));
+      }
     },
     [store, toast, t],
   );
@@ -223,6 +242,32 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
     },
     [store],
   );
+  // ---- penautan DO TMS customer -> Geotab (rute + penugasan otomatis) ----
+  const [linkState, setLinkState] = useState(null);
+  const linking = useRef(false);
+  const saveRef = useRef({});
+  saveRef.current = { saveRoute, saveAssignment };
+  const runLink = useCallback(async () => {
+    if (linking.current) return null;
+    linking.current = true;
+    try {
+      const r = await runAutoLink({ api: ordersApiRef.current, devices: devRef.current, data: dataRef.current, saveRoute: saveRef.current.saveRoute, saveAssignment: saveRef.current.saveAssignment });
+      setLinkState({ ...r, at: Date.now() });
+      return r;
+    } catch (e) {
+      setLinkState({ linked: [], unmatched: [], errors: [errMessage(e)], closed: 0, pending: 0, at: Date.now(), failed: true });
+      return null;
+    } finally {
+      linking.current = false;
+    }
+  }, []);
+  useEffect(() => {
+    if (!active || loading || api.isMock) return undefined;
+    const go = () => runLink();
+    const first = setTimeout(go, 4000);
+    const iv = setInterval(go, 2 * 60000);
+    return () => { clearTimeout(first); clearInterval(iv); };
+  }, [active, loading, api, runLink]);
   const deleteAssignment = useCallback(
     async (a) => {
       await store.deleteAssignment(a);
@@ -327,6 +372,8 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
     geotab,
     store,
     ordersApi,
+    linkState,
+    runLink,
     isMock: !!api.isMock,
     settings: data.settings,
     routes: data.routes,

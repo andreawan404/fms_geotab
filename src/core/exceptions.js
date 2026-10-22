@@ -37,7 +37,7 @@ export function detectExceptions(orders, nowMs = Date.now(), cfg = {}) {
         }
       });
     }
-    if (o.status === 'running' && events.length) {
+    if (o.status === 'running' && events.length && o.source !== 'external') {
       const last = Math.max(...events.map((e) => ms(e.at)));
       if (nowMs - last > c.staleMin * 60000) add(o, 'stale', 'stale', null, { minutes: min(nowMs, last) });
     }
