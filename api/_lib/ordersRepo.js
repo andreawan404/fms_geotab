@@ -10,7 +10,7 @@ const ITEM_COLS = `i.id, i.stop_id, i.ord, i.description, i.sku, i.qty::float8 A
   i.volume_m3::float8 AS volume_m3, i.pallets::float8 AS pallets, i.colli::float8 AS colli, i.length_cm::float8 AS length_cm,
   i.width_cm::float8 AS width_cm, i.height_cm::float8 AS height_cm, i.category, i.temp_min::float8 AS temp_min,
   i.temp_max::float8 AS temp_max, i.hazardous, i.stackable`;
-const ORDER_COLS = `o.id, o.do_no, o.customer, o.order_date::text AS order_date, o.priority, o.status, o.notes, o.summary,
+const ORDER_COLS = `o.source, o.ext_plate, o.ext_status, o.ext_synced_at, o.linked_route_id, o.linked_asg_id, o.linked_device_id, o.linked_at, o.id, o.do_no, o.customer, o.order_date::text AS order_date, o.priority, o.status, o.notes, o.summary,
   o.version, o.created_by, o.created_at, o.updated_at, o.vendor_id, o.vehicle_id, o.driver_id, o.assigned_at, o.assigned_via,
   (SELECT name FROM vendors WHERE id = o.vendor_id) AS vendor_name, (SELECT plate FROM vehicles WHERE id = o.vehicle_id) AS plate,
   (SELECT name FROM drivers WHERE id = o.driver_id) AS driver_name,
@@ -21,11 +21,12 @@ const ORDER_COLS = `o.id, o.do_no, o.customer, o.order_date::text AS order_date,
 const iso = (v) => (v == null ? '' : v instanceof Date ? v.toISOString() : new Date(v).toISOString());
 
 const mapHead = (r) => ({
+  source: r.source || 'internal', extPlate: r.ext_plate || '', extStatus: r.ext_status || '', extSyncedAt: r.ext_synced_at ? iso(r.ext_synced_at) : '', linkedRouteId: r.linked_route_id || '', linkedAsgId: r.linked_asg_id || '', linkedDeviceId: r.linked_device_id || '', linkedAt: r.linked_at ? iso(r.linked_at) : '',
   id: r.id, doNo: r.do_no, customer: r.customer, orderDate: r.order_date, priority: r.priority, status: r.status, notes: r.notes,
   summary: typeof r.summary === 'string' ? JSON.parse(r.summary) : r.summary || {}, version: Number(r.version), createdBy: r.created_by || '',
   createdAt: iso(r.created_at), updatedAt: iso(r.updated_at),
   vendorId: r.vendor_id || null, vehicleId: r.vehicle_id || null, driverId: r.driver_id || null, assignedAt: r.assigned_at ? iso(r.assigned_at) : '', assignedVia: r.assigned_via || '',
-  vendorName: r.vendor_name || '', plate: r.plate || '', driverName: r.driver_name || '', openOffers: Number(r.open_offers || 0), offerCount: Number(r.offer_count || 0),
+  vendorName: r.vendor_name || '', plate: r.plate || r.ext_plate || '', driverName: r.driver_name || '', openOffers: Number(r.open_offers || 0), offerCount: Number(r.offer_count || 0),
   startedAt: r.started_at ? iso(r.started_at) : '', finishedAt: r.finished_at ? iso(r.finished_at) : '', tripEvents: Number(r.trip_events || 0),
 });
 const mapItem = (r) => ({
@@ -39,7 +40,7 @@ const mapStop = (r, items) => ({
 });
 
 /** Bentuk jsonb untuk stops & items dari DO ternormalisasi, dengan id baru. */
-function flatten(order) {
+export function flatten(order) {
   const stops = [];
   const items = [];
   order.stops.forEach((s, i) => {
@@ -50,10 +51,10 @@ function flatten(order) {
   return { stops, items };
 }
 
-const INS_STOPS = (oid, src) => `INSERT INTO stops (id, order_id, seq, type, name, address, lat, lng, radius_m, window_start, window_end, contact_name, contact_phone, instructions)
+export const INS_STOPS = (oid, src) => `INSERT INTO stops (id, order_id, seq, type, name, address, lat, lng, radius_m, window_start, window_end, contact_name, contact_phone, instructions)
   SELECT x.id, ${oid}, x.seq, x.type, x.name, x.address, x.lat, x.lng, x.radius_m, x.window_start, x.window_end, x.contact_name, x.contact_phone, x.instructions
   FROM jsonb_to_recordset(${src}::jsonb) AS x(id uuid, seq int, type text, name text, address text, lat float8, lng float8, radius_m int, window_start timestamptz, window_end timestamptz, contact_name text, contact_phone text, instructions text)`;
-const INS_ITEMS = (oid, src) => `INSERT INTO items (id, order_id, stop_id, ord, description, sku, qty, unit, weight_kg, volume_m3, pallets, colli, length_cm, width_cm, height_cm, category, temp_min, temp_max, hazardous, stackable)
+export const INS_ITEMS = (oid, src) => `INSERT INTO items (id, order_id, stop_id, ord, description, sku, qty, unit, weight_kg, volume_m3, pallets, colli, length_cm, width_cm, height_cm, category, temp_min, temp_max, hazardous, stackable)
   SELECT y.id, ${oid}, y.stop_id, y.ord, y.description, y.sku, y.qty, y.unit, y.weight_kg, y.volume_m3, y.pallets, y.colli, y.length_cm, y.width_cm, y.height_cm, y.category, y.temp_min, y.temp_max, y.hazardous, y.stackable
   FROM jsonb_to_recordset(${src}::jsonb) AS y(id uuid, stop_id uuid, ord int, description text, sku text, qty numeric, unit text, weight_kg numeric, volume_m3 numeric, pallets numeric, colli numeric, length_cm numeric, width_cm numeric, height_cm numeric, category text, temp_min numeric, temp_max numeric, hazardous boolean, stackable boolean)`;
 
@@ -146,12 +147,13 @@ export async function getOrder(db, id) {
 }
 
 /** Daftar DO (tanpa detail stop): filter status, q (nomor DO/customer), rentang tanggal order, halaman. */
-export async function listOrders(db, { status, q, from, to, limit = 50, offset = 0 } = {}) {
+export async function listOrders(db, { status, source, q, from, to, limit = 50, offset = 0 } = {}) {
   await expireOffers(db);
   const where = [];
   const p = [];
   const add = (sql, v) => { p.push(v); where.push(sql.replace('?', `$${p.length}`)); };
   if (status) add('o.status = ?', status);
+  if (source === 'internal' || source === 'external') add('o.source = ?', source);
   if (q) {
     p.push(`%${String(q).replace(/[\\%_]/g, '\\$&')}%`);
     where.push(`(o.do_no ILIKE $${p.length} OR o.customer ILIKE $${p.length})`);

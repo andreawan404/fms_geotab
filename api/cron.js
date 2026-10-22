@@ -6,6 +6,7 @@ import { route } from './_lib/http.js';
 import { ApiError } from './_lib/errors.js';
 import { syncExceptions } from './_lib/insightsRepo.js';
 import { purgeOldPods } from './_lib/podRepo.js';
+import { runDueConnectors } from './_lib/connectorRepo.js';
 
 const same = (a, b) => { const x = Buffer.from(String(a)); const y = Buffer.from(String(b)); return x.length === y.length && timingSafeEqual(x, y); };
 
@@ -15,8 +16,9 @@ export default route({
     if (!secret) throw new ApiError(503, 'cron_not_configured', 'CRON_SECRET belum diisi');
     const given = String(query.key || '') || String(req.headers?.authorization || '').replace(/^Bearer\s+/i, '');
     if (!given || !same(given, secret)) throw new ApiError(401, 'auth_invalid', 'Kunci tidak valid');
+    const connectors = await runDueConnectors(db);
     await syncExceptions(db, { force: true });
     await purgeOldPods(db);
-    return { ok: true, at: new Date().toISOString() };
+    return { ok: true, at: new Date().toISOString(), connectors };
   },
 }, { auth: false, schema: true });

@@ -2,6 +2,24 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.0.0',
+    date: '2026-10-22',
+    id: [
+      'Mode Integrasi TMS customer, tahap 1 (konektor tarik data). Menu "Integrasi TMS": buat konektor ke API TMS milik customer tanpa coding. Atur URL, autentikasi (Bearer / API key / Basic), request, pagination, lalu petakan field JSON mereka ke DO kita (nomor DO, plat, status, stop dengan koordinat dan jadwal, barang).',
+      'Tombol "Uji koneksi & pemetaan" menarik data asli dan menampilkan hasil pemetaan beserta masalahnya (plat kosong, koordinat kosong). DO ditarik otomatis tiap N menit lewat cron atau manual dengan "Sinkron sekarang"; perubahan status dan rute di TMS customer ikut diperbarui.',
+      'Pilihan mode aplikasi: TMS penuh, atau Monitor (menu Order, Vendor & Armada, dan Bukti disembunyikan untuk customer yang memegang TMS sendiri).',
+      'Keamanan: kunci API disimpan terenkripsi (AES-256-GCM, butuh ENCRYPTION_KEY di Vercel) dan tidak pernah dikirim balik ke browser. Hanya https, alamat internal / privat ditolak, tanpa redirect, batas waktu dan ukuran respons.',
+      'Tahap berikutnya: pencocokan plat ke kendaraan Geotab dengan pembuatan rute dan penugasan otomatis, kedatangan stop dari GPS, serta laporan BBM per DO.',
+    ],
+    en: [
+      'Customer TMS integration mode, stage 1 (pull connector). New "TMS Integration" menu: create a connector to the customer\'s own TMS API without coding. Set URL, authentication (Bearer / API key / Basic), request and pagination, then map their JSON fields to our DO (DO number, plate, status, stops with coordinates and schedule, goods).',
+      'The "Test connection & mapping" button pulls real data and shows the mapped result with any problems (missing plate, missing coordinates). DOs are pulled every N minutes through cron or manually with "Sync now"; status and route changes in the customer TMS are kept up to date.',
+      'Application mode: Full TMS, or Monitor (the Orders, Vendors & Fleet and Evidence menus are hidden for customers who run their own TMS).',
+      'Security: API keys are stored encrypted (AES-256-GCM, needs ENCRYPTION_KEY in Vercel) and never sent back to the browser. https only, internal / private addresses rejected, no redirects, response time and size limits.',
+      'Next stages: matching the plate to a Geotab vehicle with automatic route and assignment creation, stop arrivals from GPS, and fuel reports per DO.',
+    ],
+  },
+  {
     v: '2.5.0',
     date: '2026-10-22',
     id: [

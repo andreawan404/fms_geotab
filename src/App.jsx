@@ -4,6 +4,7 @@ import { Toasts } from './components/ui.jsx';
 import FleetPage from './pages/FleetPage.jsx';
 import RoutesPage from './pages/RoutesPage.jsx';
 import AssignmentsPage from './pages/AssignmentsPage.jsx';
+import IntegrationPage from './pages/IntegrationPage.jsx';
 import ExceptionsPage from './pages/ExceptionsPage.jsx';
 import PerformancePage from './pages/PerformancePage.jsx';
 import EvidencePage from './pages/EvidencePage.jsx';
@@ -13,12 +14,18 @@ import MonitorPage from './pages/MonitorPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 
-const TABS = ['fleet', 'orders', 'exceptions', 'evidence', 'perf', 'master', 'routes', 'assignments', 'monitor', 'reports', 'settings'];
+const TABS = ['fleet', 'orders', 'exceptions', 'evidence', 'perf', 'master', 'integration', 'routes', 'assignments', 'monitor', 'reports', 'settings'];
+// Mode Monitor (TMS customer sendiri): menu proses TMS disembunyikan
+const HIDDEN_IN_MONITOR = new Set(['orders', 'evidence', 'master']);
 
 export default function App({ addInId }) {
   const { t, lang, setLang, results, errors, isMock, reload, loading, ordersApi } = useApp();
   const [tab, setTab] = useState('fleet');
   const [excOpen, setExcOpen] = useState(0);
+  const [mode, setMode] = useState('full');
+  useEffect(() => { if (!isMock) ordersApi.integration.mode().then(setMode).catch(() => {}); }, [ordersApi, isMock]);
+  const tabs = TABS.filter((k) => mode !== 'monitor' || !HIDDEN_IN_MONITOR.has(k));
+  useEffect(() => { if (!tabs.includes(tab)) setTab('fleet'); }, [tabs, tab]);
   // Badge exception terbuka: cek tiap 2 menit selagi bukan halaman Exception (halaman itu memperbarui sendiri)
   useEffect(() => {
     if (isMock) return undefined;
@@ -38,7 +45,7 @@ export default function App({ addInId }) {
           TMS
         </div>
         <div className="tms-nav">
-          {TABS.map((k) => (
+          {tabs.map((k) => (
             <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
               {t(`nav.${k}`)}
               {k === 'monitor' && deviating > 0 && <span className="cnt">{deviating}</span>}
@@ -60,6 +67,7 @@ export default function App({ addInId }) {
       {tab === 'fleet' && <FleetPage />}
       {tab === 'orders' && <OrdersPage />}
       {tab === 'exceptions' && <ExceptionsPage onCount={setExcOpen} />}
+      {tab === 'integration' && <IntegrationPage mode={mode} onMode={setMode} />}
       {tab === 'perf' && <PerformancePage />}
       {tab === 'evidence' && <EvidencePage />}
       {tab === 'master' && <MasterPage />}

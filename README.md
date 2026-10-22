@@ -136,3 +136,7 @@ Exception dideteksi otomatis saat admin membuka menu Exception (tanpa cron, aman
 Variabel Vercel (semua Secret/Sensitive): `BREVO_API_KEY` (email), `FONNTE_TOKEN` (WhatsApp via Fonnte) atau `WA_WEBHOOK_URL` + opsional `WA_WEBHOOK_TOKEN` (gateway lain; menerima `POST {to, message}`), `CRON_SECRET`.
 Penerima & tingkat minimum diatur di add-in (Exception › Notifikasi).
 Pinger: buat job di cron-job.org tiap 5 menit ke `https://<host>/api/cron?key=<CRON_SECRET>`.
+
+## Integrasi TMS customer (v3.0)
+
+Menu **Integrasi TMS**: konektor penarik DO dari API TMS customer (pemetaan field lewat UI). Variabel Vercel tambahan: `ENCRYPTION_KEY` (teks acak min. 16 karakter, untuk mengenkripsi kunci API konektor; jangan diganti setelah dipakai atau kunci tersimpan tidak terbaca). Penarikan otomatis berjalan di `/api/cron` (pinger 5 menit). DO eksternal bersumber `source = 'external'` dan tidak muncul di menu Order.

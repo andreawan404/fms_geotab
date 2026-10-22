@@ -2,6 +2,14 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.0.0 - 2026-10-22
+
+- Mode Integrasi TMS customer, tahap 1 (konektor tarik data). Menu "Integrasi TMS": buat konektor ke API TMS milik customer tanpa coding. Atur URL, autentikasi (Bearer / API key / Basic), request, pagination, lalu petakan field JSON mereka ke DO kita (nomor DO, plat, status, stop dengan koordinat dan jadwal, barang).
+- Tombol "Uji koneksi & pemetaan" menarik data asli dan menampilkan hasil pemetaan beserta masalahnya (plat kosong, koordinat kosong). DO ditarik otomatis tiap N menit lewat cron atau manual dengan "Sinkron sekarang"; perubahan status dan rute di TMS customer ikut diperbarui.
+- Pilihan mode aplikasi: TMS penuh, atau Monitor (menu Order, Vendor & Armada, dan Bukti disembunyikan untuk customer yang memegang TMS sendiri).
+- Keamanan: kunci API disimpan terenkripsi (AES-256-GCM, butuh ENCRYPTION_KEY di Vercel) dan tidak pernah dikirim balik ke browser. Hanya https, alamat internal / privat ditolak, tanpa redirect, batas waktu dan ukuran respons.
+- Tahap berikutnya: pencocokan plat ke kendaraan Geotab dengan pembuatan rute dan penugasan otomatis, kedatangan stop dari GPS, serta laporan BBM per DO.
+
 ## v2.5.0 - 2026-10-22
 
 - Notifikasi exception ke admin lewat email (Brevo) dan WhatsApp (Fonnte atau webhook gateway lain). Atur penerima, tingkat minimum, dan pengingat di menu Exception › Notifikasi, lengkap dengan tombol kirim tes dan log pengiriman.

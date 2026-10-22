@@ -285,6 +285,43 @@ export const MIGRATIONS = [
       )`,
     ],
   },
+  {
+    version: 8,
+    name: 'connectors',
+    statements: [
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'internal'`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS ext_connector uuid`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS ext_id text`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS ext_plate text`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS ext_status text`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS ext_sig text`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS ext_synced_at timestamptz`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS linked_route_id text`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS linked_asg_id text`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS linked_device_id text`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS linked_at timestamptz`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS orders_ext_uq ON orders (ext_connector, ext_id) WHERE ext_connector IS NOT NULL`,
+      `CREATE TABLE IF NOT EXISTS connectors (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        name text NOT NULL,
+        enabled boolean NOT NULL DEFAULT true,
+        base_url text NOT NULL,
+        auth_type text NOT NULL DEFAULT 'none',
+        auth_name text NOT NULL DEFAULT '',
+        secret_enc text,
+        config jsonb NOT NULL DEFAULT '{}'::jsonb,
+        interval_min int NOT NULL DEFAULT 10,
+        last_run_at timestamptz,
+        last_status text,
+        last_error text,
+        last_count int NOT NULL DEFAULT 0,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        updated_by text
+      )`,
+      `CREATE TABLE IF NOT EXISTS app_settings (key text PRIMARY KEY, value jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now())`,
+    ],
+  },
 ];
 
 const done = new WeakSet();

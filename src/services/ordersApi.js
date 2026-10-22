@@ -25,6 +25,8 @@ const DEMO_PODS = [
 
 const ago = (h) => new Date(Date.now() - h * 3600e3).toISOString();
 const demoNotify = { emailEnabled: true, waEnabled: true, emails: [], phones: [], minSeverity: 'high', renotifyMin: 60 };
+const demoMode = { v: 'full' };
+const demoConn = [];
 const DEMO_EXC = [
   { id: 1, orderId: 'd1', doNo: 'DO-DEMO-001', customer: 'PT Contoh', vendorName: 'CV Trans Mandiri', plate: 'B 9001 SMA', kind: 'late', severity: 'high', source: 'system', stopSeq: 2, meta: { stop: 'Toko Bogor', minutes: 75 }, createdAt: ago(1), clearedAt: '', ackAt: '', ackBy: '', ackNote: '', state: 'open' },
   { id: 2, orderId: 'd2', doNo: 'DO-DEMO-002', customer: 'PT Maju', vendorName: 'PT Ekspres Nusa', plate: 'B 9002 SMA', kind: 'breakdown', severity: 'high', source: 'vendor', stopSeq: 1, meta: { note: 'Ban pecah di tol Jakarta-Cikampek KM 40', stop: 'Gudang Cikarang' }, createdAt: ago(0.5), clearedAt: '', ackAt: '', ackBy: '', ackNote: '', state: 'open' },
@@ -86,6 +88,16 @@ export function createOrdersApi({ geotab, isMock }) {
       remove: (kind, id) => req('DELETE', `/master/${kind}?id=${id}`),
     },
     // penawaran / alokasi
+    integration: {
+      list: () => req('GET', '/connectors'),
+      mode: () => req('GET', '/connectors?r=mode').then((r) => r.mode),
+      setMode: (mode) => req('POST', '/connectors', { action: 'set_mode', mode }),
+      save: (c) => req('POST', '/connectors', { action: 'save', ...c }),
+      remove: (id) => req('POST', '/connectors', { action: 'delete', id }),
+      test: (c) => req('POST', '/connectors', { action: 'test', ...c }),
+      run: (id) => req('POST', '/connectors', { action: 'run', id }),
+      orders: () => req('GET', '/orders?source=external&limit=100'),
+    },
     insights: {
       exceptions: ({ status = 'open', kind = '', q = '' } = {}) => req('GET', `/insights?status=${status}&kind=${kind}&q=${encodeURIComponent(q)}`),
       act: (action, id, note = '') => req('POST', '/insights', { action, id, note }),
@@ -163,6 +175,16 @@ function createMockOrdersApi() {
       },
       async update(kind, id, item) { const i = M[kind].findIndex((x) => x.id === id); if (i < 0) throw err(404, 'not_found'); M[kind][i] = { ...M[kind][i], ...item }; return { ...M[kind][i] }; },
       async remove(kind, id) { M[kind] = M[kind].filter((x) => x.id !== id); return { ok: true }; },
+    },
+    integration: {
+      async list() { return { connectors: demoConn.map((c) => ({ ...c })), encryption: true, mode: demoMode.v }; },
+      async mode() { return demoMode.v; },
+      async setMode(mode) { demoMode.v = mode; return { mode }; },
+      async save(c) { const id = c.id || `c${demoConn.length + 1}`; const i = demoConn.findIndex((x) => x.id === id); const row = { id, name: c.name, enabled: c.enabled !== false, baseUrl: c.baseUrl, authType: c.authType, authName: c.authName || '', hasSecret: !!c.secret || (i >= 0 && demoConn[i].hasSecret), config: c.config, intervalMin: c.intervalMin || 10, lastRunAt: '', lastStatus: '', lastError: '', lastCount: 0, orders: 0 }; if (i >= 0) demoConn[i] = { ...demoConn[i], ...row }; else demoConn.push(row); return { id }; },
+      async remove(id) { demoConn.splice(demoConn.findIndex((x) => x.id === id), 1); return { ok: true }; },
+      async test() { return { count: 2, sample: JSON.stringify({ id: 'T-1', do_number: 'SO-001', vehicle: { plate: 'B 1234 ABC' }, status: 'ON_THE_WAY', stops: [{ name: 'Gudang A', lat: -6.3, lng: 107.1 }] }, null, 2), mapped: [{ externalId: 'T-1', doNo: 'SO-001', plate: 'B 1234 ABC', status: 'running', extStatus: 'ON_THE_WAY', stops: [{ type: 'pickup', name: 'Gudang A', lat: -6.3, lng: 107.1, windowEnd: '' }, { type: 'delivery', name: 'Toko B', lat: -6.2, lng: 106.9, windowEnd: '' }], problems: [] }] }; },
+      async run(id) { const c = demoConn.find((x) => x.id === id); if (c) Object.assign(c, { lastRunAt: now(), lastStatus: 'ok', lastCount: 2, orders: 2 }); return { ok: true, fetched: 2, created: 2, updated: 0, unchanged: 0, skipped: 0, noCoords: 0 }; },
+      async orders() { return { orders: [] }; },
     },
     insights: {
       async exceptions({ status = 'open', kind = '' } = {}) {

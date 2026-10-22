@@ -43,7 +43,7 @@ export default function OrdersPage() {
     setLoading(true);
     setError('');
     try {
-      setData(await ordersApi.list({ status, q, limit }));
+      setData(await ordersApi.list({ status, q, limit, source: 'internal' }));
     } catch (e) {
       setError(apiErrorText(t, e));
     }
