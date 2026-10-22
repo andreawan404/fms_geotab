@@ -24,6 +24,7 @@ const DEMO_PODS = [
 ];
 
 const ago = (h) => new Date(Date.now() - h * 3600e3).toISOString();
+const demoNotify = { emailEnabled: true, waEnabled: true, emails: [], phones: [], minSeverity: 'high', renotifyMin: 60 };
 const DEMO_EXC = [
   { id: 1, orderId: 'd1', doNo: 'DO-DEMO-001', customer: 'PT Contoh', vendorName: 'CV Trans Mandiri', plate: 'B 9001 SMA', kind: 'late', severity: 'high', source: 'system', stopSeq: 2, meta: { stop: 'Toko Bogor', minutes: 75 }, createdAt: ago(1), clearedAt: '', ackAt: '', ackBy: '', ackNote: '', state: 'open' },
   { id: 2, orderId: 'd2', doNo: 'DO-DEMO-002', customer: 'PT Maju', vendorName: 'PT Ekspres Nusa', plate: 'B 9002 SMA', kind: 'breakdown', severity: 'high', source: 'vendor', stopSeq: 1, meta: { note: 'Ban pecah di tol Jakarta-Cikampek KM 40', stop: 'Gudang Cikarang' }, createdAt: ago(0.5), clearedAt: '', ackAt: '', ackBy: '', ackNote: '', state: 'open' },
@@ -89,6 +90,9 @@ export function createOrdersApi({ geotab, isMock }) {
       exceptions: ({ status = 'open', kind = '', q = '' } = {}) => req('GET', `/insights?status=${status}&kind=${kind}&q=${encodeURIComponent(q)}`),
       act: (action, id, note = '') => req('POST', '/insights', { action, id, note }),
       report: ({ from, to }) => req('GET', `/insights?r=report&from=${from}&to=${to}`),
+      notify: () => req('GET', '/insights?r=notify'),
+      saveNotify: (cfg) => req('POST', '/insights', { action: 'notify_save', ...cfg }).then((r) => r.settings),
+      testNotify: () => req('POST', '/insights', { action: 'notify_test' }),
     },
     pod: { list: ({ kind, q, days } = {}) => req('GET', `/pod?list=1&kind=${kind || ''}&q=${encodeURIComponent(q || '')}&days=${days || 30}`).then((r) => r.pods), get: (id) => req('GET', `/pod?id=${encodeURIComponent(id)}`).then((r) => r.pod) },
     dispatch: {
@@ -175,6 +179,13 @@ function createMockOrdersApi() {
         return { ok: true };
       },
       async report({ from, to }) { return demoReport(from, to); },
+      async notify() { return { settings: demoNotify, providers: { email: { configured: false, from: 'aan@sumbermas-autorindo.com' }, wa: { provider: null, configured: false } }, log: [] }; },
+      async saveNotify(cfg) {
+        const list = (v) => (Array.isArray(v) ? v : String(v || '').split(/[\n,;]+/)).map((x) => String(x).trim()).filter(Boolean);
+        Object.assign(demoNotify, { ...cfg, emails: list(cfg.emails), phones: list(cfg.phones) });
+        return { ...demoNotify };
+      },
+      async testNotify() { return { results: [{ channel: 'email', to: 'demo', status: 'skipped', error: 'Mode demo' }] }; },
     },
     pod: {
       async list({ kind } = {}) { return DEMO_PODS.filter((p) => !kind || p.kind === kind); },

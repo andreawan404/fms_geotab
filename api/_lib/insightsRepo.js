@@ -5,6 +5,7 @@ import { ApiError } from './errors.js';
 import { expireOffers } from './dispatchRepo.js';
 import { VENDOR_KINDS, detectExceptions } from '../../src/core/exceptions.js';
 import { buildSteps } from '../../src/core/trip.js';
+import { notifyPending } from './notifyRepo.js';
 
 const iso = (v) => (v == null ? null : v instanceof Date ? v.toISOString() : new Date(v).toISOString());
 const cfg = () => ({
@@ -23,7 +24,7 @@ export async function syncExceptions(db, { force = false, nowMs = Date.now() } =
     `SELECT o.id, o.do_no, o.status, o.vendor_id, (SELECT count(*) FROM offers f WHERE f.order_id = o.id)::int AS offers, (SELECT count(*) FROM offers f WHERE f.order_id = o.id AND f.status = 'offered')::int AS open_offers
        FROM orders o WHERE o.status IN ('offered', 'assigned', 'running') OR (o.status = 'draft' AND EXISTS (SELECT 1 FROM offers f WHERE f.order_id = o.id)) OR (o.status = 'done' AND o.finished_at > now() - interval '7 days')
        ORDER BY o.created_at DESC LIMIT 1000`);
-  if (!orders.length) return;
+  if (!orders.length) { await notifyPending(db); return; }
   const ids = JSON.stringify(orders.map((o) => o.id));
   const IN = `IN (SELECT value::uuid FROM jsonb_array_elements_text($1::jsonb))`;
   const [stops, events, pods] = await Promise.all([
@@ -52,6 +53,7 @@ export async function syncExceptions(db, { force = false, nowMs = Date.now() } =
   await db.query(
     `UPDATE exceptions e SET cleared_at = now() WHERE e.source = 'system' AND e.cleared_at IS NULL AND e.order_id ${IN}
        AND NOT EXISTS (SELECT 1 FROM ${REC(2)} WHERE x.order_id = e.order_id AND x.key = e.dedupe_key)`, [ids, cj]);
+  await notifyPending(db);
 }
 
 const mapEx = (r) => ({
@@ -106,6 +108,7 @@ export async function insertVendorIssue(db, { order, kind, note, lat, lng }) {
   const meta = { doNo: order.doNo, note: text, stop: stop?.name || '', lat: num(lat), lng: num(lng), plate: order.plate || '', driver: order.driverName || '' };
   await db.query(`INSERT INTO exceptions (order_id, dedupe_key, kind, severity, source, stop_seq, meta) SELECT $1, $2, $3, $4, 'vendor', $5, $6::jsonb WHERE EXISTS (SELECT 1 FROM orders WHERE id = $1 AND status IN ('assigned', 'running'))`,
     [order.id, `vendor:${randomUUID()}`, kind, kind === 'traffic' ? 'low' : kind === 'other' ? 'medium' : 'high', step && step.stopIdx >= 0 ? step.stopIdx + 1 : null, JSON.stringify(meta)]);
+  await notifyPending(db); // laporan vendor langsung diteruskan ke admin
   return { ok: true };
 }
 

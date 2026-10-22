@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useApp } from '../AppContext.jsx';
 import { Empty, Kpi, Modal, Spinner } from '../components/ui.jsx';
+import NotifyDialog from '../components/NotifyDialog.jsx';
 import DispatchDialog from '../components/DispatchDialog.jsx';
 import { ALL_KINDS } from '../core/exceptions.js';
 import { fmtDateTime } from '../core/time.js';
@@ -20,6 +21,7 @@ export default function ExceptionsPage({ onCount }) {
   const [act, setAct] = useState(null); // { e, action }
   const [note, setNote] = useState('');
   const [dsp, setDsp] = useState(null);
+  const [ntf, setNtf] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -42,6 +44,7 @@ export default function ExceptionsPage({ onCount }) {
     <div className="tms-page">
       <div className="tms-row" style={{ marginBottom: 10 }}>
         <h2 className="tms-grow">{t('exc.title')}</h2>
+        <button className="tms-btn" onClick={() => setNtf(true)}>🔔 {t('ntf.btn')}</button>
         <button className="tms-btn sm" onClick={load} title={t('refresh')}>↻</button>
       </div>
       <div className="tms-sm tms-muted" style={{ marginBottom: 8 }}>{t('exc.hint')}</div>
@@ -102,6 +105,7 @@ export default function ExceptionsPage({ onCount }) {
           )}
         </Modal>
       )}
+      {ntf && <NotifyDialog onClose={() => setNtf(false)} />}
       {dsp && <DispatchDialog orderId={dsp} onClose={() => setDsp(null)} onChanged={load} />}
     </div>
   );

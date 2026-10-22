@@ -2,6 +2,20 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '2.5.0',
+    date: '2026-10-22',
+    id: [
+      'Notifikasi exception ke admin lewat email (Brevo) dan WhatsApp (Fonnte atau webhook gateway lain). Atur penerima, tingkat minimum, dan pengingat di menu Exception › Notifikasi, lengkap dengan tombol kirim tes dan log pengiriman.',
+      'Laporan kendala dari vendor diteruskan seketika. Exception tingkat Tinggi yang belum ditangani diingatkan sekali lagi setelah waktu yang diatur (default 60 menit). Kiriman gagal dicoba ulang otomatis.',
+      'Endpoint /api/cron (dilindungi CRON_SECRET) menjalankan deteksi exception, notifikasi, dan pembersihan retensi POD tanpa admin membuka add-in. Panggil tiap 5 menit dari pinger eksternal; vercel.json memuat cadangan harian.',
+    ],
+    en: [
+      'Exception notifications to admins by email (Brevo) and WhatsApp (Fonnte or another gateway via webhook). Set recipients, minimum level and reminders under Exceptions › Notifications, with a send-test button and delivery log.',
+      'Vendor-reported issues are forwarded immediately. Unhandled High-level exceptions are reminded once more after the configured time (default 60 minutes). Failed deliveries are retried automatically.',
+      'The /api/cron endpoint (protected by CRON_SECRET) runs exception detection, notifications and POD retention cleanup without an admin opening the add-in. Call it every 5 minutes from an external pinger; vercel.json contains a daily fallback.',
+    ],
+  },
+  {
     v: '2.4.0',
     date: '2026-10-21',
     id: [

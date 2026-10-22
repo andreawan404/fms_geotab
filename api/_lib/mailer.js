@@ -18,6 +18,7 @@ export async function sendEmail({ to, subject, html, text }) {
   try {
     const res = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
+      signal: AbortSignal.timeout(10000),
       headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ sender: { email: cfg.from, name: cfg.fromName }, to: [{ email: to }], subject, htmlContent: html, textContent: text }),
     });

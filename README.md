@@ -130,3 +130,9 @@ Bukti serah terima disimpan di Postgres (foto ≤ ~100–400 KB, tanda tangan PN
 ## Exception & Kinerja (v2.4)
 
 Exception dideteksi otomatis saat admin membuka menu Exception (tanpa cron, aman untuk Vercel Hobby). Variabel opsional: `EXC_LATE_GRACE_MIN` (15), `EXC_STALE_MIN` (120), `EXC_START_GRACE_MIN` (30). Endpoint: `GET /api/insights` (daftar exception / `?r=report`), `POST /api/insights` (ack / unack / resolve).
+
+## Notifikasi exception (v2.5)
+
+Variabel Vercel (semua Secret/Sensitive): `BREVO_API_KEY` (email), `FONNTE_TOKEN` (WhatsApp via Fonnte) atau `WA_WEBHOOK_URL` + opsional `WA_WEBHOOK_TOKEN` (gateway lain; menerima `POST {to, message}`), `CRON_SECRET`.
+Penerima & tingkat minimum diatur di add-in (Exception › Notifikasi).
+Pinger: buat job di cron-job.org tiap 5 menit ke `https://<host>/api/cron?key=<CRON_SECRET>`.

@@ -257,6 +257,34 @@ export const MIGRATIONS = [
       `CREATE INDEX IF NOT EXISTS exceptions_open_idx ON exceptions (cleared_at, created_at DESC)`,
     ],
   },
+  {
+    version: 7,
+    name: 'notify',
+    statements: [
+      `ALTER TABLE exceptions ADD COLUMN IF NOT EXISTS notified_at timestamptz`,
+      `ALTER TABLE exceptions ADD COLUMN IF NOT EXISTS renotified_at timestamptz`,
+      `CREATE TABLE IF NOT EXISTS notify_settings (
+        id int PRIMARY KEY CHECK (id = 1),
+        email_enabled boolean NOT NULL DEFAULT true,
+        wa_enabled boolean NOT NULL DEFAULT true,
+        emails jsonb NOT NULL DEFAULT '[]'::jsonb,
+        phones jsonb NOT NULL DEFAULT '[]'::jsonb,
+        min_severity text NOT NULL DEFAULT 'high',
+        renotify_min int NOT NULL DEFAULT 60,
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        updated_by text
+      )`,
+      `CREATE TABLE IF NOT EXISTS notify_log (
+        id bigserial PRIMARY KEY,
+        at timestamptz NOT NULL DEFAULT now(),
+        channel text NOT NULL,
+        to_addr text NOT NULL,
+        items int NOT NULL DEFAULT 0,
+        status text NOT NULL,
+        error text
+      )`,
+    ],
+  },
 ];
 
 const done = new WeakSet();

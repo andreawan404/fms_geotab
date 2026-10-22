@@ -2,6 +2,12 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v2.5.0 - 2026-10-22
+
+- Notifikasi exception ke admin lewat email (Brevo) dan WhatsApp (Fonnte atau webhook gateway lain). Atur penerima, tingkat minimum, dan pengingat di menu Exception › Notifikasi, lengkap dengan tombol kirim tes dan log pengiriman.
+- Laporan kendala dari vendor diteruskan seketika. Exception tingkat Tinggi yang belum ditangani diingatkan sekali lagi setelah waktu yang diatur (default 60 menit). Kiriman gagal dicoba ulang otomatis.
+- Endpoint /api/cron (dilindungi CRON_SECRET) menjalankan deteksi exception, notifikasi, dan pembersihan retensi POD tanpa admin membuka add-in. Panggil tiap 5 menit dari pinger eksternal; vercel.json memuat cadangan harian.
+
 ## v2.4.0 - 2026-10-21
 
 - Tahap 5: Exception Management (menu "Exception"). Sistem mendeteksi otomatis: tidak ada vendor yang menerima, belum berangkat, terlambat / tiba terlambat, tidak ada update dari vendor, posisi di luar radius, dan selisih qty POP / POD. Exception hilang sendiri saat kondisinya pulih; admin dapat menandai "ditangani" dengan catatan atau menyelesaikannya manual. Jumlah exception terbuka tampil sebagai badge di menu.
