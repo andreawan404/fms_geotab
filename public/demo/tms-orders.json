@@ -1,0 +1,152 @@
+{
+  "data": [
+    {
+      "id": "TMS-DEMO-1",
+      "do_number": "DO-DEMO-001",
+      "customer_name": "PT Maju Pangan",
+      "created_at": "2026-10-22T15:50:46+07:00",
+      "vehicle_plate": "B 9001 SMA",
+      "status": "ON_THE_WAY",
+      "stops": [
+        {
+          "type": "PICKUP",
+          "name": "Gudang Cikarang",
+          "address": "Jl. Industri Cikarang, Bekasi",
+          "lat": -6.3069,
+          "lng": 107.1722,
+          "eta_from": "2026-10-22T16:20:46+07:00",
+          "eta_to": "2026-10-22T16:50:46+07:00",
+          "items": []
+        },
+        {
+          "type": "DELIVERY",
+          "name": "DC Bandung Timur",
+          "address": "Jl. A.H. Nasution, Bandung",
+          "lat": -6.9147,
+          "lng": 107.6598,
+          "eta_from": "2026-10-22T18:50:46+07:00",
+          "eta_to": "2026-10-22T20:20:46+07:00",
+          "items": [
+            {
+              "name": "Minuman kemasan",
+              "qty": 400,
+              "unit": "box",
+              "weight": 8000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TMS-DEMO-2",
+      "do_number": "DO-DEMO-002",
+      "customer_name": "PT Maju Pangan",
+      "created_at": "2026-10-22T12:50:46+07:00",
+      "vehicle_plate": "B 9002 SMA",
+      "status": "ON_THE_WAY",
+      "stops": [
+        {
+          "type": "PICKUP",
+          "name": "Gudang Tangerang",
+          "address": "Jl. Gatot Subroto, Tangerang",
+          "lat": -6.1781,
+          "lng": 106.6319,
+          "eta_from": "2026-10-22T13:50:46+07:00",
+          "eta_to": "2026-10-22T14:20:46+07:00",
+          "items": []
+        },
+        {
+          "type": "DELIVERY",
+          "name": "Toko Grosir Bekasi",
+          "address": "Jl. Ahmad Yani, Bekasi",
+          "lat": -6.2383,
+          "lng": 106.9756,
+          "eta_from": "2026-10-22T16:50:46+07:00",
+          "eta_to": "2026-10-22T17:50:46+07:00",
+          "items": [
+            {
+              "name": "Mie instan",
+              "qty": 250,
+              "unit": "karton",
+              "weight": 5000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TMS-DEMO-3",
+      "do_number": "DO-DEMO-003",
+      "customer_name": "CV Sinar Logam",
+      "created_at": "2026-10-22T17:20:46+07:00",
+      "vehicle_plate": "B 9003 SMA",
+      "status": "NEW",
+      "stops": [
+        {
+          "type": "PICKUP",
+          "name": "Pabrik Pulogadung",
+          "address": "Kawasan Industri Pulogadung, Jakarta",
+          "lat": -6.1862,
+          "lng": 106.9087,
+          "eta_from": "2026-10-22T18:20:46+07:00",
+          "eta_to": "2026-10-22T18:50:46+07:00",
+          "items": []
+        },
+        {
+          "type": "DELIVERY",
+          "name": "Proyek Karawang",
+          "address": "Jl. Interchange Karawang Barat",
+          "lat": -6.3158,
+          "lng": 107.3092,
+          "eta_from": "2026-10-22T20:50:46+07:00",
+          "eta_to": "2026-10-22T22:20:46+07:00",
+          "items": [
+            {
+              "name": "Besi beton",
+              "qty": 120,
+              "unit": "batang",
+              "weight": 12000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TMS-DEMO-4",
+      "do_number": "DO-DEMO-004",
+      "customer_name": "PT Maju Pangan",
+      "created_at": "2026-10-22T07:50:46+07:00",
+      "vehicle_plate": "B 9004 SMA",
+      "status": "DELIVERED",
+      "stops": [
+        {
+          "type": "PICKUP",
+          "name": "Gudang Cibitung",
+          "address": "Jl. Raya Cibitung, Bekasi",
+          "lat": -6.265,
+          "lng": 107.083,
+          "eta_from": "2026-10-22T08:50:46+07:00",
+          "eta_to": "2026-10-22T09:20:46+07:00",
+          "items": []
+        },
+        {
+          "type": "DELIVERY",
+          "name": "Minimarket Depok",
+          "address": "Jl. Margonda Raya, Depok",
+          "lat": -6.391,
+          "lng": 106.823,
+          "eta_from": "2026-10-22T12:50:46+07:00",
+          "eta_to": "2026-10-22T13:50:46+07:00",
+          "items": [
+            {
+              "name": "Snack",
+              "qty": 300,
+              "unit": "box",
+              "weight": 3000
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
