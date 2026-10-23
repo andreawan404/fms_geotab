@@ -90,7 +90,7 @@ export function createOrdersApi({ geotab, isMock }) {
     // penawaran / alokasi
     integration: {
       list: () => req('GET', '/connectors'),
-      mode: () => req('GET', '/connectors?r=mode').then((r) => r.mode),
+      mode: () => req('GET', '/connectors?r=mode'),
       setMode: (mode) => req('POST', '/connectors', { action: 'set_mode', mode }),
       save: (c) => req('POST', '/connectors', { action: 'save', ...c }),
       remove: (id) => req('POST', '/connectors', { action: 'delete', id }),
@@ -185,7 +185,7 @@ function createMockOrdersApi() {
     },
     integration: {
       async list() { return { connectors: demoConn.map((c) => ({ ...c })), encryption: true, mode: demoMode.v }; },
-      async mode() { return demoMode.v; },
+      async mode() { return { mode: demoMode.v, modeSet: true }; },
       async setMode(mode) { demoMode.v = mode; return { mode }; },
       async save(c) { const id = c.id || `c${demoConn.length + 1}`; const i = demoConn.findIndex((x) => x.id === id); const row = { id, name: c.name, enabled: c.enabled !== false, baseUrl: c.baseUrl, authType: c.authType, authName: c.authName || '', hasSecret: !!c.secret || (i >= 0 && demoConn[i].hasSecret), config: c.config, intervalMin: c.intervalMin || 10, lastRunAt: '', lastStatus: '', lastError: '', lastCount: 0, orders: 0 }; if (i >= 0) demoConn[i] = { ...demoConn[i], ...row }; else demoConn.push(row); return { id }; },
       async remove(id) { demoConn.splice(demoConn.findIndex((x) => x.id === id), 1); return { ok: true }; },

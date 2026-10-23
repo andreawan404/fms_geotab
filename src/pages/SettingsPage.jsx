@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../AppContext.jsx';
+import ModePicker from '../components/ModePicker.jsx';
 import { Field, Spinner } from '../components/ui.jsx';
 import { findRoutes } from '../services/routing.js';
 import { errMessage } from '../services/geotab.js';
@@ -7,8 +8,15 @@ import { APP_VERSION, CHANGELOG } from '../changelog.js';
 
 const DEF_KEYS = ['widthM', 'radius', 'avgSpeedKmh', 'confirmSec', 'confirmMeters', 'gpsMarginM', 'recoverSec', 'graceMin', 'lateStartMin'];
 
-export default function SettingsPage({ addInId }) {
-  const { t, lang, settings, saveSettings, toast, loading, isMock, geotab, devices } = useApp();
+export default function SettingsPage({ addInId, mode, onMode }) {
+  const { t, lang, settings, saveSettings, toast, loading, isMock, geotab, devices, ordersApi } = useApp();
+  const [modeBusy, setModeBusy] = useState(false);
+  const pickMode = async (m) => {
+    if (m === mode) return;
+    setModeBusy(true);
+    try { await ordersApi.integration.setMode(m); onMode(m); toast(t('int.modeSaved')); } catch (e) { toast(errMessage(e), 'err'); }
+    setModeBusy(false);
+  };
   const [s, setS] = useState(() => JSON.parse(JSON.stringify(settings)));
   const [busy, setBusy] = useState('');
   const [probe, setProbe] = useState(null);
@@ -51,6 +59,14 @@ export default function SettingsPage({ addInId }) {
   return (
     <div className="tms-page" style={{ maxWidth: 900 }}>
       <h2 style={{ marginBottom: 12 }}>{t('set.title')}</h2>
+
+      <div className="tms-card" style={{ marginBottom: 12 }}>
+        <div className="tms-card-h">{t('mode.title')}</div>
+        <div className="tms-card-b">
+          <ModePicker value={mode} onPick={pickMode} busy={modeBusy} />
+          <div className="tms-sm tms-muted" style={{ marginTop: 8 }}>{t('mode.changeNote')}</div>
+        </div>
+      </div>
 
       <div className="tms-card" style={{ marginBottom: 12 }}>
         <div className="tms-card-h">{t('set.routing')}</div>

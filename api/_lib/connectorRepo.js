@@ -211,11 +211,12 @@ export async function runDueConnectors(db) {
   return out;
 }
 
-export async function getMode(db) {
+export async function getModeInfo(db) {
   const r = await db.query(`SELECT value FROM app_settings WHERE key = 'mode'`);
   const v = r[0] ? String(r[0].value).replace(/"/g, '') : '';
-  return v === 'monitor' ? 'monitor' : 'full';
+  return { mode: v === 'monitor' ? 'monitor' : 'full', modeSet: v === 'monitor' || v === 'full' };
 }
+export const getMode = async (db) => (await getModeInfo(db)).mode;
 export async function setMode(db, mode) {
   if (!['full', 'monitor'].includes(mode)) throw new ApiError(422, 'validation', 'Mode tidak valid', [{ path: 'mode', code: 'invalid' }]);
   await db.query(`INSERT INTO app_settings (key, value) VALUES ('mode', $1::jsonb) ON CONFLICT (key) DO UPDATE SET value = $1::jsonb, updated_at = now()`, [JSON.stringify(mode)]);

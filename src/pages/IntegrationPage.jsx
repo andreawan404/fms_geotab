@@ -6,7 +6,7 @@ import { fmtDateTime } from '../core/time.js';
 import { STATUS_CLS, apiErrorText } from '../lib/orderView.js';
 
 /** Integrasi TMS customer: pilih mode, atur konektor penarik DO, lihat DO yang masuk. */
-export default function IntegrationPage({ mode, onMode }) {
+export default function IntegrationPage() {
   const { t, ordersApi, toast, devices, linkState, runLink } = useApp();
   const [aliasSel, setAliasSel] = useState({});
   const [linking, setLinking] = useState(false);
@@ -39,9 +39,6 @@ export default function IntegrationPage({ mode, onMode }) {
   const toggle = async (c) => {
     try { await ordersApi.integration.save({ id: c.id, name: c.name, baseUrl: c.baseUrl, authType: c.authType, authName: c.authName, config: c.config, intervalMin: c.intervalMin, enabled: !c.enabled }); load(); } catch (e) { toast(apiErrorText(t, e), 'err'); }
   };
-  const changeMode = async (m) => {
-    try { await ordersApi.integration.setMode(m); onMode(m); toast(t('int.modeSaved')); } catch (e) { toast(apiErrorText(t, e), 'err'); }
-  };
 
   const linkNow = async () => { setLinking(true); await runLink(); setLinking(false); load(); };
   const saveAlias = async (u) => {
@@ -61,17 +58,6 @@ export default function IntegrationPage({ mode, onMode }) {
       {err && <div className="tms-banner" style={{ margin: '0 0 10px' }}>{err}</div>}
       {data && !data.encryption && <div className="tms-banner" style={{ margin: '0 0 10px' }}>{t('int.noEnc')}</div>}
 
-      <div className="tms-card" style={{ marginBottom: 12 }}><div className="tms-card-b">
-        <b>{t('int.mode')}</b>
-        <div className="tms-row" style={{ gap: 16, marginTop: 6, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          {['full', 'monitor'].map((m) => (
-            <label key={m} style={{ flex: '1 1 320px', border: `1px solid ${mode === m ? '#0b5fa5' : '#d9dee5'}`, background: mode === m ? '#eef5fc' : '#fff', borderRadius: 8, padding: 10, cursor: 'pointer' }}>
-              <input type="radio" name="mode" checked={mode === m} onChange={() => changeMode(m)} /> <b>{t(`int.mode.${m}`)}</b>
-              <div className="tms-sm tms-muted">{t(`int.mode.${m}Desc`)}</div>
-            </label>
-          ))}
-        </div>
-      </div></div>
 
       <div className="tms-card" style={{ marginBottom: 12 }}><div className="tms-card-b">
         <div className="tms-row" style={{ gap: 8 }}>

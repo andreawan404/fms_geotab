@@ -13,19 +13,22 @@ import OrdersPage from './pages/OrdersPage.jsx';
 import MasterPage from './pages/MasterPage.jsx';
 import MonitorPage from './pages/MonitorPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
+import ModePicker from './components/ModePicker.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 
 const TABS = ['fleet', 'orders', 'exceptions', 'evidence', 'perf', 'delivery', 'master', 'integration', 'routes', 'assignments', 'monitor', 'reports', 'settings'];
-// Mode Monitor (TMS customer sendiri): menu proses TMS disembunyikan
-const HIDDEN_IN_MONITOR = new Set(['orders', 'evidence', 'master']);
+// Mode aplikasi menentukan menu: TMS penuh menyembunyikan menu integrasi, Monitor (TMS customer sendiri) menyembunyikan menu proses TMS
+const HIDDEN_BY_MODE = { full: new Set(['integration', 'delivery']), monitor: new Set(['orders', 'evidence', 'master']) };
 
 export default function App({ addInId }) {
   const { t, lang, setLang, results, errors, isMock, reload, loading, ordersApi } = useApp();
   const [tab, setTab] = useState('fleet');
   const [excOpen, setExcOpen] = useState(0);
   const [mode, setMode] = useState('full');
-  useEffect(() => { if (!isMock) ordersApi.integration.mode().then(setMode).catch(() => {}); }, [ordersApi, isMock]);
-  const tabs = TABS.filter((k) => mode !== 'monitor' || !HIDDEN_IN_MONITOR.has(k));
+  const [modeSet, setModeSet] = useState(true); // false = admin belum pernah memilih mode -> tampilkan layar pemilihan
+  useEffect(() => { ordersApi.integration.mode().then((r) => { setMode(r.mode); setModeSet(r.modeSet !== false); }).catch(() => {}); }, [ordersApi]);
+  const chooseMode = async (m) => { await ordersApi.integration.setMode(m); setMode(m); setModeSet(true); };
+  const tabs = TABS.filter((k) => !HIDDEN_BY_MODE[mode].has(k));
   useEffect(() => { if (!tabs.includes(tab)) setTab('fleet'); }, [tabs, tab]);
   // Badge exception terbuka: cek tiap 2 menit selagi bukan halaman Exception (halaman itu memperbarui sendiri)
   useEffect(() => {
@@ -37,6 +40,16 @@ export default function App({ addInId }) {
   }, [ordersApi, isMock, tab]);
   const deviating = useMemo(() => [...results.values()].filter((r) => r.result.currentlyDeviating && Date.now() <= r.inst.endMs).length, [results]);
   const fatal = errors.store || errors.devices;
+
+  if (!loading && !modeSet) {
+    return (
+      <div className="tms-page" style={{ maxWidth: 760, margin: '40px auto' }}>
+        <h2>{t('mode.chooseTitle')}</h2>
+        <div className="tms-sm tms-muted" style={{ margin: '6px 0 14px' }}>{t('mode.chooseHint')}</div>
+        <ModePicker value={null} onPick={chooseMode} />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -68,7 +81,7 @@ export default function App({ addInId }) {
       {tab === 'fleet' && <FleetPage />}
       {tab === 'orders' && <OrdersPage />}
       {tab === 'exceptions' && <ExceptionsPage onCount={setExcOpen} />}
-      {tab === 'integration' && <IntegrationPage mode={mode} onMode={setMode} />}
+      {tab === 'integration' && <IntegrationPage />}
       {tab === 'perf' && <PerformancePage />}
       {tab === 'delivery' && <DeliveryPage />}
       {tab === 'evidence' && <EvidencePage />}
@@ -77,7 +90,7 @@ export default function App({ addInId }) {
       {tab === 'assignments' && <AssignmentsPage />}
       {tab === 'monitor' && <MonitorPage />}
       {tab === 'reports' && <ReportsPage />}
-      {tab === 'settings' && <SettingsPage addInId={addInId} />}
+      {tab === 'settings' && <SettingsPage mode={mode} onMode={setMode} addInId={addInId} />}
       <Toasts />
     </div>
   );

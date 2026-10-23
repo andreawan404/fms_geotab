@@ -2,6 +2,18 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.3.0',
+    date: '2026-10-23',
+    id: [
+      'Mode aplikasi dipindah ke menu Pengaturan dan menentukan menu untuk semua pengguna. Saat add-in pertama kali dibuka (mode belum dipilih), muncul layar pemilihan: TMS penuh atau Monitor (integrasi TMS customer).',
+      'TMS penuh menampilkan Order, Bukti, dan Vendor & Armada; menu Integrasi TMS dan Pengiriman disembunyikan. Monitor menampilkan Integrasi TMS dan Pengiriman; menu Order, Bukti, dan Vendor & Armada disembunyikan. Mode bisa diganti kapan saja di Pengaturan tanpa menghapus data.',
+    ],
+    en: [
+      'Application mode moved to Settings and now decides the menus for all users. The first time the add-in is opened (no mode chosen yet) a selection screen appears: Full TMS or Monitor (customer TMS integration).',
+      'Full TMS shows Orders, Evidence and Vendors & Fleet; the TMS Integration and Deliveries menus are hidden. Monitor shows TMS Integration and Deliveries; Orders, Evidence and Vendors & Fleet are hidden. The mode can be changed any time in Settings without deleting data.',
+    ],
+  },
+  {
     v: '3.2.0',
     date: '2026-10-22',
     id: [

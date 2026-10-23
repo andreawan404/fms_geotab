@@ -3,13 +3,13 @@
 // POST /api/connectors {action:'save'|'delete'|'test'|'run'|'set_mode', ...}
 import { route } from './_lib/http.js';
 import { ApiError } from './_lib/errors.js';
-import { deleteConnector, getMode, deliveryReport, gpsArrivals, linkClosed, saveFuel, linkInfo, linkOrder, listConnectors, setAlias, runConnector, saveConnector, setMode, testConnector } from './_lib/connectorRepo.js';
+import { deleteConnector, getMode, getModeInfo, deliveryReport, gpsArrivals, linkClosed, saveFuel, linkInfo, linkOrder, listConnectors, setAlias, runConnector, saveConnector, setMode, testConnector } from './_lib/connectorRepo.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const id = (v) => { if (!UUID.test(String(v || ''))) throw new ApiError(400, 'bad_id', 'ID tidak valid'); return String(v); };
 
 export default route({
-  GET: async ({ db, query }) => (query.r === 'mode' ? { mode: await getMode(db) } : query.r === 'link' ? linkInfo(db) : query.r === 'delivery' ? deliveryReport(db, { from: String(query.from || ''), to: String(query.to || '') }) : { ...(await listConnectors(db)), mode: await getMode(db) }),
+  GET: async ({ db, query }) => (query.r === 'mode' ? getModeInfo(db) : query.r === 'link' ? linkInfo(db) : query.r === 'delivery' ? deliveryReport(db, { from: String(query.from || ''), to: String(query.to || '') }) : { ...(await listConnectors(db)), mode: await getMode(db) }),
   POST: async ({ db, body, user }) => {
     switch (body.action) {
       case 'save': return saveConnector(db, { ...body, id: body.id ? id(body.id) : undefined }, user.userName);

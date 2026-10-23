@@ -1,9 +1,11 @@
-# Panduan Demo TMS Add-in MyGeotab (v3.2)
+# Panduan Demo TMS Add-in MyGeotab (v3.3)
 
 Dua skenario, bisa dibawakan berurutan (±30 menit) atau dipilih salah satu:
 
 - **A. TMS penuh** (±15 mnt): kita yang mengatur DO sampai POD. Untuk customer yang belum punya TMS.
 - **B. Monitor / integrasi TMS customer** (±15 mnt): customer punya TMS sendiri, kita menarik DO lewat API, lalu memantau posisi, ketepatan waktu, dan BBM.
+
+**Mode aplikasi:** pertama kali add-in dibuka muncul layar pemilihan mode. Pilih **TMS penuh** untuk Skenario A, lalu ganti ke **Monitor** di Pengaturan > Mode aplikasi untuk Skenario B (menu menyesuaikan, data tidak hilang).
 
 ---
 
@@ -67,7 +69,7 @@ Add-in menarik data dari URL https, jadi API customer disimulasikan dengan file 
 ### Skenario B — Integrasi TMS customer (±15 menit)
 
 1. **Pembuka (1 mnt)** — Pengaturan atau Integrasi TMS. Jelaskan: "Customer ini sudah punya TMS sendiri. Kita tidak mengubah proses mereka, hanya menarik DO lewat API lalu memantau lewat Geotab."
-2. **Mode (1 mnt)** — Integrasi TMS > Mode aplikasi > pilih **Monitor**. Menu Order, Vendor & Armada, dan Bukti hilang. "Tampilan jadi ringkas untuk customer yang memegang TMS sendiri."
+2. **Mode (1 mnt)** — Pengaturan > Mode aplikasi > pilih **Monitor** (menu Integrasi TMS dan Pengiriman baru muncul setelah ini). Menu Order, Vendor & Armada, dan Bukti hilang. "Tampilan jadi ringkas untuk customer yang memegang TMS sendiri."
 3. **Konektor (2 mnt)** — Tunjukkan konektor `TMS Demo`: URL, autentikasi, pemetaan field. Klik **Uji koneksi & pemetaan** dan tunjukkan 4 DO terpetakan. "Tanpa coding. Cukup petakan field JSON customer ke format kita. Kunci API disimpan terenkripsi."
 4. **Sinkron (1 mnt)** — Klik **Sinkron sekarang**: "4 DO baru". Tabel "DO dari TMS customer" terisi. Katakan: "Selanjutnya otomatis tiap N menit lewat cron."
 5. **Penautan ke Geotab (3 mnt)** — Panel **Penautan ke kendaraan Geotab**: klik **Tautkan sekarang**. Plat dicocokkan ke kendaraan Geotab, rute dan penugasan dibuat otomatis. Jika ada plat yang tidak cocok, tunjukkan daftar alasannya dan pilih kendaraan manual (pemetaan plat). "Bila plat di TMS dan di Geotab beda penulisan, cukup dipetakan sekali."

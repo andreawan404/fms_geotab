@@ -172,9 +172,9 @@ describe('sinkronisasi', () => {
   });
 
   it('mode aplikasi', async () => {
-    expect((await call(connectorsH, { query: { r: 'mode' } })).body.mode).toBe('full');
+    expect((await call(connectorsH, { query: { r: 'mode' } })).body).toEqual({ mode: 'full', modeSet: false });
     expect((await call(connectorsH, { method: 'POST', body: { action: 'set_mode', mode: 'monitor' } })).code).toBe(200);
-    expect((await call(connectorsH, { query: { r: 'mode' } })).body.mode).toBe('monitor');
+    expect((await call(connectorsH, { query: { r: 'mode' } })).body).toEqual({ mode: 'monitor', modeSet: true });
     expect((await call(connectorsH, { method: 'POST', body: { action: 'set_mode', mode: 'x' } })).code).toBe(422);
   });
 
