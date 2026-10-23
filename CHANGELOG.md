@@ -2,6 +2,16 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.3.1 - 2026-10-23
+
+- Alur TMS penuh kini tersambung ke Monitor: DO yang dialokasikan ke vendor (kendaraan yang terhubung ke GPS Geotab di Vendor & Armada) otomatis dibuatkan rute dari titik muat / bongkar dan penugasan di Monitor, tanpa input rute manual di menu Penugasan. Berjalan selama add-in terbuka.
+- Bila alokasi dilepas atau DO selesai / dibatalkan, penugasan monitor ditutup otomatis; bila kendaraan diganti, penugasan dipindah ke kendaraan baru. Dialog Dispatch menampilkan status pemantauan DO.
+
+## v3.3.0 - 2026-10-23
+
+- Mode aplikasi dipindah ke menu Pengaturan dan menentukan menu untuk semua pengguna. Saat add-in pertama kali dibuka (mode belum dipilih), muncul layar pemilihan: TMS penuh atau Monitor (integrasi TMS customer).
+- TMS penuh menampilkan Order, Bukti, dan Vendor & Armada; menu Integrasi TMS dan Pengiriman disembunyikan. Monitor menampilkan Integrasi TMS dan Pengiriman; menu Order, Bukti, dan Vendor & Armada disembunyikan. Mode bisa diganti kapan saja di Pengaturan tanpa menghapus data.
+
 ## v3.2.0 - 2026-10-22
 
 - Laporan Pengiriman (menu baru "Pengiriman") untuk DO dari TMS customer: status TMS dibandingkan dengan bukti kedatangan GPS. DO yang selesai di TMS tetapi GPS tidak lengkap, atau GPS sudah tiba tetapi TMS belum selesai, ditandai agar mudah ditindaklanjuti.

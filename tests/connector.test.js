@@ -5,6 +5,8 @@ import { setVerifier } from '../api/_lib/auth.js';
 import connectorsH from '../api/connectors.js';
 import orderH from '../api/orders/[id].js';
 import ordersH from '../api/orders/index.js';
+import masterH from '../api/master/[kind].js';
+import dispatchH from '../api/dispatch.js';
 import cronH from '../api/cron.js';
 import { setConnectorFetch, isPrivateIp, assertPublicUrl } from '../api/_lib/safeFetch.js';
 import { decrypt, encrypt } from '../api/_lib/crypto.js';
@@ -40,7 +42,7 @@ beforeEach(async () => {
     { id: 'T-2', do_number: 'SO-002', customer: { name: 'PT Contoh' }, vehicle: { plate: 'B 9 XY' }, status: 'NEW', stops: [] },
   ] } };
   setConnectorFetch(async (url, init) => { calls.push({ url, ...init }); return payload; });
-  if ((await pg.query("SELECT to_regclass('public.orders') AS t")).rows[0].t) await pg.exec('TRUNCATE orders, connectors, app_settings, audit_log CASCADE');
+  if ((await pg.query("SELECT to_regclass('public.orders') AS t")).rows[0].t) await pg.exec('TRUNCATE orders, connectors, app_settings, audit_log, vendors CASCADE');
 });
 
 const CONFIG = {
@@ -275,6 +277,50 @@ describe('sinkronisasi', () => {
       const again = await call(connectorsH, { query: { r: 'delivery', from: '2020-01-01', to: '2030-01-01' } });
       expect(again.body.orders[0].fuel.fuelL).toBe(40.12);
       expect(again.body.summary.fuelL).toBe(40.12);
+    });
+  });
+
+  describe('DO internal (TMS penuh) otomatis ke Monitor', () => {
+    it('rute dari titik stop, ikut kendaraan, tutup saat dilepas', async () => {
+      const it = { description: 'Air', qty: 1, unit: 'box', weightKg: 100 };
+      const o = (await call(ordersH, { method: 'POST', body: { doNo: 'INT-1', customer: 'PT A', orderDate: '2026-10-22', stops: [
+        { type: 'pickup', name: 'Gudang', lat: -6.3, lng: 107.1, items: [it] }, { type: 'delivery', name: 'Toko', lat: -6.2, lng: 106.9, windowEnd: new Date(Date.now() + 3 * 3600000).toISOString(), items: [it] }] } })).body.order;
+      const ven = (await call(masterH, { method: 'POST', query: { kind: 'vendors' }, body: { name: 'Vendor Int', email: 'v@v.id', pic: 'P' } })).body.item;
+      const veh = async (plate, dev) => (await call(masterH, { method: 'POST', query: { kind: 'vehicles' }, body: { vendorId: ven.id, plate, type: 'cdd', geotabDeviceId: dev, hasGps: !!dev } })).body.item;
+      const v1 = await veh('B 5 AA', 'b1'); const v2 = await veh('B 6 BB', 'b2'); const v3 = await veh('B 7 CC', '');
+      const info = async () => (await call(connectorsH, { query: { r: 'link' } })).body;
+      const assign = (vehicleId) => call(dispatchH, { method: 'POST', body: { orderId: o.id, action: 'assign', vendorId: ven.id, vehicleId } });
+      expect((await info()).pending).toHaveLength(0); // belum dialokasikan
+      expect((await assign(v3.id)).code).toBe(200);
+      expect((await info()).pending).toHaveLength(0); // kendaraan tanpa GPS Geotab tidak dipantau
+      await call(dispatchH, { method: 'POST', body: { orderId: o.id, action: 'release' } });
+      expect((await assign(v1.id)).code).toBe(200);
+      let p = (await info()).pending;
+      expect(p).toHaveLength(1);
+      expect(p[0]).toMatchObject({ doNo: 'INT-1', internal: true, deviceId: 'b1', plate: 'B 5 AA' });
+
+      const api = { integration: {
+        linkInfo: info,
+        link: async (b) => (await call(connectorsH, { method: 'POST', body: { action: 'link', ...b } })).body,
+        linkClosed: async (orderId) => (await call(connectorsH, { method: 'POST', body: { action: 'link_closed', orderId } })).body,
+      } };
+      const routes = []; const asgs = [];
+      const data = { settings: { defaults: { widthM: 100, radius: 150 }, routing: { profile: 'driving-car' } }, routes, assignments: asgs };
+      const route = async () => [{ path: [[-6.3, 107.1], [-6.2, 106.9]], legs: [{ durationS: 1800 }], distanceM: 20000, durationS: 1800 }];
+      const run = (ids) => runAutoLink({ api, devices: ids.map((id) => ({ id, name: id, plate: '' })), data, saveRoute: async (r) => { routes.push(r); return r; }, saveAssignment: async (a) => { const i = asgs.findIndex((x) => x.id === a.id); if (i >= 0) asgs[i] = a; else asgs.push(a); return a; }, route });
+      expect((await run(['b1'])).linked).toHaveLength(1);
+      expect(asgs[0]).toMatchObject({ deviceId: 'b1', active: true });
+      expect((await info()).pending).toHaveLength(0);
+
+      // vendor mengganti kendaraan -> penugasan yang sama dipindah ke kendaraan baru
+      await call(dispatchH, { method: 'POST', body: { orderId: o.id, action: 'release' } });
+      expect((await info()).toClose).toHaveLength(1);
+      expect((await run(['b1', 'b2'])).closed).toBe(1);
+      expect(asgs[0].active).toBe(false);
+      expect((await assign(v2.id)).code).toBe(200);
+      expect((await run(['b1', 'b2'])).linked).toHaveLength(1);
+      expect(asgs).toHaveLength(1);
+      expect(asgs[0]).toMatchObject({ deviceId: 'b2', active: true });
     });
   });
 });

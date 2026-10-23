@@ -114,6 +114,7 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
                     <span className="tms-badge green">{t('ord.status.assigned')}</span>{' '}
                     <b>{order.vendorName}</b> · {order.plate || '-'} · {order.driverName || t('dsp.noDriver')}
                     <div className="tms-sm tms-muted">{t(`dsp.via.${order.assignedVia || 'admin'}`)} · {fmtDateTime(order.assignedAt)}</div>
+                    <div className="tms-sm" style={{ marginTop: 4 }}>{order.linkedRouteId ? <span className="tms-badge green">{t('dsp.mon.linked')}</span> : (m?.vehicles || []).find((x) => x.id === order.vehicleId)?.geotabDeviceId ? <span className="tms-badge blue">{t('dsp.mon.pending')}</span> : <span className="tms-badge gray">{t('dsp.mon.noGps')}</span>}</div>
                   </div>
                   <button className="tms-btn danger" onClick={release} disabled={busy}>{t('dsp.release')}</button>
                 </div>

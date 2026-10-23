@@ -2,6 +2,18 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.3.1',
+    date: '2026-10-23',
+    id: [
+      'Alur TMS penuh kini tersambung ke Monitor: DO yang dialokasikan ke vendor (kendaraan yang terhubung ke GPS Geotab di Vendor & Armada) otomatis dibuatkan rute dari titik muat / bongkar dan penugasan di Monitor, tanpa input rute manual di menu Penugasan. Berjalan selama add-in terbuka.',
+      'Bila alokasi dilepas atau DO selesai / dibatalkan, penugasan monitor ditutup otomatis; bila kendaraan diganti, penugasan dipindah ke kendaraan baru. Dialog Dispatch menampilkan status pemantauan DO.',
+    ],
+    en: [
+      'The full TMS flow is now connected to Monitor: a DO allocated to a vendor (with a vehicle linked to Geotab GPS in Vendors & Fleet) automatically gets a route built from its pickup / delivery points and an assignment in Monitor, with no manual route entry in the Assignments menu. Runs while the add-in is open.',
+      'When an allocation is released or the DO is done / cancelled, the monitor assignment is closed automatically; when the vehicle changes, the assignment moves to the new vehicle. The Dispatch dialog shows the monitoring status of the DO.',
+    ],
+  },
+  {
     v: '3.3.0',
     date: '2026-10-23',
     id: [

@@ -16,7 +16,7 @@ export async function runAutoLink({ api, devices, data, saveRoute, saveAssignmen
   const out = { linked: [], unmatched: [], closed: 0, errors: [], pending: info.pending.length, linkedActive: info.linkedActive };
   let routed = 0;
   for (const o of info.pending) {
-    const m = matchDevice(o.plate, devices, info.aliases);
+    const m = o.deviceId ? (devices.find((d) => d.id === o.deviceId) ? { device: devices.find((d) => d.id === o.deviceId) } : { reason: 'no_device' }) : matchDevice(o.plate, devices, info.aliases);
     const stops = o.stops.filter((s) => s.lat != null && s.lng != null);
     if (!m.device) { out.unmatched.push({ orderId: o.id, doNo: o.doNo, plate: o.plate, reason: m.reason }); continue; }
     if (stops.length < 2) { out.unmatched.push({ orderId: o.id, doNo: o.doNo, plate: o.plate, reason: 'no_coords' }); continue; }

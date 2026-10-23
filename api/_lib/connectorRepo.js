@@ -233,15 +233,22 @@ async function getAliases(db) {
 }
 
 export async function linkInfo(db) {
+  // DO eksternal: dicocokkan lewat plat. DO internal (TMS penuh): memakai kendaraan Geotab dari master armada (tanpa input rute manual).
   const pending = await db.query(
-    `SELECT o.id, o.do_no, o.customer, o.status, o.ext_plate,
+    `SELECT o.id, o.do_no, o.customer, o.status, o.source, coalesce(v.plate, o.ext_plate) AS plate, v.geotab_device_id AS device_id,
             (SELECT jsonb_agg(jsonb_build_object('type', s.type, 'name', s.name, 'lat', s.lat, 'lng', s.lng, 'radiusM', s.radius_m, 'windowStart', s.window_start, 'windowEnd', s.window_end) ORDER BY s.seq) FROM stops s WHERE s.order_id = o.id) AS stops
-       FROM orders o WHERE o.source = 'external' AND o.status IN ('assigned', 'running') AND o.linked_route_id IS NULL ORDER BY o.created_at DESC LIMIT 50`);
+       FROM orders o LEFT JOIN vehicles v ON v.id = o.vehicle_id
+      WHERE o.status IN ('assigned', 'running')
+        AND ((o.source = 'external' AND o.linked_route_id IS NULL)
+          OR (o.source <> 'external' AND coalesce(v.geotab_device_id, '') <> '' AND (o.linked_route_id IS NULL OR o.linked_device_id IS DISTINCT FROM v.geotab_device_id)))
+      ORDER BY o.created_at DESC LIMIT 50`);
   const toClose = await db.query(
-    `SELECT id, linked_asg_id FROM orders WHERE source = 'external' AND linked_asg_id IS NOT NULL AND link_closed_at IS NULL AND status IN ('done', 'cancelled') LIMIT 50`);
-  const linked = await db.query(`SELECT count(*)::int AS n FROM orders WHERE source = 'external' AND linked_route_id IS NOT NULL AND link_closed_at IS NULL`);
+    `SELECT o.id, o.linked_asg_id FROM orders o LEFT JOIN vehicles v ON v.id = o.vehicle_id
+      WHERE o.linked_asg_id IS NOT NULL AND o.link_closed_at IS NULL
+        AND (o.status IN ('done', 'cancelled') OR (o.source <> 'external' AND (o.status NOT IN ('assigned', 'running') OR coalesce(v.geotab_device_id, '') = ''))) LIMIT 50`);
+  const linked = await db.query(`SELECT count(*)::int AS n FROM orders WHERE linked_route_id IS NOT NULL AND link_closed_at IS NULL`);
   return {
-    pending: pending.map((r) => ({ id: r.id, doNo: r.do_no, customer: r.customer, status: r.status, plate: r.ext_plate || '', stops: (typeof r.stops === 'string' ? JSON.parse(r.stops) : r.stops) || [] })),
+    pending: pending.map((r) => ({ id: r.id, doNo: r.do_no, customer: r.customer, status: r.status, internal: r.source !== 'external', plate: r.plate || '', deviceId: r.device_id || '', stops: (typeof r.stops === 'string' ? JSON.parse(r.stops) : r.stops) || [] })),
     toClose: toClose.map((r) => ({ orderId: r.id, asgId: r.linked_asg_id })),
     linkedActive: linked[0].n,
     aliases: await getAliases(db),
@@ -252,12 +259,12 @@ const ID = /^[A-Za-z0-9_.@:-]{1,80}$/;
 export async function linkOrder(db, { orderId, routeId, asgId, deviceId }) {
   if (![routeId, asgId, deviceId].every((v) => ID.test(String(v || '')))) throw new ApiError(422, 'validation', 'ID tautan tidak valid', [{ path: 'routeId', code: 'invalid' }]);
   const r = await db.query(
-    `UPDATE orders SET linked_route_id = $2, linked_asg_id = $3, linked_device_id = $4, linked_at = now(), link_closed_at = NULL WHERE id = $1 AND source = 'external' RETURNING id`, [orderId, routeId, asgId, deviceId]);
-  if (!r.length) throw new ApiError(404, 'not_found', 'DO eksternal tidak ditemukan');
+    `UPDATE orders SET linked_route_id = $2, linked_asg_id = $3, linked_device_id = $4, linked_at = now(), link_closed_at = NULL WHERE id = $1 RETURNING id`, [orderId, routeId, asgId, deviceId]);
+  if (!r.length) throw new ApiError(404, 'not_found', 'DO tidak ditemukan');
   return { ok: true };
 }
 export async function linkClosed(db, orderId) {
-  await db.query(`UPDATE orders SET link_closed_at = now() WHERE id = $1 AND source = 'external'`, [orderId]);
+  await db.query(`UPDATE orders SET link_closed_at = now() WHERE id = $1`, [orderId]);
   return { ok: true };
 }
 export async function setAlias(db, plate, deviceId) {
