@@ -4,13 +4,13 @@ import { normalizeOrder, summary, validateOrder } from '../../src/core/orders.js
 import { ApiError } from './errors.js';
 import { expireOffers } from './dispatchRepo.js';
 
-const STOP_COLS = `s.id, s.order_id, s.seq, s.type, s.name, s.address, s.lat::float8 AS lat, s.lng::float8 AS lng, s.radius_m,
+const STOP_COLS = `s.id, s.order_id, s.seq, s.type, s.zone_id, s.name, s.address, s.lat::float8 AS lat, s.lng::float8 AS lng, s.radius_m,
   s.window_start, s.window_end, s.contact_name, s.contact_phone, s.instructions`;
 const ITEM_COLS = `i.id, i.stop_id, i.ord, i.description, i.sku, i.qty::float8 AS qty, i.unit, i.weight_kg::float8 AS weight_kg,
   i.volume_m3::float8 AS volume_m3, i.pallets::float8 AS pallets, i.colli::float8 AS colli, i.length_cm::float8 AS length_cm,
   i.width_cm::float8 AS width_cm, i.height_cm::float8 AS height_cm, i.category, i.temp_min::float8 AS temp_min,
   i.temp_max::float8 AS temp_max, i.hazardous, i.stackable`;
-const ORDER_COLS = `o.source, o.ext_plate, o.ext_status, o.ext_synced_at, o.linked_route_id, o.linked_asg_id, o.linked_device_id, o.linked_at, o.id, o.do_no, o.customer, o.order_date::text AS order_date, o.priority, o.status, o.notes, o.summary,
+const ORDER_COLS = `o.corridor_m, o.source, o.ext_plate, o.ext_status, o.ext_synced_at, o.linked_route_id, o.linked_asg_id, o.linked_device_id, o.linked_at, o.id, o.do_no, o.customer, o.order_date::text AS order_date, o.priority, o.status, o.notes, o.summary,
   o.version, o.created_by, o.created_at, o.updated_at, o.vendor_id, o.vehicle_id, o.driver_id, o.assigned_at, o.assigned_via,
   (SELECT name FROM vendors WHERE id = o.vendor_id) AS vendor_name, (SELECT plate FROM vehicles WHERE id = o.vehicle_id) AS plate,
   (SELECT name FROM drivers WHERE id = o.driver_id) AS driver_name,
@@ -21,6 +21,7 @@ const ORDER_COLS = `o.source, o.ext_plate, o.ext_status, o.ext_synced_at, o.link
 const iso = (v) => (v == null ? '' : v instanceof Date ? v.toISOString() : new Date(v).toISOString());
 
 const mapHead = (r) => ({
+  corridorM: r.corridor_m == null ? null : Number(r.corridor_m),
   source: r.source || 'internal', extPlate: r.ext_plate || '', extStatus: r.ext_status || '', extSyncedAt: r.ext_synced_at ? iso(r.ext_synced_at) : '', linkedRouteId: r.linked_route_id || '', linkedAsgId: r.linked_asg_id || '', linkedDeviceId: r.linked_device_id || '', linkedAt: r.linked_at ? iso(r.linked_at) : '',
   id: r.id, doNo: r.do_no, customer: r.customer, orderDate: r.order_date, priority: r.priority, status: r.status, notes: r.notes,
   summary: typeof r.summary === 'string' ? JSON.parse(r.summary) : r.summary || {}, version: Number(r.version), createdBy: r.created_by || '',
@@ -35,7 +36,7 @@ const mapItem = (r) => ({
   hazardous: r.hazardous, stackable: r.stackable,
 });
 const mapStop = (r, items) => ({
-  id: r.id, type: r.type, name: r.name, address: r.address, lat: r.lat, lng: r.lng, radiusM: r.radius_m, windowStart: r.window_start ? iso(r.window_start) : '',
+  id: r.id, type: r.type, zoneId: r.zone_id || '', name: r.name, address: r.address, lat: r.lat, lng: r.lng, radiusM: r.radius_m, windowStart: r.window_start ? iso(r.window_start) : '',
   windowEnd: r.window_end ? iso(r.window_end) : '', contactName: r.contact_name, contactPhone: r.contact_phone, instructions: r.instructions, items,
 });
 
@@ -45,15 +46,15 @@ export function flatten(order) {
   const items = [];
   order.stops.forEach((s, i) => {
     const id = randomUUID();
-    stops.push({ id, seq: i + 1, type: s.type, name: s.name, address: s.address, lat: s.lat, lng: s.lng, radius_m: s.radiusM, window_start: s.windowStart || null, window_end: s.windowEnd || null, contact_name: s.contactName, contact_phone: s.contactPhone, instructions: s.instructions });
+    stops.push({ id, seq: i + 1, type: s.type, zone_id: s.zoneId || '', name: s.name, address: s.address, lat: s.lat, lng: s.lng, radius_m: s.radiusM, window_start: s.windowStart || null, window_end: s.windowEnd || null, contact_name: s.contactName, contact_phone: s.contactPhone, instructions: s.instructions });
     s.items.forEach((it, j) => items.push({ id: randomUUID(), stop_id: id, ord: j, description: it.description, sku: it.sku, qty: it.qty, unit: it.unit, weight_kg: it.weightKg, volume_m3: it.volumeM3, pallets: it.pallets, colli: it.colli, length_cm: it.lengthCm, width_cm: it.widthCm, height_cm: it.heightCm, category: it.category, temp_min: it.tempMin, temp_max: it.tempMax, hazardous: it.hazardous, stackable: it.stackable }));
   });
   return { stops, items };
 }
 
-export const INS_STOPS = (oid, src) => `INSERT INTO stops (id, order_id, seq, type, name, address, lat, lng, radius_m, window_start, window_end, contact_name, contact_phone, instructions)
-  SELECT x.id, ${oid}, x.seq, x.type, x.name, x.address, x.lat, x.lng, x.radius_m, x.window_start, x.window_end, x.contact_name, x.contact_phone, x.instructions
-  FROM jsonb_to_recordset(${src}::jsonb) AS x(id uuid, seq int, type text, name text, address text, lat float8, lng float8, radius_m int, window_start timestamptz, window_end timestamptz, contact_name text, contact_phone text, instructions text)`;
+export const INS_STOPS = (oid, src) => `INSERT INTO stops (id, order_id, seq, type, zone_id, name, address, lat, lng, radius_m, window_start, window_end, contact_name, contact_phone, instructions)
+  SELECT x.id, ${oid}, x.seq, x.type, x.zone_id, x.name, x.address, x.lat, x.lng, x.radius_m, x.window_start, x.window_end, x.contact_name, x.contact_phone, x.instructions
+  FROM jsonb_to_recordset(${src}::jsonb) AS x(id uuid, seq int, type text, zone_id text, name text, address text, lat float8, lng float8, radius_m int, window_start timestamptz, window_end timestamptz, contact_name text, contact_phone text, instructions text)`;
 export const INS_ITEMS = (oid, src) => `INSERT INTO items (id, order_id, stop_id, ord, description, sku, qty, unit, weight_kg, volume_m3, pallets, colli, length_cm, width_cm, height_cm, category, temp_min, temp_max, hazardous, stackable)
   SELECT y.id, ${oid}, y.stop_id, y.ord, y.description, y.sku, y.qty, y.unit, y.weight_kg, y.volume_m3, y.pallets, y.colli, y.length_cm, y.width_cm, y.height_cm, y.category, y.temp_min, y.temp_max, y.hazardous, y.stackable
   FROM jsonb_to_recordset(${src}::jsonb) AS y(id uuid, stop_id uuid, ord int, description text, sku text, qty numeric, unit text, weight_kg numeric, volume_m3 numeric, pallets numeric, colli numeric, length_cm numeric, width_cm numeric, height_cm numeric, category text, temp_min numeric, temp_max numeric, hazardous boolean, stackable boolean)`;
@@ -85,10 +86,10 @@ export async function createOrder(db, input, actor) {
   const { stops, items } = flatten(order);
   try {
     await db.query(
-      `WITH o AS (INSERT INTO orders (id, do_no, customer, order_date, priority, notes, summary, created_by) VALUES ($1, $2, $3, $4::date, $5, $6, $7::jsonb, $8) RETURNING id),
+      `WITH o AS (INSERT INTO orders (id, do_no, customer, order_date, priority, notes, summary, created_by, corridor_m) VALUES ($1, $2, $3, $4::date, $5, $6, $7::jsonb, $8, $11::int) RETURNING id),
        s AS (${INS_STOPS('(SELECT id FROM o)', '$9')})
        ${INS_ITEMS('(SELECT id FROM o)', '$10')}`,
-      [id, order.doNo, order.customer, order.orderDate, order.priority, order.notes, JSON.stringify(summary(order)), actor || '', JSON.stringify(stops), JSON.stringify(items)],
+      [id, order.doNo, order.customer, order.orderDate, order.priority, order.notes, JSON.stringify(summary(order)), actor || '', JSON.stringify(stops), JSON.stringify(items), order.corridorM],
     );
   } catch (e) {
     dupGuard(e);
@@ -103,13 +104,13 @@ export async function updateOrder(db, id, input, version, actor) {
   let rows;
   try {
     rows = await db.query(
-      `WITH u AS (UPDATE orders SET do_no = $2, customer = $3, order_date = $4::date, priority = $5, notes = $6, summary = $7::jsonb, version = version + 1, updated_at = now()
+      `WITH u AS (UPDATE orders SET do_no = $2, customer = $3, order_date = $4::date, priority = $5, notes = $6, summary = $7::jsonb, corridor_m = $11::int, version = version + 1, updated_at = now()
                   WHERE id = $1 AND version = $8 AND status = 'draft' RETURNING id),
        d AS (DELETE FROM stops WHERE order_id IN (SELECT id FROM u)),
        s AS (${INS_STOPS('(SELECT id FROM u)', '$9')} WHERE EXISTS (SELECT 1 FROM u) RETURNING id),
        i AS (${INS_ITEMS('(SELECT id FROM u)', '$10')} WHERE EXISTS (SELECT 1 FROM u) RETURNING id)
        SELECT (SELECT count(*) FROM u)::int AS n`,
-      [id, order.doNo, order.customer, order.orderDate, order.priority, order.notes, JSON.stringify(summary(order)), version, JSON.stringify(stops), JSON.stringify(items)],
+      [id, order.doNo, order.customer, order.orderDate, order.priority, order.notes, JSON.stringify(summary(order)), version, JSON.stringify(stops), JSON.stringify(items), order.corridorM],
     );
   } catch (e) {
     dupGuard(e);

@@ -1,10 +1,9 @@
 // Menautkan DO dari TMS customer ke MyGeotab: plat -> kendaraan, stop -> rute (koridor + checkpoint), jadwal -> penugasan.
 // Berjalan di browser admin (rute & penugasan disimpan di Geotab AddInData, sama seperti buatan manual).
-import { asgIdOf, matchDevice, planWindow, routeFromStops, routeIdOf } from '../core/linkPlan.js';
-import { simplifyToMax } from '../core/geometry.js';
+import { asgIdOf, matchDevice, planWindow, routeIdOf } from '../core/linkPlan.js';
+import { computePath, sameStops, saveOrderRoute } from './orderRoute.js';
 import { findRoutes } from './routing.js';
 
-const COLORS = ['#0b5ea8', '#d9480f', '#2b8a3e', '#7b2cbf', '#c2255c', '#0c8599', '#e67700', '#495057'];
 const MAX_PER_RUN = 4;
 const failures = new Map(); // orderId -> { n, until } supaya DO bermasalah tidak dicoba terus-menerus
 
@@ -26,14 +25,14 @@ export async function runAutoLink({ api, devices, data, saveRoute, saveAssignmen
     routed++;
     try {
       const order = { id: o.id, doNo: o.doNo, stops };
-      const [best] = await route(data.settings, stops.map((s) => [s.lat, s.lng]));
-      if (!best) throw new Error('rute tidak ditemukan');
-      const r = routeFromStops(order, { ...best, path: simplifyToMax(best.path, 2500, 2) }, {
-        color: COLORS[(data.routes.length + out.linked.length) % COLORS.length], widthM: data.settings.defaults.widthM, radius: data.settings.defaults.radius, profile: data.settings.routing.profile,
-      });
-      const existing = data.routes.find((x) => x.id === r.id);
-      const savedRoute = await saveRoute({ ...r, ...(existing ? { _rid: existing._rid, _chunks: existing._chunks, zoneId: existing.zoneId } : {}) });
-      const w = planWindow(stops, { nowMs, etaS: best.durationS });
+      // rute dibuat saat DO disimpan (menu Rute); dipakai ulang bila titik stop tidak berubah, jalur manual tidak ditimpa
+      const existing = data.routes.find((x) => x.id === routeIdOf(o.id));
+      let savedRoute = existing;
+      if (!existing || !sameStops(existing, stops)) {
+        const calc = await computePath(data.settings, stops, route);
+        savedRoute = await saveOrderRoute({ order, stops, calc, settings: data.settings, widthM: o.corridorM, existing, saveRoute, colorIdx: data.routes.length + out.linked.length });
+      }
+      const w = planWindow(stops, { nowMs, etaS: savedRoute.durationS });
       const asgId = asgIdOf(o.id);
       const exAsg = data.assignments.find((x) => x.id === asgId);
       await saveAssignment({ ...(exAsg || {}), id: asgId, routeId: savedRoute.id, deviceId: m.device.id, driverId: null, date: w.date, startTime: w.startTime, endTime: w.endTime, active: true, note: `DO ${o.doNo} · ${o.customer}`, source: 'integration', orderId: o.id });

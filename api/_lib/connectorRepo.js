@@ -235,7 +235,7 @@ async function getAliases(db) {
 export async function linkInfo(db) {
   // DO eksternal: dicocokkan lewat plat. DO internal (TMS penuh): memakai kendaraan Geotab dari master armada (tanpa input rute manual).
   const pending = await db.query(
-    `SELECT o.id, o.do_no, o.customer, o.status, o.source, coalesce(v.plate, o.ext_plate) AS plate, v.geotab_device_id AS device_id,
+    `SELECT o.id, o.do_no, o.customer, o.status, o.source, o.corridor_m, coalesce(v.plate, o.ext_plate) AS plate, v.geotab_device_id AS device_id,
             (SELECT jsonb_agg(jsonb_build_object('type', s.type, 'name', s.name, 'lat', s.lat, 'lng', s.lng, 'radiusM', s.radius_m, 'windowStart', s.window_start, 'windowEnd', s.window_end) ORDER BY s.seq) FROM stops s WHERE s.order_id = o.id) AS stops
        FROM orders o LEFT JOIN vehicles v ON v.id = o.vehicle_id
       WHERE o.status IN ('assigned', 'running')
@@ -248,7 +248,7 @@ export async function linkInfo(db) {
         AND (o.status IN ('done', 'cancelled') OR (o.source <> 'external' AND (o.status NOT IN ('assigned', 'running') OR coalesce(v.geotab_device_id, '') = ''))) LIMIT 50`);
   const linked = await db.query(`SELECT count(*)::int AS n FROM orders WHERE linked_route_id IS NOT NULL AND link_closed_at IS NULL`);
   return {
-    pending: pending.map((r) => ({ id: r.id, doNo: r.do_no, customer: r.customer, status: r.status, internal: r.source !== 'external', plate: r.plate || '', deviceId: r.device_id || '', stops: (typeof r.stops === 'string' ? JSON.parse(r.stops) : r.stops) || [] })),
+    pending: pending.map((r) => ({ id: r.id, doNo: r.do_no, customer: r.customer, status: r.status, internal: r.source !== 'external', corridorM: r.corridor_m == null ? null : Number(r.corridor_m), plate: r.plate || '', deviceId: r.device_id || '', stops: (typeof r.stops === 'string' ? JSON.parse(r.stops) : r.stops) || [] })),
     toClose: toClose.map((r) => ({ orderId: r.id, asgId: r.linked_asg_id })),
     linkedActive: linked[0].n,
     aliases: await getAliases(db),

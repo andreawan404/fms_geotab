@@ -2,6 +2,20 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.4.0',
+    date: '2026-10-23',
+    id: [
+      'Rute kini dibuat langsung di form DO. Lokasi tiap stop cukup memilih Zona MyGeotab (nama, titik tengah, dan radius terisi otomatis), tanpa mengetik alamat atau nama jalan. Koordinat manual tersisa sebagai cadangan.',
+      'Kartu "Rute pengiriman" di form DO: input lebar koridor (20-2000 m) dan peta yang menggambar jalur antar stop, koridor, dan titik secara langsung. Bisa banyak stop (multi-drop).',
+      'Saat DO disimpan, rute otomatis tersimpan di menu Rute (nama = nomor DO, diperbarui bila DO diubah). Setelah DO dialokasikan, Monitor memakai rute ini; jalur yang diedit manual di menu Rute tidak ditimpa selama titik stop tidak berubah.',
+    ],
+    en: [
+      'Routes are now created right in the DO form. Each stop location is just a MyGeotab Zone pick (name, center point and radius fill in automatically), with no typing of addresses or street names. Manual coordinates remain as a fallback.',
+      'New "Delivery route" card in the DO form: corridor width input (20-2000 m) and a map that draws the path between stops, the corridor and the points live. Multi-drop is supported.',
+      'When the DO is saved, the route is stored in the Routes menu (name = DO number, updated when the DO changes). Once the DO is allocated, Monitor uses this route; a path edited manually in the Routes menu is not overwritten while the stop points are unchanged.',
+    ],
+  },
+  {
     v: '3.3.1',
     date: '2026-10-23',
     id: [

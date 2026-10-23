@@ -2,6 +2,12 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.4.0 - 2026-10-23
+
+- Rute kini dibuat langsung di form DO. Lokasi tiap stop cukup memilih Zona MyGeotab (nama, titik tengah, dan radius terisi otomatis), tanpa mengetik alamat atau nama jalan. Koordinat manual tersisa sebagai cadangan.
+- Kartu "Rute pengiriman" di form DO: input lebar koridor (20-2000 m) dan peta yang menggambar jalur antar stop, koridor, dan titik secara langsung. Bisa banyak stop (multi-drop).
+- Saat DO disimpan, rute otomatis tersimpan di menu Rute (nama = nomor DO, diperbarui bila DO diubah). Setelah DO dialokasikan, Monitor memakai rute ini; jalur yang diedit manual di menu Rute tidak ditimpa selama titik stop tidak berubah.
+
 ## v3.3.1 - 2026-10-23
 
 - Alur TMS penuh kini tersambung ke Monitor: DO yang dialokasikan ke vendor (kendaraan yang terhubung ke GPS Geotab di Vendor & Armada) otomatis dibuatkan rute dari titik muat / bongkar dan penugasan di Monitor, tanpa input rute manual di menu Penugasan. Berjalan selama add-in terbuka.

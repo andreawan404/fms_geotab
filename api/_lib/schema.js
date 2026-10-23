@@ -332,6 +332,14 @@ export const MIGRATIONS = [
     name: 'order_fuel',
     statements: [`ALTER TABLE orders ADD COLUMN IF NOT EXISTS fuel jsonb`],
   },
+  {
+    version: 11,
+    name: 'order_route',
+    statements: [
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS corridor_m int`,
+      `ALTER TABLE stops ADD COLUMN IF NOT EXISTS zone_id text NOT NULL DEFAULT ''`,
+    ],
+  },
 ];
 
 const done = new WeakSet();

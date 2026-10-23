@@ -26,8 +26,8 @@ const bool = (v, dflt) => {
 };
 
 export const emptyItem = () => ({ description: '', sku: '', qty: 1, unit: 'pcs', weightKg: null, volumeM3: null, pallets: null, colli: null, lengthCm: null, widthCm: null, heightCm: null, category: 'general', tempMin: null, tempMax: null, hazardous: false, stackable: true });
-export const emptyStop = (type = 'pickup') => ({ type, name: '', address: '', lat: null, lng: null, radiusM: 150, windowStart: '', windowEnd: '', contactName: '', contactPhone: '', instructions: '', items: [emptyItem()] });
-export const emptyOrder = () => ({ doNo: '', customer: '', orderDate: ymd(new Date()), priority: 'normal', notes: '', stops: [emptyStop('pickup'), emptyStop('delivery')] });
+export const emptyStop = (type = 'pickup') => ({ type, zoneId: '', name: '', address: '', lat: null, lng: null, radiusM: 150, windowStart: '', windowEnd: '', contactName: '', contactPhone: '', instructions: '', items: [emptyItem()] });
+export const emptyOrder = () => ({ doNo: '', customer: '', orderDate: ymd(new Date()), priority: 'normal', notes: '', corridorM: 100, stops: [emptyStop('pickup'), emptyStop('delivery')] });
 
 function normItem(it = {}) {
   const e = emptyItem();
@@ -42,9 +42,9 @@ function normItem(it = {}) {
 
 export function normalizeOrder(o = {}) {
   return {
-    doNo: str(o.doNo), customer: str(o.customer), orderDate: str(o.orderDate), priority: str(o.priority) || 'normal', notes: str(o.notes),
+    doNo: str(o.doNo), customer: str(o.customer), orderDate: str(o.orderDate), priority: str(o.priority) || 'normal', notes: str(o.notes), corridorM: num(o.corridorM),
     stops: (o.stops || []).map((s) => ({
-      type: str(s.type), name: str(s.name), address: str(s.address), lat: num(s.lat), lng: num(s.lng), radiusM: num(s.radiusM) ?? 150,
+      type: str(s.type), zoneId: str(s.zoneId).slice(0, 80), name: str(s.name), address: str(s.address), lat: num(s.lat), lng: num(s.lng), radiusM: num(s.radiusM) ?? 150,
       windowStart: str(s.windowStart), windowEnd: str(s.windowEnd), contactName: str(s.contactName), contactPhone: str(s.contactPhone),
       instructions: str(s.instructions), items: (s.items || []).map(normItem),
     })),
@@ -70,6 +70,7 @@ export function validateOrder(o) {
   if (o.orderDate && !validYmd(o.orderDate)) E('orderDate', 'date_invalid');
   if (!o.orderDate) E('orderDate', 'date_invalid');
   if (!PRIORITIES.includes(o.priority)) E('priority', 'priority_invalid');
+  if (o.corridorM != null && (bad(o.corridorM) || o.corridorM < 20 || o.corridorM > 2000)) E('corridorM', 'corridor_invalid');
 
   const stops = o.stops || [];
   if (stops.length < 2) E('stops', 'stops_min');

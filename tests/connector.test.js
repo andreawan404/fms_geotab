@@ -11,6 +11,7 @@ import cronH from '../api/cron.js';
 import { setConnectorFetch, isPrivateIp, assertPublicUrl } from '../api/_lib/safeFetch.js';
 import { decrypt, encrypt } from '../api/_lib/crypto.js';
 import { matchDevice, planWindow, orderIdOfInstKey } from '../src/core/linkPlan.js';
+import { sameStops, saveOrderRoute } from '../src/services/orderRoute.js';
 import { evalDelivery, fuelMetrics } from '../src/core/deliveryEval.js';
 import { tripWindow, computeOrderFuel } from '../src/services/fuelDo.js';
 import { runAutoLink } from '../src/services/autolink.js';
@@ -321,6 +322,33 @@ describe('sinkronisasi', () => {
       expect((await run(['b1', 'b2'])).linked).toHaveLength(1);
       expect(asgs).toHaveLength(1);
       expect(asgs[0]).toMatchObject({ deviceId: 'b2', active: true });
+    });
+  });
+
+  describe('v3.4 rute dari DO (zona + lebar koridor)', () => {
+    const gd = { description: 'Air', qty: 1, unit: 'box', weightKg: 100 };
+    const body = (extra = {}) => ({ doNo: 'RT-1', customer: 'PT A', orderDate: '2026-10-22', corridorM: 150, stops: [
+      { type: 'pickup', zoneId: 'zA', name: 'Zona A', lat: -6.3, lng: 107.1, radiusM: 200, items: [gd] },
+      { type: 'delivery', zoneId: 'zB', name: 'Zona B', lat: -6.2, lng: 106.9, radiusM: 120, items: [gd] }], ...extra });
+    it('lebar koridor dan zona tersimpan serta divalidasi', async () => {
+      const r = await call(ordersH, { method: 'POST', body: body() });
+      expect(r.code).toBe(200);
+      expect(r.body.order).toMatchObject({ corridorM: 150 });
+      expect(r.body.order.stops.map((s) => s.zoneId)).toEqual(['zA', 'zB']);
+      const bad = await call(ordersH, { method: 'POST', body: body({ doNo: 'RT-2', corridorM: 5 }) });
+      expect(bad.code).toBe(422);
+    });
+    it('rute dipakai ulang bila titik sama; dibuat ulang bila berubah', async () => {
+      const o = (await call(ordersH, { method: 'POST', body: body({ doNo: 'RT-3' }) })).body.order;
+      const stops = o.stops;
+      const calc = { path: [[-6.3, 107.1], [-6.2, 106.9]], legs: [{ durationS: 1200 }], distanceM: 18000, durationS: 1200 };
+      const settings = { defaults: { widthM: 100, radius: 150 }, routing: { profile: 'driving-car' } };
+      const saved = [];
+      const r = await saveOrderRoute({ order: { id: o.id, doNo: o.doNo }, stops, calc, settings, widthM: o.corridorM, saveRoute: async (x) => { saved.push(x); return x; } });
+      expect(r).toMatchObject({ id: `x-${o.id}`, name: 'RT-3', widthM: 150, source: 'order' });
+      expect(r.checkpoints.map((c) => c.radius)).toEqual([200, 120]);
+      expect(sameStops(r, stops)).toBe(true);
+      expect(sameStops(r, [stops[0], { ...stops[1], lat: -6.25 }])).toBe(false);
     });
   });
 });

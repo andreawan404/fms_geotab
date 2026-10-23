@@ -46,6 +46,6 @@ export function routeFromStops(order, { path, legs, distanceM, durationS }, { co
   const offsets = cps.map((_, i) => { if (i > 0) acc += legs?.[i - 1]?.durationS || 0; return Math.round(acc); });
   return {
     id: routeIdOf(order.id), name: `${order.doNo}`, color, mode: 'recommended', profile, widthM, params: {}, checkpoints: cps.map((c, i) => ({ ...c, etaOffsetS: offsets[i] })),
-    path, manualPath: [], distanceM: Math.round(distanceM || 0), durationS: Math.round(durationS || offsets[offsets.length - 1] || 0), createdAt: Date.now(), updatedAt: Date.now(), source: 'integration', orderId: order.id,
+    path, manualPath: [], distanceM: Math.round(distanceM || 0), durationS: Math.round(durationS || offsets[offsets.length - 1] || 0), createdAt: Date.now(), updatedAt: Date.now(), source: 'order', orderId: order.id,
   };
 }

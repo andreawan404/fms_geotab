@@ -1,8 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../AppContext.jsx';
 import { Field, Modal, Spinner } from './ui.jsx';
 import { CATEGORIES, PRIORITIES, UNITS, dispatchBlockers, emptyItem, emptyOrder, emptyStop, genDoNo, normalizeOrder, totals, validateOrder } from '../core/orders.js';
-import LocationPicker from './LocationPicker.jsx';
+import ZonePicker from './ZonePicker.jsx';
+import RouteCard from './RouteCard.jsx';
+import { routeIdOf } from '../core/linkPlan.js';
+import { routableStops, saveOrderRoute } from '../services/orderRoute.js';
 import { apiErrorText, fmtNum, isoToLocal, issueText, localToIso } from '../lib/orderView.js';
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -194,7 +197,7 @@ function StopCard({ stop, idx, count, set, move, remove, ro, errs, sources }) {
           </>
         )}
       </div>
-      <LocationPicker stop={stop} upd={upd} ro={ro} bad={bad} />
+      <ZonePicker stop={stop} upd={upd} ro={ro} bad={bad} />
       <div className="tms-stop-grid">
         <Field label={t('ord.s.winStart')}><input type="datetime-local" disabled={ro} value={isoToLocal(stop.windowStart)} onChange={(e) => upd({ windowStart: localToIso(e.target.value) })} /></Field>
         <Field label={t('ord.s.winEnd')}><input type="datetime-local" disabled={ro} className={bad('windowEnd') ? 'bad' : ''} value={isoToLocal(stop.windowEnd)} onChange={(e) => upd({ windowEnd: localToIso(e.target.value) })} /></Field>
@@ -212,10 +215,11 @@ function StopCard({ stop, idx, count, set, move, remove, ro, errs, sources }) {
 
 /** Editor DO: header, stop berurutan (multi-leg), item dengan kapasitas lengkap, ringkasan muatan, validasi langsung. */
 export default function OrderEditor({ id, onClose, onSaved }) {
-  const { t, ordersApi, toast } = useApp();
+  const { t, ordersApi, toast, settings, routes, saveRoute } = useApp();
   const [loading, setLoading] = useState(!!id);
+  const calcRef = useRef(null);
   const [order, setOrder] = useState(() => {
-    const o = emptyOrder();
+    const o = { ...emptyOrder(), corridorM: settings.defaults.widthM };
     const h = hydrate(o);
     const src = h.stops[0].items.map((i) => ({ _k: nid('i'), _from: i._k }));
     h.stops[1] = { ...h.stops[1], items: src };
@@ -233,7 +237,7 @@ export default function OrderEditor({ id, onClose, onSaved }) {
     ordersApi.get(id).then((o) => {
       if (dead) return;
       setMeta({ id: o.id, version: o.version, status: o.status });
-      setOrder(hydrate({ doNo: o.doNo, customer: o.customer, orderDate: o.orderDate, priority: o.priority, notes: o.notes, stops: o.stops.map((s) => ({ ...s })) }));
+      setOrder(hydrate({ doNo: o.doNo, customer: o.customer, orderDate: o.orderDate, priority: o.priority, notes: o.notes, corridorM: o.corridorM ?? settings.defaults.widthM, stops: o.stops.map((s) => ({ ...s })) }));
       setDoManual(true);
       setLoading(false);
     }).catch((e) => {
@@ -291,6 +295,14 @@ export default function OrderEditor({ id, onClose, onSaved }) {
     try {
       const r = meta ? await ordersApi.update(meta.id, eff, meta.version) : await ordersApi.create(eff);
       toast(t('ord.saved', { no: r.order.doNo }));
+      // simpan rute DO ke menu Rute (id tetap, diperbarui bila DO diubah)
+      const pts = routableStops(norm.stops);
+      if (calcRef.current && pts.length >= 2) {
+        try {
+          await saveOrderRoute({ order: { id: r.order.id, doNo: r.order.doNo }, stops: pts, calc: calcRef.current, settings, widthM: norm.corridorM, existing: routes.find((x) => x.id === routeIdOf(r.order.id)), saveRoute, colorIdx: routes.length });
+          toast(t('ord.route.saved'));
+        } catch (e) { toast(`${t('ord.route.saveFail')}: ${e.message || e}`, 'err'); }
+      }
       onSaved?.(r.order);
       onClose();
     } catch (e) {
@@ -338,6 +350,7 @@ export default function OrderEditor({ id, onClose, onSaved }) {
                 <StopCard key={s._uid} stop={s} idx={i} sources={sourcesFor(order.stops, i)} count={order.stops.length} ro={ro} errs={val.errors}
                   set={(v) => setStop(i, v)} move={(d) => move(i, d)} remove={() => upd({ stops: order.stops.filter((_, k) => k !== i) })} />
               ))}
+              <RouteCard stops={norm.stops} widthM={order.corridorM} onWidth={(v) => upd({ corridorM: v })} ro={ro} onCalc={(c) => { calcRef.current = c; }} />
             </div>
 
             <aside className="tms-oe-side">
