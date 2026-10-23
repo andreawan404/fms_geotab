@@ -281,3 +281,4 @@
 .tms-trip{list-style:none;margin:6px 0 0;padding:0}.tms-trip li{display:flex;gap:10px;align-items:center;padding:3px 0;font-size:13px;border-bottom:1px solid #eef1f5}.tms-trip li:last-child{border:0}.tms-trip time{color:var(--c-mut);white-space:nowrap}
 
 .tms-zone{margin-bottom:6px}.tms-zone-cur{margin:2px 0 6px}.tms-zone-man summary{cursor:pointer}.tms-routecard{margin-top:12px}.tms-map-fill{min-height:300px;height:100%}
+.tms-vtx{width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid #d9480f;box-shadow:0 0 0 1px #fff;cursor:grab}

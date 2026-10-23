@@ -2,6 +2,20 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.4.1',
+    date: '2026-10-23',
+    id: [
+      'Rute manual di form DO untuk dispatcher yang punya rute lain. Kartu "Rute pengiriman" kini punya pilihan Otomatis (rekomendasi peta, bisa pilih rute alternatif) atau Manual (gambar sendiri).',
+      'Mode Manual: klik peta untuk menambah titik jalur, seret titik untuk menggeser, klik kanan untuk menghapus, "Tempel ke jalan" agar mengikuti jalan, plus undo dan "Dari checkpoint". Muncul peringatan bila ujung jalur jauh dari titik awal / akhir DO.',
+      'Rute manual tersimpan di menu Rute sebagai rute buatan sendiri, dibuka kembali saat DO diedit, dan tidak ditimpa saat DO dialokasikan. Estimasi waktu tiap stop dihitung dari jarak dan kecepatan rata-rata di Pengaturan.',
+    ],
+    en: [
+      'Manual routes in the DO form for dispatchers who have their own route. The "Delivery route" card now offers Automatic (map recommended, with alternative routes to pick) or Manual (draw your own).',
+      'Manual mode: click the map to add path points, drag a point to move it, right-click to delete, "Snap to road" to follow the roads, plus undo and "From checkpoints". A warning appears when the path ends are far from the DO start / end points.',
+      'A manual route is stored in the Routes menu as a custom route, reopens when the DO is edited, and is not overwritten when the DO is allocated. Stop ETAs are computed from the distance and the average speed in Settings.',
+    ],
+  },
+  {
     v: '3.4.0',
     date: '2026-10-23',
     id: [

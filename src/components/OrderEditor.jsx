@@ -350,7 +350,7 @@ export default function OrderEditor({ id, onClose, onSaved }) {
                 <StopCard key={s._uid} stop={s} idx={i} sources={sourcesFor(order.stops, i)} count={order.stops.length} ro={ro} errs={val.errors}
                   set={(v) => setStop(i, v)} move={(d) => move(i, d)} remove={() => upd({ stops: order.stops.filter((_, k) => k !== i) })} />
               ))}
-              <RouteCard stops={norm.stops} widthM={order.corridorM} onWidth={(v) => upd({ corridorM: v })} ro={ro} onCalc={(c) => { calcRef.current = c; }} />
+              <RouteCard existing={meta ? routes.find((x) => x.id === routeIdOf(meta.id)) : null} stops={norm.stops} widthM={order.corridorM} onWidth={(v) => upd({ corridorM: v })} ro={ro} onCalc={(c) => { calcRef.current = c; }} />
             </div>
 
             <aside className="tms-oe-side">

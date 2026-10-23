@@ -40,12 +40,14 @@ export function planWindow(stops, { nowMs, etaS = 0 }) {
   return { date: ymdLocal(start), startTime: hhmm(start), endTime: hhmm(end), startMs: start, endMs: end };
 }
 
-export function routeFromStops(order, { path, legs, distanceM, durationS }, { color, widthM, radius, profile }) {
+export function routeFromStops(order, { path, legs, distanceM, durationS, manualPath }, { color, widthM, radius, profile, offsets: given }) {
   const cps = order.stops.map((s, i) => ({ id: `${order.id}-${i + 1}`, name: s.name || `Stop ${i + 1}`, lat: +Number(s.lat).toFixed(6), lng: +Number(s.lng).toFixed(6), radius: Number(s.radiusM) || radius }));
   let acc = 0;
-  const offsets = cps.map((_, i) => { if (i > 0) acc += legs?.[i - 1]?.durationS || 0; return Math.round(acc); });
+  const legOffsets = cps.map((_, i) => { if (i > 0) acc += legs?.[i - 1]?.durationS || 0; return Math.round(acc); });
+  const offsets = given || legOffsets;
+  const manual = Array.isArray(manualPath) && manualPath.length > 1;
   return {
-    id: routeIdOf(order.id), name: `${order.doNo}`, color, mode: 'recommended', profile, widthM, params: {}, checkpoints: cps.map((c, i) => ({ ...c, etaOffsetS: offsets[i] })),
-    path, manualPath: [], distanceM: Math.round(distanceM || 0), durationS: Math.round(durationS || offsets[offsets.length - 1] || 0), createdAt: Date.now(), updatedAt: Date.now(), source: 'order', orderId: order.id,
+    id: routeIdOf(order.id), name: `${order.doNo}`, color, mode: manual ? 'manual' : 'recommended', profile, widthM, params: {}, checkpoints: cps.map((c, i) => ({ ...c, etaOffsetS: offsets[i] })),
+    path, manualPath: manual ? manualPath : [], distanceM: Math.round(distanceM || 0), durationS: Math.round(offsets[offsets.length - 1] || durationS || 0), createdAt: Date.now(), updatedAt: Date.now(), source: 'order', orderId: order.id,
   };
 }

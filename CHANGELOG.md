@@ -2,6 +2,12 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.4.1 - 2026-10-23
+
+- Rute manual di form DO untuk dispatcher yang punya rute lain. Kartu "Rute pengiriman" kini punya pilihan Otomatis (rekomendasi peta, bisa pilih rute alternatif) atau Manual (gambar sendiri).
+- Mode Manual: klik peta untuk menambah titik jalur, seret titik untuk menggeser, klik kanan untuk menghapus, "Tempel ke jalan" agar mengikuti jalan, plus undo dan "Dari checkpoint". Muncul peringatan bila ujung jalur jauh dari titik awal / akhir DO.
+- Rute manual tersimpan di menu Rute sebagai rute buatan sendiri, dibuka kembali saat DO diedit, dan tidak ditimpa saat DO dialokasikan. Estimasi waktu tiap stop dihitung dari jarak dan kecepatan rata-rata di Pengaturan.
+
 ## v3.4.0 - 2026-10-23
 
 - Rute kini dibuat langsung di form DO. Lokasi tiap stop cukup memilih Zona MyGeotab (nama, titik tengah, dan radius terisi otomatis), tanpa mengetik alamat atau nama jalan. Koordinat manual tersisa sebagai cadangan.
