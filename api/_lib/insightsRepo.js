@@ -113,13 +113,69 @@ export async function insertVendorIssue(db, { order, kind, note, lat, lng }) {
 }
 
 /** Laporan kinerja: KPI, deret harian, kinerja vendor, sebaran exception. Rentang berdasarkan tanggal order. */
+
+const DAY = 864e5;
+/** Periode pembanding: rentang sama panjang tepat sebelum `from`. */
+export function prevRange(from, to) {
+  const n = Math.round((Date.parse(to) - Date.parse(from)) / DAY) + 1;
+  const f = (ms) => new Date(ms).toISOString().slice(0, 10);
+  return [f(Date.parse(from) - n * DAY), f(Date.parse(from) - DAY)];
+}
+
+/** Angka inti satu periode (untuk pembanding periode sebelumnya). */
+async function windowStats(db, from, to, grace) {
+  const P = [from, to];
+  const R = 'o.order_date BETWEEN $1::date AND $2::date';
+  const [c, on, exc, lead] = await Promise.all([
+    db.query(`SELECT count(*)::int AS total, count(*) FILTER (WHERE status IN ('assigned','running','done'))::int AS dispatched, count(*) FILTER (WHERE status = 'done')::int AS done FROM orders o WHERE ${R}`, P),
+    db.query(`SELECT count(*)::int AS measured, count(*) FILTER (WHERE e.at <= s.window_end + ($3 || ' minutes')::interval)::int AS ontime
+                FROM orders o JOIN stops s ON s.order_id = o.id AND s.type = 'delivery' AND s.window_end IS NOT NULL JOIN trip_events e ON e.order_id = o.id AND e.type = 'arrive' AND e.stop_seq = s.seq WHERE ${R}`, [...P, grace]),
+    db.query(`SELECT count(*)::int AS n FROM exceptions x JOIN orders o ON o.id = x.order_id WHERE ${R}`, P),
+    db.query(`SELECT avg(extract(epoch FROM (finished_at - created_at)) / 60)::float8 AS total FROM orders o WHERE ${R}`, P),
+  ]);
+  const a = c[0], b = on[0];
+  return { range: { from, to }, total: a.total, dispatched: a.dispatched, done: a.done, completionRate: a.dispatched ? a.done / a.dispatched : null,
+    onTimeRate: b.measured ? b.ontime / b.measured : null, exceptions: exc[0].n, leadTotal: lead[0]?.total ?? null };
+}
+
+/** Statistik tambahan operator: keterlambatan, muatan, penanganan exception, BBM, customer teratas. */
+async function extraStats(db, from, to, grace) {
+  const P = [from, to];
+  const R = 'o.order_date BETWEEN $1::date AND $2::date';
+  const [late, load, exc, fuel, cust] = await Promise.all([
+    db.query(`SELECT count(*) FILTER (WHERE e.at > s.window_end + ($3 || ' minutes')::interval)::int AS late,
+                     avg(extract(epoch FROM (e.at - s.window_end)) / 60) FILTER (WHERE e.at > s.window_end + ($3 || ' minutes')::interval)::float8 AS avg_delay,
+                     max(extract(epoch FROM (e.at - s.window_end)) / 60)::float8 AS max_delay
+                FROM orders o JOIN stops s ON s.order_id = o.id AND s.type = 'delivery' AND s.window_end IS NOT NULL JOIN trip_events e ON e.order_id = o.id AND e.type = 'arrive' AND e.stop_seq = s.seq WHERE ${R}`, [...P, grace]),
+    db.query(`SELECT coalesce(sum(i.weight_kg) FILTER (WHERE o.status <> 'cancelled'), 0)::float8 AS kg, coalesce(sum(i.weight_kg) FILTER (WHERE o.status = 'done'), 0)::float8 AS kg_done,
+                     coalesce(sum(i.volume_m3) FILTER (WHERE o.status <> 'cancelled'), 0)::float8 AS m3, coalesce(sum(i.volume_m3) FILTER (WHERE o.status = 'done'), 0)::float8 AS m3_done
+                FROM orders o JOIN stops s ON s.order_id = o.id AND s.type = 'delivery' JOIN items i ON i.stop_id = s.id WHERE ${R}`, P),
+    db.query(`SELECT count(*) FILTER (WHERE x.cleared_at IS NULL)::int AS open, count(*) FILTER (WHERE x.ack_at IS NOT NULL)::int AS handled,
+                     avg(extract(epoch FROM (x.cleared_at - x.created_at)) / 60) FILTER (WHERE x.cleared_at IS NOT NULL)::float8 AS resolve_min
+                FROM exceptions x JOIN orders o ON o.id = x.order_id WHERE ${R}`, P),
+    db.query(`SELECT count(*)::int AS n, coalesce(sum((o.fuel->>'fuelL')::float8), 0)::float8 AS l, coalesce(sum((o.fuel->>'distKm')::float8), 0)::float8 AS km
+                FROM orders o WHERE ${R} AND o.fuel IS NOT NULL AND (o.fuel->>'fuelL') IS NOT NULL`, P),
+    db.query(`SELECT o.customer, count(*)::int AS orders, count(*) FILTER (WHERE o.status = 'done')::int AS done,
+                     (SELECT count(*)::int FROM exceptions x WHERE x.order_id = ANY (array_agg(o.id))) AS exceptions
+                FROM orders o WHERE ${R} AND o.status <> 'cancelled' GROUP BY o.customer ORDER BY orders DESC, o.customer LIMIT 5`, P),
+  ]);
+  const l = late[0], w = load[0], x = exc[0], f = fuel[0];
+  return {
+    delay: { lateStops: l.late, avgMin: l.avg_delay, maxMin: l.late ? l.max_delay : null },
+    load: { kg: w.kg, kgDone: w.kg_done, m3: w.m3, m3Done: w.m3_done },
+    handling: { open: x.open, handled: x.handled, resolveMin: x.resolve_min },
+    fuel: { orders: f.n, liters: f.l, distKm: f.km, kmPerL: f.l > 0 ? f.km / f.l : null },
+    topCustomers: cust.map((r) => ({ customer: r.customer, orders: r.orders, done: r.done, exceptions: r.exceptions || 0 })),
+  };
+}
+
 export async function buildReport(db, { from, to }) {
   await expireOffers(db);
   await syncExceptions(db, { force: true });
   const grace = String(cfg().graceMin);
   const P = [from, to];
   const R = 'o.order_date BETWEEN $1::date AND $2::date';
-  const [status, lead, ontime, offers, vend, daily, exc] = await Promise.all([
+  const [status, lead, ontime, offers, vend, daily, dayOn, exc, extra] = await Promise.all([
     db.query(`SELECT status, count(*)::int AS n FROM orders o WHERE ${R} GROUP BY status`, P),
     db.query(`SELECT avg(extract(epoch FROM (assigned_at - created_at)) / 60)::float8 AS to_assign, avg(extract(epoch FROM (started_at - assigned_at)) / 60)::float8 AS to_start,
                      avg(extract(epoch FROM (finished_at - started_at)) / 60)::float8 AS trip, avg(extract(epoch FROM (finished_at - created_at)) / 60)::float8 AS total FROM orders o WHERE ${R}`, P),
@@ -134,7 +190,11 @@ export async function buildReport(db, { from, to }) {
                      (SELECT count(*)::int FROM exceptions x JOIN orders o3 ON o3.id = x.order_id WHERE o3.vendor_id = o.vendor_id AND o3.order_date BETWEEN $1::date AND $2::date) AS exceptions
                 FROM orders o WHERE ${R} AND o.vendor_id IS NOT NULL GROUP BY o.vendor_id`, P),
     db.query(`SELECT o.order_date::text AS d, count(*)::int AS created, count(*) FILTER (WHERE o.status = 'done')::int AS done FROM orders o WHERE ${R} GROUP BY o.order_date ORDER BY o.order_date`, P),
+    db.query(`SELECT o.order_date::text AS d, count(*)::int AS measured, count(*) FILTER (WHERE e.at <= s.window_end + ($3 || ' minutes')::interval)::int AS ontime
+                FROM orders o JOIN stops s ON s.order_id = o.id AND s.type = 'delivery' AND s.window_end IS NOT NULL JOIN trip_events e ON e.order_id = o.id AND e.type = 'arrive' AND e.stop_seq = s.seq
+               WHERE ${R} GROUP BY o.order_date`, [...P, grace]),
     db.query(`SELECT x.kind, x.severity, count(*)::int AS n FROM exceptions x JOIN orders o ON o.id = x.order_id WHERE ${R} GROUP BY x.kind, x.severity ORDER BY n DESC`, P),
+    extraStats(db, from, to, grace),
   ]);
   const names = new Map((await db.query('SELECT id, name FROM vendors')).map((v) => [v.id, v.name]));
   const by = new Map();
@@ -153,7 +213,9 @@ export async function buildReport(db, { from, to }) {
     range: { from, to }, graceMin: Number(grace),
     kpi: { total, counts, dispatched, done: counts.done || 0, completionRate: dispatched ? (counts.done || 0) / dispatched : null, measuredStops: measured, onTimeStops: onTime, onTimeRate: measured ? onTime / measured : null,
       leadMin: { toAssign: l.to_assign, toStart: l.to_start, trip: l.trip, total: l.total }, exceptions: exc.reduce((a, r) => a + r.n, 0) },
-    daily: daily.map((r) => ({ date: r.d, created: r.created, done: r.done })),
+    daily: daily.map((r) => { const m = dayOn.find((x) => x.d === r.d); return { date: r.d, created: r.created, done: r.done, measured: m?.measured || 0, ontime: m?.ontime || 0 }; }),
+    ...extra,
+    prev: await windowStats(db, ...prevRange(from, to), grace),
     vendors,
     exceptionsByKind: exc.map((r) => ({ kind: r.kind, severity: r.severity, n: r.n })),
   };

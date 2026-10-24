@@ -2,6 +2,11 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.5.0 - 2026-10-24
+
+- Menu Kinerja DO menjadi dashboard dengan slicer tanggal (7/30/90 hari, bulan ini, bulan lalu, atau rentang kustom). Seluruh angka, grafik, dan tabel mengikuti rentang yang dipilih.
+- KPI utama kini dibandingkan dengan periode sebelumnya yang sama panjang. KPI operasional baru: stop terlambat, rata-rata dan terparah keterlambatan, waktu penyelesaian exception, muatan terkirim, efisiensi BBM (km/L), tren tepat waktu per hari, sebaran status DO, dan customer teratas.
+
 ## v3.4.1 - 2026-10-23
 
 - Rute manual di form DO untuk dispatcher yang punya rute lain. Kartu "Rute pengiriman" kini punya pilihan Otomatis (rekomendasi peta, bisa pilih rute alternatif) atau Manual (gambar sendiri).

@@ -123,7 +123,14 @@ describe('API exceptions', () => {
     expect(rep.kpi).toMatchObject({ total: 1, dispatched: 1, done: 0, measuredStops: 1, onTimeStops: 1 });
     expect(rep.kpi.onTimeRate).toBe(1); // on-time dihitung untuk stop pengiriman
     expect(rep.vendors[0]).toMatchObject({ vendorName: 'VV', sent: 1, accepted: 1, orders: 1, acceptRate: 1 });
-    expect(rep.daily).toEqual([{ date: today, created: 1, done: 0 }]);
+    expect(rep.daily).toEqual([{ date: today, created: 1, done: 0, measured: 1, ontime: 1 }]);
+    expect(rep.delay).toMatchObject({ lateStops: 0, avgMin: null, maxMin: null });
+    expect(rep.load).toMatchObject({ kg: 100, kgDone: 0, m3: 1 });
+    expect(rep.handling.open).toBeGreaterThanOrEqual(0);
+    expect(rep.fuel).toMatchObject({ orders: 0, kmPerL: null });
+    expect(rep.topCustomers).toEqual([{ customer: 'PT A', orders: 1, done: 0, exceptions: rep.exceptionsByKind.reduce((a, x) => a + x.n, 0) }]);
+    expect(rep.prev).toMatchObject({ total: 0, done: 0, completionRate: null, onTimeRate: null });
+    expect(rep.prev.range.to < today).toBe(true);
     expect(rep.exceptionsByKind.map((x) => x.kind)).toContain('late_arrival');
     expect((await call(insightsH, { query: { r: 'report', from: '2025-01-01', to: today } })).code).toBe(422);
   });

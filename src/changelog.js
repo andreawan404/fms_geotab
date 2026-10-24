@@ -2,6 +2,18 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.5.0',
+    date: '2026-10-24',
+    id: [
+      'Menu Kinerja DO menjadi dashboard dengan slicer tanggal (7/30/90 hari, bulan ini, bulan lalu, atau rentang kustom). Seluruh angka, grafik, dan tabel mengikuti rentang yang dipilih.',
+      'KPI utama kini dibandingkan dengan periode sebelumnya yang sama panjang. KPI operasional baru: stop terlambat, rata-rata dan terparah keterlambatan, waktu penyelesaian exception, muatan terkirim, efisiensi BBM (km/L), tren tepat waktu per hari, sebaran status DO, dan customer teratas.',
+    ],
+    en: [
+      'The DO Performance menu is now a dashboard with a date slicer (7/30/90 days, this month, last month or a custom range). Every figure, chart and table follows the selected range.',
+      'Headline KPIs are compared with the previous period of the same length. New operational KPIs: late stops, average and worst delay, exception resolution time, delivered load, fuel efficiency (km/L), daily on-time trend, DO status mix and top customers.',
+    ],
+  },
+  {
     v: '3.4.1',
     date: '2026-10-23',
     id: [

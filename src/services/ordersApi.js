@@ -35,7 +35,7 @@ const DEMO_EXC = [
 ];
 function demoReport(from, to) {
   const days = Math.max(1, Math.round((Date.parse(to) - Date.parse(from)) / 864e5) + 1);
-  const daily = Array.from({ length: Math.min(days, 92) }, (_, i) => ({ date: new Date(Date.parse(from) + i * 864e5).toISOString().slice(0, 10), created: 6 + ((i * 7) % 9), done: 4 + ((i * 5) % 8) }));
+  const daily = Array.from({ length: Math.min(days, 92) }, (_, i) => ({ date: new Date(Date.parse(from) + i * 864e5).toISOString().slice(0, 10), created: 6 + ((i * 7) % 9), done: 4 + ((i * 5) % 8), measured: 5, ontime: 3 + ((i * 3) % 3) }));
   const total = daily.reduce((a, d) => a + d.created, 0);
   const done = daily.reduce((a, d) => a + d.done, 0);
   const vend = (id, name, k) => ({ vendorId: id, vendorName: name, sent: 40 * k, accepted: 30 * k, rejected: 6 * k, expired: 4 * k, responseMin: 14 + k * 3, orders: 30 * k, done: 27 * k, measured: 50 * k, ontime: 44 * k, qtyDiff: 2 * k, exceptions: 5 * k, acceptRate: 0.75, onTimeRate: 0.88 });
@@ -43,6 +43,12 @@ function demoReport(from, to) {
     range: { from, to }, graceMin: 15,
     kpi: { total, counts: { done, running: 3, assigned: 4, offered: 2, draft: 5 }, dispatched: done + 7, done, completionRate: done / (done + 7), measuredStops: 150, onTimeStops: 132, onTimeRate: 0.88, leadMin: { toAssign: 38, toStart: 55, trip: 320, total: 420 }, exceptions: 21 },
     daily, vendors: [vend('v1', 'CV Trans Mandiri', 2), vend('v2', 'PT Ekspres Nusa', 1)],
+    delay: { lateStops: 18, avgMin: 47, maxMin: 190 },
+    load: { kg: total * 820, kgDone: done * 820, m3: total * 6.4, m3Done: done * 6.4 },
+    handling: { open: 4, handled: 9, resolveMin: 96 },
+    fuel: { orders: 14, liters: 1260, distKm: 9810, kmPerL: 7.8 },
+    topCustomers: [{ customer: 'PT Indomarco', orders: 41, done: 38, exceptions: 5 }, { customer: 'PT Alfa Retailindo', orders: 33, done: 29, exceptions: 7 }, { customer: 'CV Sumber Pangan', orders: 24, done: 22, exceptions: 2 }],
+    prev: { range: { from: new Date(Date.parse(from) - days * 864e5).toISOString().slice(0, 10), to: new Date(Date.parse(from) - 864e5).toISOString().slice(0, 10) }, total: Math.round(total * 0.92), dispatched: done + 4, done: Math.round(done * 0.9), completionRate: 0.82, onTimeRate: 0.84, exceptions: 27, leadTotal: 465 },
     exceptionsByKind: [{ kind: 'late_arrival', severity: 'medium', n: 8 }, { kind: 'qty_diff', severity: 'medium', n: 5 }, { kind: 'outside_radius', severity: 'low', n: 4 }, { kind: 'breakdown', severity: 'high', n: 2 }, { kind: 'no_response', severity: 'high', n: 2 }],
   };
 }
