@@ -2,6 +2,10 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.5.2 - 2026-10-24
+
+- Isi halaman Dashboard kini selebar halaman lain (Armada, Order, dan seterusnya), tidak lagi terpusat dengan batas lebar.
+
 ## v3.5.1 - 2026-10-24
 
 - Menu utama dirapikan: "Kinerja DO" menjadi "Dashboard" (paling kiri), "Penugasan" menjadi "Kalender", dan "Bukti" menjadi "Bukti Pengiriman".

@@ -2,6 +2,12 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.5.2',
+    date: '2026-10-24',
+    id: ['Isi halaman Dashboard kini selebar halaman lain (Armada, Order, dan seterusnya), tidak lagi terpusat dengan batas lebar.'],
+    en: ['The Dashboard page content now spans the full width like the other pages (Fleet, Orders and so on) instead of being centred with a width cap.'],
+  },
+  {
     v: '3.5.1',
     date: '2026-10-24',
     id: [
