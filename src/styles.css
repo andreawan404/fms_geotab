@@ -362,3 +362,9 @@
   .pf-vs{margin-left:0;width:100%}
 }
 @media (prefers-reduced-motion:reduce){.pf-body{transition:none}}
+
+/* Sub-menu pada menu utama */
+.tms-navgrp{position:relative;display:inline-flex}
+.tms-navmenu{position:absolute;top:calc(100% + 4px);left:0;min-width:190px;background:#fff;border:1px solid var(--c-bd);border-radius:8px;box-shadow:0 6px 18px rgba(28,39,51,.12);padding:4px;z-index:20;display:flex;flex-direction:column}
+.tms-navmenu button{text-align:left;width:100%;white-space:nowrap}
+.tms-navmenu button .cnt{float:right}

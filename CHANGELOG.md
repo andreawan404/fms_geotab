@@ -2,6 +2,11 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.5.1 - 2026-10-24
+
+- Menu utama dirapikan: "Kinerja DO" menjadi "Dashboard" (paling kiri), "Penugasan" menjadi "Kalender", dan "Bukti" menjadi "Bukti Pengiriman".
+- Menu "Laporan" kini punya sub-menu: Laporan Armada, Bukti Pengiriman, dan Exception (badge exception terbuka tampil di menu Laporan).
+
 ## v3.5.0 - 2026-10-24
 
 - Menu Kinerja DO menjadi dashboard dengan slicer tanggal (7/30/90 hari, bulan ini, bulan lalu, atau rentang kustom). Seluruh angka, grafik, dan tabel mengikuti rentang yang dipilih.

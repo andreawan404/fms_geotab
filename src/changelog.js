@@ -2,6 +2,18 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.5.1',
+    date: '2026-10-24',
+    id: [
+      'Menu utama dirapikan: "Kinerja DO" menjadi "Dashboard" (paling kiri), "Penugasan" menjadi "Kalender", dan "Bukti" menjadi "Bukti Pengiriman".',
+      'Menu "Laporan" kini punya sub-menu: Laporan Armada, Bukti Pengiriman, dan Exception (badge exception terbuka tampil di menu Laporan).',
+    ],
+    en: [
+      'Main menu tidied up: "DO Performance" is now "Dashboard" (first), "Assignments" is now "Calendar", and "Evidence" is now "Delivery Proof".',
+      'The "Reports" menu now has a sub-menu: Fleet Reports, Delivery Proof and Exceptions (the open-exception badge shows on Reports).',
+    ],
+  },
+  {
     v: '3.5.0',
     date: '2026-10-24',
     id: [

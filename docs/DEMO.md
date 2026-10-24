@@ -63,7 +63,7 @@ Add-in menarik data dari URL https, jadi API customer disimulasikan dengan file 
 | 6-9 | HP: email vendor (setelah vendor menerima, rute dan penugasan di Monitor dibuat otomatis, ±2 menit, add-in harus terbuka; kendaraan vendor harus punya GPS Geotab di Vendor & Armada) | Buka tautan, **Terima**, pilih kendaraan dan sopir. Lalu **Mulai**, **Tiba pickup**, **POP** (foto, tanda tangan), **Berangkat**, **Tiba delivery**, **POD** (foto, tanda tangan, nama penerima, qty) | "Vendor tanpa login, cukup tautan. Tiap langkah punya jam dan koordinat GPS. Tidak bisa berangkat sebelum POP." |
 | 9-10 | Bukti | Buka POP dan POD, **Unduh dokumen**, scan QR verifikasi | "Dokumen bukti siap audit, dengan QR yang bisa diverifikasi siapa saja." |
 | 10-12 | Exception | Di HP vendor, **Laporkan kendala** (mis. ban pecah). Tunjukkan masuk ke Exception dan email/WA admin | "Kendala dilaporkan vendor, admin langsung dapat notifikasi, dan tiap exception punya status ditangani." |
-| 12-14 | Kinerja DO | Tunjukkan KPI, kinerja per vendor, ekspor CSV | "Selesai tepat waktu, lead time, kinerja vendor, dalam satu layar." |
+| 12-14 | Dashboard | Tunjukkan KPI, kinerja per vendor, ekspor CSV | "Selesai tepat waktu, lead time, kinerja vendor, dalam satu layar." |
 | 14-15 | Monitor | Tunjukkan rute dan penugasan aktif | "Rute dan geofence dibuat dari titik stop, alert keluar rute sama dengan fitur monitoring kita." |
 
 ### Skenario B — Integrasi TMS customer (±15 menit)
@@ -79,7 +79,7 @@ Add-in menarik data dari URL https, jadi API customer disimulasikan dengan file 
    - Kolom Pencocokan: "DO-DEMO-004 selesai di TMS tapi GPS tidak lengkap" (sengaja, jika kendaraan keempat diam). "Ini bukti GPS membandingkan klaim di TMS."
    - Ketepatan waktu per stop dari jam GPS.
    - **Hitung BBM semua** pada kendaraan yang bergerak: liter, km/L, liter per ton-km. Ekspor CSV.
-9. **Kinerja DO (1 mnt)** — Kinerja DO untuk ringkasan, lalu penutup.
+9. **Dashboard (1 mnt)** — Dashboard untuk ringkasan, lalu penutup.
 
 **Kalimat penutup**: "Customer tetap memakai TMS mereka. Yang kita tambahkan: bukti GPS atas klaim pengiriman, kepatuhan rute, ketepatan waktu, dan BBM per DO, semua dari GO device yang sudah terpasang."
 
