@@ -184,7 +184,7 @@ export async function buildReport(db, { from, to }) {
                WHERE ${R} GROUP BY o.vendor_id`, [...P, grace]),
     db.query(`SELECT f.vendor_id, count(*)::int AS sent, count(*) FILTER (WHERE f.status = 'accepted')::int AS accepted, count(*) FILTER (WHERE f.status = 'rejected')::int AS rejected,
                      count(*) FILTER (WHERE f.status = 'expired')::int AS expired, avg(extract(epoch FROM (f.responded_at - f.sent_at)) / 60) FILTER (WHERE f.status IN ('accepted', 'rejected'))::float8 AS resp
-                FROM offers f JOIN orders o ON o.id = f.order_id WHERE ${R} GROUP BY f.vendor_id`, P),
+                FROM offers f JOIN orders o ON o.id = f.order_id WHERE ${R} AND f.expires_at > f.sent_at GROUP BY f.vendor_id`, P),
     db.query(`SELECT o.vendor_id, count(*)::int AS orders, count(*) FILTER (WHERE o.status = 'done')::int AS done,
                      (SELECT count(*)::int FROM pods p JOIN orders o2 ON o2.id = p.order_id WHERE o2.vendor_id = o.vendor_id AND p.has_diff AND o2.order_date BETWEEN $1::date AND $2::date) AS qty_diff,
                      (SELECT count(*)::int FROM exceptions x JOIN orders o3 ON o3.id = x.order_id WHERE o3.vendor_id = o.vendor_id AND o3.order_date BETWEEN $1::date AND $2::date) AS exceptions

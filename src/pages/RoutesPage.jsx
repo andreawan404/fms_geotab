@@ -7,7 +7,9 @@ import { findRoutes, geocode, offsetsFromLegs, offsetsFromPath } from '../servic
 import { errMessage } from '../services/geotab.js';
 import { centroid, haversine, pathLength, simplifyToMax } from '../core/geometry.js';
 import { corridorZoneRing } from '../core/corridor.js';
-import { fmtDur, fmtKm } from '../core/time.js';
+import { fmtDur, fmtKm, ymd } from '../core/time.js';
+import { buildEta, withClock } from '../core/eta.js';
+import EtaTable from '../components/EtaTable.jsx';
 
 const PALETTE = ['#0b5ea8', '#d9480f', '#2b8a3e', '#7b2cbf', '#c2255c', '#0c8599', '#e67700', '#495057'];
 const PARAM_KEYS = ['confirmSec', 'confirmMeters', 'gpsMarginM', 'recoverSec', 'graceMin'];
@@ -83,7 +85,7 @@ export default function RoutesPage() {
                 <div className="tms-sm tms-muted">
                   {fmtKm(r.distanceM)} · {fmtDur(r.durationS)} · {r.checkpoints.length} {t('routes.cp')} · {t('routes.width')} {r.widthM} m · {t(`routes.mode.${r.mode}`)} · {n} {t('routes.assignments')}
                 </div>
-                <div className="tms-sm tms-muted">{r.checkpoints.map((c) => c.name).join(' → ')}</div>
+                <div className="tms-sm tms-muted">{r.checkpoints.map((c, i) => (i > 0 && c.etaOffsetS ? `${c.name} (+${fmtDur(c.etaOffsetS)})` : c.name)).join(' → ')}</div>
               </div>
               <div className="tms-row" onClick={(e) => e.stopPropagation()}>
                 <button className="tms-btn sm" onClick={() => duplicate(r)}>{t('duplicate')}</button>
@@ -349,6 +351,17 @@ function RouteEditor({ initial, onClose }) {
     setBusy('');
   };
 
+  const [departAt, setDepartAt] = useState('');
+  const eta = useMemo(() => {
+    const cps = draft.checkpoints;
+    if (cps.length < 2 || path.length < 2) return null;
+    const avgKmh = settings.defaults.avgSpeedKmh;
+    const legsOk = draft.mode === 'recommended' && !stale && draft.legs?.length === cps.length - 1;
+    const offsets = legsOk ? undefined : offsetsFromPath(simplifyToMax(path, 2500, 2), cps, avgKmh);
+    const departMs = /^\d{2}:\d{2}$/.test(departAt) ? Date.parse(`${ymd(new Date())}T${departAt}`) : NaN;
+    return withClock(buildEta(cps, { legs: legsOk ? draft.legs : undefined, offsets, avgKmh }), departMs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path, draft.checkpoints, draft.legs, draft.mode, stale, departAt]);
   const etaS = draft.mode === 'recommended' && !stale ? draft.durationS : (dist / ((settings.defaults.avgSpeedKmh * 1000) / 3600));
 
   return (
@@ -503,6 +516,16 @@ function RouteEditor({ initial, onClose }) {
                 ))}
               </div>
             </details>
+
+            {eta && (
+              <div className="tms-sec">
+                <label className="tms-sm tms-row" style={{ gap: 6, marginBottom: 6 }}>{t('eta.depart')}
+                  <input type="time" value={departAt} onChange={(e) => setDepartAt(e.target.value)} style={{ width: 110 }} />
+                  <span className="tms-muted">{t('eta.departHint')}</span>
+                </label>
+                <EtaTable eta={eta} departMs={eta.arriveMs == null ? NaN : Date.parse(`${ymd(new Date())}T${departAt}`)} />
+              </div>
+            )}
 
             <div className="tms-sec">
               <div className="tms-sm" style={{ marginBottom: 8 }}>

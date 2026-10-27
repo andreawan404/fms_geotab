@@ -3,7 +3,9 @@ import { useApp } from '../AppContext.jsx';
 import { Field } from './ui.jsx';
 import { L, MapBox, drawRoute, fitTo, useMap } from './mapkit.jsx';
 import { computeAlternatives, endpointsFar, manualCalc, routableStops } from '../services/orderRoute.js';
-import { findRoutes } from '../services/routing.js';
+import { findRoutes, offsetsFromPath } from '../services/routing.js';
+import { buildEta, withClock } from '../core/eta.js';
+import EtaTable from './EtaTable.jsx';
 import { simplifyToMax } from '../core/geometry.js';
 import { fmtDur, fmtKm } from '../core/time.js';
 
@@ -30,6 +32,15 @@ export default function RouteCard({ stops, widthM, onWidth, ro, onCalc, existing
   const key = pts.map((s) => `${s.lat},${s.lng}`).join('|');
   const width = Number(widthM) || settings.defaults.widthM;
   const calc = useMemo(() => (mode === 'manual' ? (manual.length > 1 ? manualCalc(manual) : null) : alts[altIdx] || null), [mode, manual, alts, altIdx]);
+  const departMs = Date.parse(pts[0]?.windowStart || '');
+  const eta = useMemo(() => {
+    if (!calc?.path || calc.path.length < 2 || pts.length < 2) return null;
+    const avgKmh = settings.defaults.avgSpeedKmh;
+    const hasLegs = Array.isArray(calc.legs) && calc.legs.length === pts.length - 1;
+    const offsets = hasLegs ? undefined : offsetsFromPath(calc.path, pts.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) })), avgKmh);
+    return withClock(buildEta(pts, { legs: calc.legs, offsets, avgKmh }), departMs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calc, key, departMs, pts.map((p) => p.windowEnd).join('|')]);
   const manualRef = useRef(manual);
   manualRef.current = manual;
 
@@ -161,7 +172,9 @@ export default function RouteCard({ stops, widthM, onWidth, ro, onCalc, existing
           </div>
         )}
 
-        <div style={{ height: 320, marginTop: 4 }}><MapBox mapRef={mapRef} className="tms-map-fill" /></div>
+        <EtaTable eta={eta} departMs={departMs} />
+
+        <div style={{ height: 320, marginTop: 8 }}><MapBox mapRef={mapRef} className="tms-map-fill" /></div>
         <div className="tms-sm tms-muted" style={{ marginTop: 6 }}>{t('ord.route.saveNote')}</div>
       </div>
     </div>

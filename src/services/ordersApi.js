@@ -123,7 +123,8 @@ export function createOrdersApi({ geotab, isMock }) {
     dispatch: {
       get: (orderId) => req('GET', `/dispatch?orderId=${orderId}`),
       offer: (orderId, vendorIds, expiryMin = 60) => req('POST', '/dispatch', { orderId, action: 'offer', vendorIds, expiryMin }),
-      assign: (orderId, vendorId, vehicleId, driverId) => req('POST', '/dispatch', { orderId, action: 'assign', vendorId, vehicleId, driverId }),
+      assign: (orderId, vendorId, vehicleId, driverId, notify = false) => req('POST', '/dispatch', { orderId, action: 'assign', vendorId, vehicleId, driverId, notify }),
+      link: (orderId, notify = false) => req('POST', '/dispatch', { orderId, action: 'link', notify }),
       release: (orderId) => req('POST', '/dispatch', { orderId, action: 'release' }),
       amendPod: (podId, note) => req('POST', '/dispatch', { action: 'pod_amend', podId, note }),
     },
@@ -164,6 +165,10 @@ function createMockOrdersApi() {
   const addM = (kind, o) => { const r = { id: `m${++mid}`, active: true, ...o }; M[kind].push(r); return r; };
   const va = addM('vendors', { name: 'PT Angkut Sejahtera', email: 'ops@angkut.example', pic: 'Pak Dedi', phone: '081200000001', geotabGroup: '', notes: '' });
   const vb = addM('vendors', { name: 'CV Trans Mandiri', email: 'dispatch@transmandiri.example', pic: 'Bu Sari', phone: '081200000002', geotabGroup: '', notes: '' });
+  const vi = addM('vendors', { name: 'Armada Internal SMA', email: '', pic: 'Dispatcher', phone: '', geotabGroup: '', notes: '', internal: true });
+  addM('vehicles', { vendorId: vi.id, plate: 'B 7001 SMA', type: 'cdd', hasGps: true, maxWeightKg: 2500, maxVolumeM3: 10, maxPallets: 6, lengthCm: 380, widthCm: 170, heightCm: 170 });
+  addM('vehicles', { vendorId: vi.id, plate: 'B 7002 SMA', type: 'fuso', hasGps: true, maxWeightKg: 8000, maxVolumeM3: 28, maxPallets: 14, lengthCm: 620, widthCm: 220, heightCm: 220 });
+  addM('drivers', { vendorId: vi.id, name: 'Agus Pratama', phone: '081300000010', licenseNo: 'B2-010' });
   addM('vehicles', { vendorId: va.id, plate: 'B 9001 AA', type: 'cdd', hasGps: true, maxWeightKg: 2500, maxVolumeM3: 10, maxPallets: 6, lengthCm: 380, widthCm: 170, heightCm: 170 });
   addM('vehicles', { vendorId: va.id, plate: 'B 9002 AB', type: 'fuso', hasGps: false, maxWeightKg: 8000, maxVolumeM3: 28, maxPallets: 14, lengthCm: 620, widthCm: 220, heightCm: 220 });
   addM('vehicles', { vendorId: vb.id, plate: 'B 8101 CD', type: 'blindvan', hasGps: false, maxWeightKg: 900, maxVolumeM3: 4, maxPallets: 2 });
@@ -261,12 +266,18 @@ function createMockOrdersApi() {
         o.version += 1;
         return { ok: true, expiresAt: exp, mail: { configured: false }, emails: vendorIds.map((vid) => ({ vendorId: vid, vendorName: M.vendors.find((v) => v.id === vid)?.name, status: M.vendors.find((v) => v.id === vid)?.email ? 'skipped' : 'no_email' })) };
       },
-      async assign(orderId, vendorId, vehicleId, driverId) {
+      async assign(orderId, vendorId, vehicleId, driverId, notify) {
         const o = need(orderId);
         if (!['draft', 'offered'].includes(o.status)) throw err(409, 'order_state');
         offers.forEach((f) => { if (f.orderId === orderId && f.status === 'offered') f.status = 'withdrawn'; });
         Object.assign(o, { status: 'assigned', vendorId, vehicleId, driverId: driverId || null, assignedAt: now(), assignedVia: 'admin' });
-        return { ok: true };
+        const dr = M.drivers.find((x) => x.id === driverId);
+        return { ok: true, link: `https://demo.example/portal.html#/o/demo-${orderId}`, sent: notify ? [{ channel: 'whatsapp', to: dr?.name || '-', status: dr?.phone ? 'skipped' : 'no_phone', error: '' }] : [] };
+      },
+      async link(orderId) {
+        const o = need(orderId);
+        if (!['assigned', 'running'].includes(o.status)) throw err(409, 'order_state');
+        return { ok: true, link: `https://demo.example/portal.html#/o/demo-${orderId}`, sent: [] };
       },
       async release(orderId) {
         const o = need(orderId);

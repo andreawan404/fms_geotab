@@ -2,6 +2,22 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.6.0',
+    date: '2026-10-27',
+    id: [
+      'Armada internal: vendor dapat ditandai "Armada internal" (kendaraan dan driver milik sendiri). Di dialog Alokasi ada pilihan baru "Armada internal" untuk mengalokasikan DO langsung ke kendaraan dan driver sendiri tanpa penawaran email.',
+      'Tautan perjalanan driver kini dibuat otomatis saat alokasi langsung (sebelumnya driver tidak punya tautan portal). Tautan bisa disalin, dibuka lewat WhatsApp, atau dikirim otomatis ke driver (WhatsApp) dan ke email vendor eksternal. Tersedia tombol "Buat tautan baru" bila tautan hilang atau driver diganti.',
+      'ETA per titik: editor rute DO dan menu Rute kini menampilkan tabel jarak, waktu tempuh, waktu sejak berangkat, dan jam tiba tiap titik beserta total rute. Titik yang diperkirakan lewat dari jendela waktu diberi penanda. Di menu Rute, isi jam berangkat untuk melihat jam tiba.',
+      'Statistik penawaran vendor di Dashboard tidak lagi menghitung alokasi langsung.',
+    ],
+    en: [
+      'Internal fleet: a vendor can be flagged "Internal fleet" (own vehicles and drivers). The Allocation dialog has a new "Internal fleet" option to assign a DO straight to your own vehicle and driver without an email offer.',
+      'A driver trip link is now created automatically on direct assignment (previously the driver had no portal link). The link can be copied, opened via WhatsApp, or sent automatically to the driver (WhatsApp) and the external vendor email. A "Create new link" button covers lost links or driver changes.',
+      'Per-point ETA: the DO route editor and the Routes menu now show distance, drive time, time since departure and arrival clock for every point, plus the route total. Points predicted to fall outside their time window are flagged. In Routes, enter a departure time to see arrival clocks.',
+      'Vendor offer statistics on the Dashboard no longer count direct assignments.',
+    ],
+  },
+  {
     v: '3.5.2',
     date: '2026-10-24',
     id: ['Isi halaman Dashboard kini selebar halaman lain (Armada, Order, dan seterusnya), tidak lagi terpusat dengan batas lebar.'],

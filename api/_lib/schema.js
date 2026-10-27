@@ -340,6 +340,11 @@ export const MIGRATIONS = [
       `ALTER TABLE stops ADD COLUMN IF NOT EXISTS zone_id text NOT NULL DEFAULT ''`,
     ],
   },
+  {
+    version: 12,
+    name: 'internal_fleet',
+    statements: [`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS internal boolean NOT NULL DEFAULT false`],
+  },
 ];
 
 const done = new WeakSet();

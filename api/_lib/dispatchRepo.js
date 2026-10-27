@@ -9,7 +9,7 @@ import { VEHICLE_TYPES } from '../../src/core/capacity.js';
 const KINDS = {
   vendors: {
     table: 'vendors', order: 'lower(name)',
-    fields: [['name', 'name', 'text', true], ['email', 'email', 'text'], ['phone', 'phone', 'text'], ['pic', 'pic', 'text'], ['geotab_group', 'geotabGroup', 'text'], ['notes', 'notes', 'text'], ['active', 'active', 'bool']],
+    fields: [['name', 'name', 'text', true], ['email', 'email', 'text'], ['phone', 'phone', 'text'], ['pic', 'pic', 'text'], ['geotab_group', 'geotabGroup', 'text'], ['notes', 'notes', 'text'], ['internal', 'internal', 'bool'], ['active', 'active', 'bool']],
   },
   vehicles: {
     table: 'vehicles', order: 'lower(plate)', parent: true,
@@ -205,19 +205,36 @@ async function checkAssets(db, vendorId, vehicleId, driverId) {
   }
 }
 
-/** Alokasi langsung oleh admin (tanpa penawaran). */
+/** Alokasi langsung oleh admin (tanpa penawaran). Membuat tautan portal (penawaran berstatus 'accepted') agar driver bisa menjalankan perjalanan dan mengisi POP / POD. */
 export async function assignDirect(db, orderId, { vendorId, vehicleId, driverId }, actor) {
   if (!UUID.test(String(vendorId || ''))) throw new ApiError(422, 'validation', 'Vendor wajib dipilih', [{ path: 'vendorId', code: 'required' }]);
   if (!UUID.test(String(vehicleId || ''))) throw new ApiError(422, 'validation', 'Kendaraan wajib dipilih', [{ path: 'vehicleId', code: 'required' }]);
   await checkAssets(db, vendorId, vehicleId, driverId || null);
+  const token = randomBytes(24).toString('base64url');
   const rows = await db.query(
     `WITH g AS (UPDATE orders SET status = 'assigned', vendor_id = $2, vehicle_id = $3, driver_id = $4, assigned_at = now(), assigned_via = 'admin', version = version + 1, updated_at = now()
                 WHERE id = $1 AND status IN ('draft', 'offered') RETURNING id),
-     w AS (UPDATE offers SET status = 'withdrawn', responded_at = now() WHERE order_id IN (SELECT id FROM g) AND status = 'offered' RETURNING id)
-     SELECT count(*)::int AS n FROM g`, [orderId, vendorId, vehicleId, driverId || null]);
+     w AS (UPDATE offers SET status = 'withdrawn', responded_at = now() WHERE order_id IN (SELECT id FROM g) AND status = 'offered' RETURNING id),
+     i AS (INSERT INTO offers (id, order_id, vendor_id, token_hash, status, expires_at, responded_at, vehicle_id, driver_id, created_by)
+           SELECT $5::uuid, g.id, $2, $6, 'accepted', now(), now(), $3, $4, $7 FROM g RETURNING id)
+     SELECT count(*)::int AS n FROM g`, [orderId, vendorId, vehicleId, driverId || null, randomUUID(), hash(token), actor || '']);
   if (Number(rows[0].n) !== 1) await orderStateError(db, orderId, 'dialokasikan');
   await audit(db, actor, 'assign', 'order', orderId, { vendorId, vehicleId, driverId });
-  return { ok: true };
+  return { ok: true, token };
+}
+
+/** Buat ulang tautan portal untuk DO yang sudah dialokasikan / berjalan (token lama ditutup). Dipakai bila tautan hilang atau ganti driver. */
+export async function reissueLink(db, orderId, actor) {
+  const token = randomBytes(24).toString('base64url');
+  const rows = await db.query(
+    `WITH o AS (SELECT id, vendor_id, vehicle_id, driver_id FROM orders WHERE id = $1 AND status IN ('assigned', 'running') AND vendor_id IS NOT NULL),
+     w AS (UPDATE offers SET status = 'withdrawn' WHERE order_id IN (SELECT id FROM o) AND status = 'accepted' RETURNING id),
+     i AS (INSERT INTO offers (id, order_id, vendor_id, token_hash, status, expires_at, responded_at, vehicle_id, driver_id, created_by)
+           SELECT $2::uuid, o.id, o.vendor_id, $3, 'accepted', now(), now(), o.vehicle_id, o.driver_id, $4 FROM o RETURNING id)
+     SELECT (SELECT count(*) FROM o)::int AS n`, [orderId, randomUUID(), hash(token), actor || '']);
+  if (Number(rows[0].n) !== 1) await orderStateError(db, orderId, 'dibuatkan tautan');
+  await audit(db, actor, 'link', 'order', orderId, {});
+  return { ok: true, token };
 }
 
 /** Lepas alokasi / tarik penawaran: DO kembali draft agar bisa diubah dan ditawarkan ulang. */

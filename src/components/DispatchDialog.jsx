@@ -23,6 +23,8 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [result, setResult] = useState(null);
+  const [notify, setNotify] = useState(true);
+  const [linkRes, setLinkRes] = useState(null); // { link, sent }
   const [podId, setPodId] = useState(null);
 
   const load = useCallback(async () => {
@@ -55,7 +57,7 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
 
   // pilihan awal broadcast: vendor yang punya kendaraan cocok dan email
   useEffect(() => {
-    if (perVendor.length && pick.size === 0 && !result) setPick(new Set(perVendor.filter((x) => x.fits.length && x.hasEmail).map((x) => x.vendor.id)));
+    if (perVendor.length && pick.size === 0 && !result) setPick(new Set(perVendor.filter((x) => !x.vendor.internal).filter((x) => x.fits.length && x.hasEmail).map((x) => x.vendor.id)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [perVendor.length]);
 
@@ -83,7 +85,22 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
     if (r) setResult(r);
   };
   const dVendor = perVendor.find((x) => x.vendor.id === d.vendorId);
-  const assign = () => run(() => ordersApi.dispatch.assign(orderId, d.vendorId, d.vehicleId, d.driverId || null), t('dsp.assigned'));
+  const external = perVendor.filter((x) => !x.vendor.internal);
+  const internalV = perVendor.filter((x) => x.vendor.internal);
+  const formVendors = mode === 'internal' ? internalV : external;
+  const switchMode = (k) => { setMode(k); setD({ vendorId: k === 'internal' && internalV.length === 1 ? internalV[0].vendor.id : '', vehicleId: '', driverId: '' }); setErr(''); };
+  const assign = async () => {
+    const r = await run(() => ordersApi.dispatch.assign(orderId, d.vendorId, d.vehicleId, d.driverId || null, notify), t('dsp.assigned'));
+    if (r) setLinkRes(r);
+  };
+  const newLink = async () => {
+    if (!window.confirm(`${t('dsp.newLink')}? ${t('dsp.newLinkHint')}`)) return;
+    const r = await run(() => ordersApi.dispatch.link(orderId, notify));
+    if (r) setLinkRes(r);
+  };
+  const copyLink = async () => {
+    try { await navigator.clipboard.writeText(linkRes.link); toast(t('dsp.copied')); } catch { window.prompt(t('dsp.copy'), linkRes.link); }
+  };
   const release = () => {
     if (!window.confirm(t('dsp.confirmRelease'))) return Promise.resolve();
     return run(() => ordersApi.dispatch.release(orderId), t('dsp.released'));
@@ -112,12 +129,29 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
                 <div className="tms-row">
                   <div className="tms-grow">
                     <span className="tms-badge green">{t('ord.status.assigned')}</span>{' '}
-                    <b>{order.vendorName}</b> · {order.plate || '-'} · {order.driverName || t('dsp.noDriver')}
+                    <b>{order.vendorName}</b>{(m?.vendors || []).find((x) => x.id === order.vendorId)?.internal && <> <span className="tms-badge blue">{t('mst.internalBadge')}</span></>} · {order.plate || '-'} · {order.driverName || t('dsp.noDriver')}
                     <div className="tms-sm tms-muted">{t(`dsp.via.${order.assignedVia || 'admin'}`)} · {fmtDateTime(order.assignedAt)}</div>
                     <div className="tms-sm" style={{ marginTop: 4 }}>{order.linkedRouteId ? <span className="tms-badge green">{t('dsp.mon.linked')}</span> : (m?.vehicles || []).find((x) => x.id === order.vehicleId)?.geotabDeviceId ? <span className="tms-badge blue">{t('dsp.mon.pending')}</span> : <span className="tms-badge gray">{t('dsp.mon.noGps')}</span>}</div>
                   </div>
+                  {['assigned', 'running'].includes(order.status) && order.source !== 'external' && <button className="tms-btn" onClick={newLink} disabled={busy}>{t('dsp.newLink')}</button>}
                   <button className="tms-btn danger" onClick={release} disabled={busy}>{t('dsp.release')}</button>
                 </div>
+              </div>
+            </div>
+          )}
+          {linkRes && (
+            <div className="tms-card" style={{ margin: '8px 0' }}>
+              <div className="tms-card-b">
+                <b>{t('dsp.linkTitle')}</b>
+                <div className="tms-sm tms-muted" style={{ margin: '2px 0 6px' }}>{t('dsp.linkHint')}</div>
+                <div className="tms-row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                  <input readOnly value={linkRes.link} className="tms-grow" onFocus={(e) => e.target.select()} />
+                  <button className="tms-btn sm" onClick={copyLink}>{t('dsp.copy')}</button>
+                  <a className="tms-btn sm" target="_blank" rel="noopener noreferrer" href={`https://wa.me/?text=${encodeURIComponent(`DO ${order.doNo}: ${linkRes.link}`)}`}>{t('dsp.waOpen')}</a>
+                </div>
+                {(linkRes.sent || []).map((x, i) => (
+                  <div key={i} className="tms-sm" style={{ marginTop: 4 }}>{t(`dsp.sent.${x.channel}`)} · {x.to}: <span className={`tms-badge ${x.status === 'sent' ? 'green' : x.status === 'failed' ? 'red' : 'amber'}`}>{t(`dsp.sent.${x.status}`)}</span> {x.error && <span className="tms-muted">{x.error}</span>}</div>
+                ))}
               </div>
             </div>
           )}
@@ -173,8 +207,9 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
           {canAllocate && (
             <>
               <div className="tms-chips" style={{ padding: 0, margin: '8px 0' }}>
-                <button className={`tms-chip ${mode === 'offer' ? 'on' : ''}`} onClick={() => setMode('offer')}>{t('dsp.mode.offer')}</button>
-                <button className={`tms-chip ${mode === 'direct' ? 'on' : ''}`} onClick={() => setMode('direct')}>{t('dsp.mode.direct')}</button>
+                <button className={`tms-chip ${mode === 'offer' ? 'on' : ''}`} onClick={() => switchMode('offer')}>{t('dsp.mode.offer')}</button>
+                <button className={`tms-chip ${mode === 'internal' ? 'on' : ''}`} onClick={() => switchMode('internal')}>{t('dsp.mode.internal')}</button>
+                <button className={`tms-chip ${mode === 'direct' ? 'on' : ''}`} onClick={() => switchMode('direct')}>{t('dsp.mode.direct')}</button>
                 <span className="tms-grow" />
                 {order.status === 'offered' && <button className="tms-btn sm danger" onClick={release} disabled={busy}>{t('dsp.withdraw')}</button>}
               </div>
@@ -186,8 +221,8 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
                     <table>
                       <thead><tr><th /><th>{t('mst.kind.vendors')}</th><th>{t('mst.f.email')}</th><th>{t('dsp.fit')}</th></tr></thead>
                       <tbody>
-                        {perVendor.length === 0 && <tr><td colSpan={4} className="tms-muted" style={{ padding: 12 }}>{t('dsp.noVendors')}</td></tr>}
-                        {perVendor.map(({ vendor, vehicles, fits, best, nearest, hasEmail }) => (
+                        {external.length === 0 && <tr><td colSpan={4} className="tms-muted" style={{ padding: 12 }}>{t('dsp.noVendors')}</td></tr>}
+                        {external.map(({ vendor, vehicles, fits, best, nearest, hasEmail }) => (
                           <tr key={vendor.id}>
                             <td style={{ width: 30 }}><input type="checkbox" checked={pick.has(vendor.id)} onChange={() => toggle(vendor.id)} disabled={!hasEmail} /></td>
                             <td><b>{vendor.name}</b><div className="tms-sm tms-muted">{vendor.pic}</div></td>
@@ -225,12 +260,14 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
                 </>
               )}
 
-              {mode === 'direct' && (
+              {(mode === 'direct' || mode === 'internal') && (
+                <>
+                {mode === 'internal' && <div className="tms-sm tms-muted" style={{ marginBottom: 6 }}>{internalV.length ? t('dsp.internalHint') : t('dsp.noInternal')}</div>}
                 <div className="tms-form3">
                   <label className="tms-field"><span className="tms-field-label">{t('mst.f.vendorId')}</span>
                     <select value={d.vendorId} onChange={(e) => setD({ vendorId: e.target.value, vehicleId: '', driverId: '' })}>
                       <option value="">-</option>
-                      {perVendor.map((x) => <option key={x.vendor.id} value={x.vendor.id}>{x.vendor.name}</option>)}
+                      {formVendors.map((x) => <option key={x.vendor.id} value={x.vendor.id}>{x.vendor.name}</option>)}
                     </select>
                   </label>
                   <label className="tms-field"><span className="tms-field-label">{t('dsp.vehicle')}</span>
@@ -248,10 +285,12 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
                       {m.drivers.filter((x) => x.vendorId === d.vendorId).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
                     </select>
                   </label>
+                  <label className="tms-chk" style={{ gridColumn: '1/-1' }}><input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} /> {t('dsp.notifyDriver')}</label>
                   <div style={{ gridColumn: '1/-1', textAlign: 'right' }}>
                     <button className="tms-btn pri" disabled={busy || !d.vendorId || !d.vehicleId || blockers.length > 0} onClick={assign}>{t('dsp.assign')}</button>
                   </div>
                 </div>
+                </>
               )}
             </>
           )}

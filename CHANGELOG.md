@@ -2,6 +2,13 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.6.0 - 2026-10-27
+
+- Armada internal: vendor dapat ditandai "Armada internal" (kendaraan dan driver milik sendiri). Di dialog Alokasi ada pilihan baru "Armada internal" untuk mengalokasikan DO langsung ke kendaraan dan driver sendiri tanpa penawaran email.
+- Tautan perjalanan driver kini dibuat otomatis saat alokasi langsung (sebelumnya driver tidak punya tautan portal). Tautan bisa disalin, dibuka lewat WhatsApp, atau dikirim otomatis ke driver (WhatsApp) dan ke email vendor eksternal. Tersedia tombol "Buat tautan baru" bila tautan hilang atau driver diganti.
+- ETA per titik: editor rute DO dan menu Rute kini menampilkan tabel jarak, waktu tempuh, waktu sejak berangkat, dan jam tiba tiap titik beserta total rute. Titik yang diperkirakan lewat dari jendela waktu diberi penanda. Di menu Rute, isi jam berangkat untuk melihat jam tiba.
+- Statistik penawaran vendor di Dashboard tidak lagi menghitung alokasi langsung.
+
 ## v3.5.2 - 2026-10-24
 
 - Isi halaman Dashboard kini selebar halaman lain (Armada, Order, dan seterusnya), tidak lagi terpusat dengan batas lebar.

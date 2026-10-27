@@ -6,7 +6,7 @@ import { apiErrorText, fmtNum } from '../lib/orderView.js';
 
 const KINDS = ['vendors', 'vehicles', 'drivers'];
 const blank = {
-  vendors: { name: '', pic: '', email: '', phone: '', geotabGroup: '', notes: '', active: true },
+  vendors: { name: '', pic: '', email: '', phone: '', geotabGroup: '', notes: '', internal: false, active: true },
   vehicles: { vendorId: '', plate: '', type: 'cdd', hasGps: false, geotabDeviceId: '', maxWeightKg: null, maxVolumeM3: null, maxPallets: null, maxColli: null, lengthCm: null, widthCm: null, heightCm: null, tempControlled: false, tempMinC: null, tempMaxC: null, allowsHazardous: false, notes: '', active: true },
   drivers: { vendorId: '', name: '', phone: '', licenseNo: '', notes: '', active: true },
 };
@@ -60,6 +60,8 @@ function MasterForm({ kind, item, vendors, onClose, onSaved }) {
           <Field label={t('mst.f.phone')}><Txt v={v} set={setV} k="phone" /></Field>
           <Field label={t('mst.f.geotabGroup')} hint={t('mst.f.geotabGroupHint')}><Txt v={v} set={setV} k="geotabGroup" /></Field>
           <Field label={t('mst.f.notes')}><Txt v={v} set={setV} k="notes" /></Field>
+          <Chk v={v} set={setV} k="internal" label={t('mst.f.internal')} />
+          <div className="tms-sm tms-muted" style={{ gridColumn: '1/-1' }}>{t('mst.f.internalHint')}</div>
           <Chk v={v} set={setV} k="active" label={t('mst.f.active')} />
         </div>
       )}
@@ -195,7 +197,7 @@ export default function MasterPage() {
             {!loading && rows.length === 0 && <tr><td colSpan={9}><Empty>{t('mst.empty')}</Empty></td></tr>}
             {rows.map((x) => (
               <tr key={x.id} className="click" onClick={() => setForm({ item: x })} style={x.active ? undefined : { opacity: 0.55 }}>
-                {kind === 'vendors' && (<><td><b>{x.name}</b></td><td>{x.pic}</td><td>{x.email || <span className="tms-badge amber">{t('mst.noEmail')}</span>}</td><td>{x.phone}</td><td className="num">{counts[`vehicles:${x.id}`] || 0}</td><td className="num">{counts[`drivers:${x.id}`] || 0}</td></>)}
+                {kind === 'vendors' && (<><td><b>{x.name}</b>{x.internal && <> <span className="tms-badge blue">{t('mst.internalBadge')}</span></>}</td><td>{x.pic}</td><td>{x.email || <span className="tms-badge amber">{t('mst.noEmail')}</span>}</td><td>{x.phone}</td><td className="num">{counts[`vehicles:${x.id}`] || 0}</td><td className="num">{counts[`drivers:${x.id}`] || 0}</td></>)}
                 {kind === 'vehicles' && (<><td><b>{x.plate}</b></td><td>{vName.get(x.vendorId)}</td><td>{t(`mst.vt.${x.type}`)}</td><td className="num">{fmtNum(x.maxWeightKg)}</td><td className="num">{fmtNum(x.maxVolumeM3, 1)}</td><td className="num">{fmtNum(x.maxPallets, 1)}</td>
                   <td>{x.hasGps ? <span className="tms-badge green">GPS</span> : <span className="tms-badge gray">{t('mst.noGps')}</span>} {x.tempControlled && <span className="tms-badge blue">°C</span>} {x.allowsHazardous && <span className="tms-badge red">B3</span>}</td></>)}
                 {kind === 'drivers' && (<><td><b>{x.name}</b></td><td>{vName.get(x.vendorId)}</td><td>{x.phone}</td><td>{x.licenseNo}</td></>)}

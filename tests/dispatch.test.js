@@ -7,6 +7,8 @@ import ordersH from '../api/orders/index.js';
 import orderH from '../api/orders/[id].js';
 import masterH from '../api/master/[kind].js';
 import dispatchH from '../api/dispatch.js';
+import portalH from '../api/portal.js';
+import { setWaSender } from '../api/_lib/notifyRepo.js';
 import { acceptOffer, rejectOffer, getOfferByToken } from '../api/_lib/dispatchRepo.js';
 import { getDb } from '../api/_lib/db.js';
 import { totals, normalizeOrder } from '../src/core/orders.js';
@@ -178,5 +180,49 @@ describe('penawaran & alokasi', () => {
     const o2 = (await call(ordersH, { method: 'POST', body: mkOrder({ doNo: 'DO-2', stops: [{ type: 'pickup', name: 'G', items: [item()] }, { type: 'delivery', name: 'T', items: [item()] }] }) })).body.order;
     const r = await call(dispatchH, { method: 'POST', body: { orderId: o2.id, action: 'offer', vendorIds: [v1.id] } });
     expect(r.body.error.code).toBe('not_ready');
+  });
+});
+
+describe('armada internal & tautan driver', () => {
+  it('vendor internal tersimpan, alokasi langsung membuat tautan portal yang bisa dibuka driver', async () => {
+    const o = (await call(ordersH, { method: 'POST', body: mkOrder() })).body.order;
+    const vi = (await call(masterH, { method: 'POST', query: { kind: 'vendors' }, body: { name: 'Armada Internal', internal: true } })).body.item;
+    expect(vi.internal).toBe(true);
+    const veh = (await call(masterH, { method: 'POST', query: { kind: 'vehicles' }, body: { vendorId: vi.id, plate: 'B 7 SMA', type: 'cdd', maxWeightKg: 2500, maxVolumeM3: 10, maxPallets: 6 } })).body.item;
+    const drv = (await call(masterH, { method: 'POST', query: { kind: 'drivers' }, body: { vendorId: vi.id, name: 'Agus', phone: '0813000010' } })).body.item;
+    const wa = [];
+    setWaSender(async (m) => { wa.push(m); return { status: 'sent' }; });
+    const r = await call(dispatchH, { method: 'POST', body: { orderId: o.id, action: 'assign', vendorId: vi.id, vehicleId: veh.id, driverId: drv.id, notify: true } });
+    setWaSender(null);
+    expect(r.code).toBe(200);
+    expect(r.body.link).toMatch(/portal\.html#\/o\//);
+    expect(r.body.sent[0]).toMatchObject({ channel: 'whatsapp', status: 'sent' });
+    expect(wa[0].to).toBe('62813000010');
+    expect(wa[0].message).toContain(r.body.link);
+    expect(sent.length).toBe(0); // vendor internal: tidak ada email
+    const tok = r.body.link.split('/o/')[1];
+    const v = await call(portalH, { query: { t: tok } });
+    expect(v.body.mode).toBe('trip');
+    expect(v.body.vehicle.plate).toBe('B 7 SMA');
+    // tautan baru menutup tautan lama
+    const r2 = await call(dispatchH, { method: 'POST', body: { orderId: o.id, action: 'link' } });
+    expect(r2.body.link).not.toBe(r.body.link);
+    expect((await call(portalH, { query: { t: tok } })).body.mode).toBe('closed');
+    expect((await call(portalH, { query: { t: r2.body.link.split('/o/')[1] } })).body.mode).toBe('trip');
+    // release menutup tautan
+    await call(dispatchH, { method: 'POST', body: { orderId: o.id, action: 'release' } });
+    expect((await call(portalH, { query: { t: r2.body.link.split('/o/')[1] } })).body.mode).toBe('closed');
+  });
+  it('vendor eksternal: alokasi langsung mengirim tautan lewat email dan tanpa nomor HP driver dilaporkan', async () => {
+    const { o, v1, a1, d1 } = await setup();
+    const r = await call(dispatchH, { method: 'POST', body: { orderId: o.id, action: 'assign', vendorId: v1.id, vehicleId: a1.id, driverId: d1.id, notify: true } });
+    expect(r.body.sent.find((x) => x.channel === 'email').status).toBe('sent');
+    expect(r.body.sent.find((x) => x.channel === 'whatsapp').status).toBe('no_phone');
+    expect(sent.length).toBe(1);
+  });
+  it('tautan baru ditolak bila DO belum dialokasikan', async () => {
+    const o = (await call(ordersH, { method: 'POST', body: mkOrder() })).body.order;
+    const r = await call(dispatchH, { method: 'POST', body: { orderId: o.id, action: 'link' } });
+    expect(r.code).toBe(409);
   });
 });
