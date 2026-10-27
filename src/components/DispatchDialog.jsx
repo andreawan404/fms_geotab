@@ -6,13 +6,15 @@ import { fittingVehicles, vehicleFit } from '../core/capacity.js';
 import { fmtDateTime } from '../core/time.js';
 import { stepKey } from '../core/trip.js';
 import PodDocument from './PodDocument.jsx';
+import CostEstimate from './CostEstimate.jsx';
+import { routeIdOf } from '../core/linkPlan.js';
 import { apiErrorText, fmtNum, issueText } from '../lib/orderView.js';
 
 const OFFER_CLS = { offered: 'blue', accepted: 'green', rejected: 'red', expired: 'amber', withdrawn: 'gray' };
 
 /** Alokasi DO: tawarkan ke beberapa vendor (siapa terima duluan menang) atau alokasi langsung ke kendaraan + driver. */
 export default function DispatchDialog({ orderId, onClose, onChanged }) {
-  const { t, ordersApi, toast } = useApp();
+  const { t, ordersApi, toast, routes } = useApp();
   const [order, setOrder] = useState(null);
   const [m, setM] = useState(null); // { vendors, vehicles, drivers }
   const [disp, setDisp] = useState({ offers: [], mail: {} });
@@ -106,6 +108,7 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
     return run(() => ordersApi.dispatch.release(orderId), t('dsp.released'));
   };
 
+  const orderRoute = order ? (routes || []).find((r) => r.id === routeIdOf(order.id)) : null;
   const canAllocate = order && ['draft', 'offered'].includes(order.status);
   const noResponse = order && order.status === 'offered' && order.openOffers === 0;
 
@@ -285,6 +288,12 @@ export default function DispatchDialog({ orderId, onClose, onChanged }) {
                       {m.drivers.filter((x) => x.vendorId === d.vendorId).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
                     </select>
                   </label>
+                  {orderRoute?.distanceM > 0 && dVendor && (
+                    <div style={{ gridColumn: '1/-1' }}>
+                      <CostEstimate key={d.vehicleId} distanceM={orderRoute.distanceM} tollM={Number.isFinite(orderRoute.tollM) ? orderRoute.tollM : null} vehicleId={d.vehicleId}
+                        vehicles={dVendor.vehicles.map((x) => ({ id: x.id, label: `${x.plate} · ${x.type}`, type: x.type, geotabDeviceId: x.geotabDeviceId || '', fuelKmPerL: x.fuelKmPerL, tollClass: x.tollClass }))} />
+                    </div>
+                  )}
                   <label className="tms-chk" style={{ gridColumn: '1/-1' }}><input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} /> {t('dsp.notifyDriver')}</label>
                   <div style={{ gridColumn: '1/-1', textAlign: 'right' }}>
                     <button className="tms-btn pri" disabled={busy || !d.vendorId || !d.vehicleId || blockers.length > 0} onClick={assign}>{t('dsp.assign')}</button>

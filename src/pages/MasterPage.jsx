@@ -7,7 +7,7 @@ import { apiErrorText, fmtNum } from '../lib/orderView.js';
 const KINDS = ['vendors', 'vehicles', 'drivers'];
 const blank = {
   vendors: { name: '', pic: '', email: '', phone: '', geotabGroup: '', notes: '', internal: false, active: true },
-  vehicles: { vendorId: '', plate: '', type: 'cdd', hasGps: false, geotabDeviceId: '', maxWeightKg: null, maxVolumeM3: null, maxPallets: null, maxColli: null, lengthCm: null, widthCm: null, heightCm: null, tempControlled: false, tempMinC: null, tempMaxC: null, allowsHazardous: false, notes: '', active: true },
+  vehicles: { vendorId: '', plate: '', type: 'cdd', hasGps: false, geotabDeviceId: '', maxWeightKg: null, maxVolumeM3: null, maxPallets: null, maxColli: null, lengthCm: null, widthCm: null, heightCm: null, tempControlled: false, tempMinC: null, tempMaxC: null, allowsHazardous: false, fuelKmPerL: null, tollClass: null, notes: '', active: true },
   drivers: { vendorId: '', name: '', phone: '', licenseNo: '', notes: '', active: true },
 };
 
@@ -107,6 +107,15 @@ function MasterForm({ kind, item, vendors, onClose, onSaved }) {
             <Field label={t('mst.f.tempMinC')}><Num v={v} set={setV} k="tempMinC" disabled={!v.tempControlled} /></Field>
             <Field label={t('mst.f.tempMaxC')}><Num v={v} set={setV} k="tempMaxC" disabled={!v.tempControlled} /></Field>
             <div className="tms-flagrow"><Chk v={v} set={setV} k="allowsHazardous" label={t('mst.f.allowsHazardous')} /></div>
+          </div>
+          <div className="tms-form2">
+            <Field label={t('mst.f.fuelKmPerL')} hint={t('mst.f.fuelKmPerLHint')}><Num v={v} set={setV} k="fuelKmPerL" min="0" step="0.1" /></Field>
+            <Field label={t('mst.f.tollClass')} hint={t('mst.f.tollClassHint')}>
+              <select value={v.tollClass ?? ''} onChange={(e) => setV({ ...v, tollClass: e.target.value === '' ? null : Number(e.target.value) })}>
+                <option value="">{t('mst.f.tollAuto')}</option>
+                {[1, 2, 3, 4, 5].map((c) => <option key={c} value={c}>{t('cost.class', { n: c })}</option>)}
+              </select>
+            </Field>
           </div>
           <div className="tms-form2">
             <Chk v={v} set={setV} k="hasGps" label={t('mst.f.hasGps')} />

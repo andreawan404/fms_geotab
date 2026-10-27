@@ -15,13 +15,51 @@ async function jsonFetch(url, opts) {
   return body;
 }
 
-/** coords: [[lat,lng],...] -> [{ path, distanceM, durationS, legs:[{distanceM,durationS}] }] */
+/** OSRM: jarak ruas tol dari kelas persimpangan ('toll') tiap langkah; known = ada informasi kelas jalan sama sekali. */
+export function osrmTollOfLeg(leg) {
+  let tollM = 0;
+  let known = false;
+  for (const st of leg.steps || []) {
+    const ix = st.intersections || [];
+    if (ix.some((i) => Array.isArray(i.classes) && i.classes.length)) known = true;
+    const n = ix.filter((i) => (i.classes || []).includes('toll')).length;
+    if (ix.length && n * 2 >= ix.length) tollM += st.distance || 0;
+  }
+  return { tollM: Math.round(tollM), known };
+}
+
+/** ORS: values = [[idxMulai, idxAkhir, 1|0]] terhadap titik geometri; way_points = indeks titik awal/akhir tiap leg. */
+export function orsToll(path, wayPoints, values) {
+  const legCount = Math.max(0, (wayPoints?.length || 0) - 1);
+  const legs = new Array(legCount).fill(0);
+  if (!Array.isArray(values)) return { totalM: 0, legs, known: false };
+  const seg = (a, b) => { let d = 0; for (let i = a; i < b && i + 1 < path.length; i++) d += haversineM(path[i], path[i + 1]); return d; };
+  let total = 0;
+  for (const [from, to, val] of values) {
+    if (!val) continue;
+    total += seg(from, to);
+    for (let k = 0; k < legCount; k++) {
+      const a = Math.max(from, wayPoints[k]);
+      const b = Math.min(to, wayPoints[k + 1]);
+      if (b > a) legs[k] += seg(a, b);
+    }
+  }
+  return { totalM: Math.round(total), legs: legs.map(Math.round), known: true };
+}
+const haversineM = ([la1, ln1], [la2, ln2]) => {
+  const R = 6371000; const rad = Math.PI / 180;
+  const dLa = (la2 - la1) * rad; const dLn = (ln2 - ln1) * rad;
+  const a = Math.sin(dLa / 2) ** 2 + Math.cos(la1 * rad) * Math.cos(la2 * rad) * Math.sin(dLn / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+};
+
+/** coords: [[lat,lng],...] -> [{ path, distanceM, durationS, legs:[{distanceM,durationS,tollM}], tollM, tollKnown }] */
 export async function findRoutes(settings, coords, { alternatives = false, profile } = {}) {
   const r = settings.routing;
   if (coords.length < 2) throw new Error('Minimal 2 titik');
   if (r.provider === 'ors') {
     if (!r.orsKey) throw new Error('API key OpenRouteService belum diisi (Pengaturan)');
-    const body = { coordinates: coords.map(([la, ln]) => [ln, la]), instructions: false, preference: 'recommended' };
+    const body = { coordinates: coords.map(([la, ln]) => [ln, la]), instructions: false, preference: 'recommended', extra_info: ['tollways'] };
     const useAlt = alternatives && coords.length === 2;
     if (useAlt) body.alternative_routes = { target_count: 3, share_factor: 0.6, weight_factor: 1.6 };
     const url = `https://api.openrouteservice.org/v2/directions/${profile || r.profile || 'driving-car'}`;
@@ -34,24 +72,35 @@ export async function findRoutes(settings, coords, { alternatives = false, profi
       delete body.alternative_routes; // alternatif ditolak (mis. jarak > 100 km) -> rute tunggal
       data = await send(body);
     }
-    return data.routes.map((rt) => ({
-      path: decodePolyline(rt.geometry),
-      distanceM: rt.summary.distance,
-      durationS: rt.summary.duration,
-      legs: (rt.segments || []).map((s) => ({ distanceM: s.distance, durationS: s.duration })),
-    }));
+    return data.routes.map((rt) => {
+      const path = decodePolyline(rt.geometry);
+      const toll = orsToll(path, rt.way_points, rt.extras?.tollways?.values);
+      return {
+        path,
+        distanceM: rt.summary.distance,
+        durationS: rt.summary.duration,
+        legs: (rt.segments || []).map((s, i) => ({ distanceM: s.distance, durationS: s.duration, tollM: toll.legs[i] })),
+        tollM: toll.totalM,
+        tollKnown: toll.known,
+      };
+    });
   }
   const base = (r.osrmUrl || 'https://router.project-osrm.org').replace(/\/$/, '');
   const c = coords.map(([la, ln]) => `${ln},${la}`).join(';');
-  const url = `${base}/route/v1/driving/${c}?overview=full&geometries=polyline&steps=false&alternatives=${alternatives && coords.length === 2 ? 'true' : 'false'}`;
+  const url = `${base}/route/v1/driving/${c}?overview=full&geometries=polyline&steps=true&alternatives=${alternatives && coords.length === 2 ? 'true' : 'false'}`;
   const data = await jsonFetch(url);
   if (data.code !== 'Ok') throw new Error(data.message || data.code);
-  return data.routes.map((rt) => ({
-    path: decodePolyline(rt.geometry),
-    distanceM: rt.distance,
-    durationS: rt.duration,
-    legs: (rt.legs || []).map((l) => ({ distanceM: l.distance, durationS: l.duration })),
-  }));
+  return data.routes.map((rt) => {
+    const legs = (rt.legs || []).map((l) => ({ distanceM: l.distance, durationS: l.duration, ...osrmTollOfLeg(l) }));
+    return {
+      path: decodePolyline(rt.geometry),
+      distanceM: rt.distance,
+      durationS: rt.duration,
+      legs: legs.map(({ known: _k, ...x }) => x),
+      tollM: legs.reduce((a, l) => a + (l.tollM || 0), 0),
+      tollKnown: legs.some((l) => l.known),
+    };
+  });
 }
 
 /** ETA kumulatif tiap checkpoint dari durasi leg (rute rekomendasi). */

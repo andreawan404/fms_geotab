@@ -25,6 +25,7 @@ async function seed({ store }) {
   const route = await store.saveRoute({
     id: uid('r'),
     name: 'Jakarta – Karawang (demo)',
+    tollM: 38000,
     color: '#0b5ea8',
     mode: 'recommended',
     profile: 'driving-car',

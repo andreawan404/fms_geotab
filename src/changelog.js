@@ -2,6 +2,22 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.7.0',
+    date: '2026-10-27',
+    id: [
+      'Perkiraan biaya perjalanan (BBM + tol) di editor rute DO, menu Rute, dan dialog Alokasi (saat memilih kendaraan). Pilih kendaraan untuk memakai konsumsi BBM dan golongan tolnya.',
+      'Konsumsi BBM (km/L) diambil dari data aktual GPS Geotab 30 hari terakhir kendaraan tersebut; bila tidak ada, dari isian di data kendaraan (kolom baru "Konsumsi BBM (km/L)"), atau diisi manual.',
+      'Tol: ruas tol dideteksi dari mesin rute (OSRM dan OpenRouteService), dikalikan tarif per km menurut golongan kendaraan (kolom baru "Golongan tol", otomatis dari jenis kendaraan). Nilai tol dapat ditimpa manual. Harga BBM dan tarif tol diatur di Pengaturan > Perkiraan biaya perjalanan.',
+      'Tabel ETA dirapikan agar muat di panel sempit.',
+    ],
+    en: [
+      'Trip cost estimate (fuel + toll) in the DO route editor, the Routes menu and the Allocation dialog (when picking a vehicle). Pick a vehicle to use its fuel economy and toll class.',
+      'Fuel economy (km/L) comes from the vehicle\'s actual Geotab GPS data over the last 30 days; otherwise from the new "Fuel economy (km/L)" vehicle field, or manual entry.',
+      'Toll: toll sections are detected from the routing engine (OSRM and OpenRouteService) and multiplied by a per-km rate by vehicle class (new "Toll class" vehicle field, automatic from vehicle type). The toll can be overridden manually. Fuel price and toll rates are set in Settings > Trip cost estimate.',
+      'The ETA table was tidied to fit narrow panels.',
+    ],
+  },
+  {
     v: '3.6.1',
     date: '2026-10-27',
     id: ['Tabel ETA di editor Rute kini memakai ETA per checkpoint yang tersimpan dari mesin routing (sama dengan angka di daftar rute), bukan perkiraan kecepatan rata-rata. Perkiraan hanya dipakai bila checkpoint diubah atau rute digambar manual.'],

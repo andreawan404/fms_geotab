@@ -10,6 +10,7 @@ import { corridorZoneRing } from '../core/corridor.js';
 import { fmtDur, fmtKm, ymd } from '../core/time.js';
 import { buildEta, withClock } from '../core/eta.js';
 import EtaTable from '../components/EtaTable.jsx';
+import CostEstimate from '../components/CostEstimate.jsx';
 
 const PALETTE = ['#0b5ea8', '#d9480f', '#2b8a3e', '#7b2cbf', '#c2255c', '#0c8599', '#e67700', '#495057'];
 const PARAM_KEYS = ['confirmSec', 'confirmMeters', 'gpsMarginM', 'recoverSec', 'graceMin'];
@@ -100,7 +101,7 @@ export default function RoutesPage() {
 }
 
 function RouteEditor({ initial, onClose }) {
-  const { t, settings, saveRoute, geotab, toast } = useApp();
+  const { t, settings, saveRoute, geotab, toast, devices } = useApp();
   const [draft, setDraft] = useState(() => ({ ...initial, sig: initial.checkpoints.map((c) => `${c.lat.toFixed(5)},${c.lng.toFixed(5)}`).join('|') }));
   const [tool, setTool] = useState('none'); // none | cp | path
   const [alts, setAlts] = useState([]);
@@ -163,7 +164,7 @@ function RouteEditor({ initial, onClose }) {
       const a = (list || alts)[i];
       if (!a) return;
       setAltIdx(i);
-      setDraft((d) => ({ ...d, path: a.path, distanceM: a.distanceM, durationS: a.durationS, legs: a.legs, sig: d.sig }));
+      setDraft((d) => ({ ...d, path: a.path, distanceM: a.distanceM, durationS: a.durationS, legs: a.legs, tollM: a.tollKnown ? a.tollM : null, sig: d.sig }));
     },
     [alts],
   );
@@ -250,7 +251,7 @@ function RouteEditor({ initial, onClose }) {
       setAlts(res);
       setAltIdx(0);
       const a = res[0];
-      setDraft((d) => ({ ...d, path: a.path, distanceM: a.distanceM, durationS: a.durationS, legs: a.legs, sig: sig(d.checkpoints) }));
+      setDraft((d) => ({ ...d, path: a.path, distanceM: a.distanceM, durationS: a.durationS, legs: a.legs, tollM: a.tollKnown ? a.tollM : null, sig: sig(d.checkpoints) }));
       fitTo(map, a.path);
       if (res.length > 1) toast(t('routes.altsFound', { n: res.length }));
     } catch (e) {
@@ -302,8 +303,8 @@ function RouteEditor({ initial, onClose }) {
         ? offsetsFromLegs(draft.legs, draft.checkpoints.length)
         : offsetsFromPath(simple, draft.checkpoints, settings.defaults.avgSpeedKmh);
     const checkpoints = draft.checkpoints.map((c, i) => ({ id: c.id, name: c.name || `CP ${i + 1}`, lat: +c.lat.toFixed(6), lng: +c.lng.toFixed(6), radius: Number(c.radius) || settings.defaults.radius, etaOffsetS: offsets[i] }));
-    const { legs, sig: _s, ...rest } = draft;
-    return { ...rest, name: draft.name.trim(), path: simple, manualPath: draft.mode === 'manual' ? simplifyToMax(draft.manualPath, 600, 1) : [], checkpoints, distanceM: Math.round(pathLength(full)), durationS: offsets[offsets.length - 1] || 0, updatedAt: Date.now() };
+    const { legs, sig: _s, tollKnown: _tk, ...rest } = draft;
+    return { ...rest, name: draft.name.trim(), path: simple, manualPath: draft.mode === 'manual' ? simplifyToMax(draft.manualPath, 600, 1) : [], checkpoints, tollM: Number.isFinite(draft.tollM) ? Math.round(draft.tollM) : null, distanceM: Math.round(pathLength(full)), durationS: offsets[offsets.length - 1] || 0, updatedAt: Date.now() };
   };
 
   const valid = () => {
@@ -526,6 +527,13 @@ function RouteEditor({ initial, onClose }) {
                   <span className="tms-muted">{t('eta.departHint')}</span>
                 </label>
                 <EtaTable eta={eta} departMs={eta.arriveMs == null ? NaN : Date.parse(`${ymd(new Date())}T${departAt}`)} />
+              </div>
+            )}
+
+            {eta && (
+              <div className="tms-sec">
+                <CostEstimate distanceM={dist} tollM={draft.mode === 'recommended' && !stale && Number.isFinite(draft.tollM) ? draft.tollM : null}
+                  vehicles={(devices || []).map((d) => ({ id: d.id, label: d.name, geotabDeviceId: d.id }))} />
               </div>
             )}
 

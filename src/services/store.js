@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS = {
   alertRetentionDays: 90, // riwayat alert lebih lama dari ini dibersihkan otomatis
   idleWarnPct: 20, // Idle % >= batas ini disorot merah di Laporan
   sensors: { engineHours: ['DiagnosticEngineHoursId'], fuel: ['DiagnosticDeviceTotalFuelId', 'DiagnosticTotalFuelUsedId'] },
+  cost: { fuelPriceRp: 0, tollBaseRpPerKm: 1000, tollRatio: [1, 1.5, 1.5, 2, 2] }, // perkiraan biaya: harga BBM (Rp/L), tarif tol dasar golongan I (Rp/km) dan rasio golongan I-V
   units: { fuelEcon: 'kmpl' }, // 'kmpl' (km/L) atau 'l100' (L/100 km)
   defaults: { widthM: 60, avgSpeedKmh: 40, radius: 100, confirmSec: 30, confirmMeters: 150, gpsMarginM: 10, recoverSec: 15, graceMin: 15, lateStartMin: 10 },
 };

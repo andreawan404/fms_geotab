@@ -22,6 +22,8 @@ export default function SettingsPage({ addInId, mode, onMode }) {
   const [probe, setProbe] = useState(null);
   if (loading) return <Spinner text={t('loading')} />;
   const setRouting = (p) => setS((x) => ({ ...x, routing: { ...x.routing, ...p } }));
+  const setCost = (p) => setS((x) => ({ ...x, cost: { ...x.cost, ...p } }));
+  const setRatio = (i, v) => setS((x) => ({ ...x, cost: { ...x.cost, tollRatio: Object.assign([...(x.cost?.tollRatio || [1, 1.5, 1.5, 2, 2])], { [i]: Number(v) }) } }));
   const setDef = (k, v) => setS((x) => ({ ...x, defaults: { ...x.defaults, [k]: Number(v) } }));
 
   const save = async () => {
@@ -96,6 +98,26 @@ export default function SettingsPage({ addInId, mode, onMode }) {
           </Field>
           <button className="tms-btn" onClick={test} disabled={busy === 'test'}>{busy === 'test' ? t('loading') : t('set.test')}</button>
           <div className="tms-sm tms-muted" style={{ marginTop: 8 }}>{t('set.keyWarn')}</div>
+        </div>
+      </div>
+
+      <div className="tms-card" style={{ marginBottom: 12 }}>
+        <div className="tms-card-h">{t('set.cost')}</div>
+        <div className="tms-card-b">
+          <div className="tms-sm tms-muted" style={{ marginBottom: 8 }}>{t('set.costHint')}</div>
+          <div className="tms-grid3">
+            <Field label={t('set.fuelPrice')} hint={t('set.fuelPriceHint')}>
+              <input type="number" min="0" step="100" value={s.cost?.fuelPriceRp ?? 0} onChange={(e) => setCost({ fuelPriceRp: Number(e.target.value) })} />
+            </Field>
+            <Field label={t('set.tollBase')} hint={t('set.tollBaseHint')}>
+              <input type="number" min="0" step="50" value={s.cost?.tollBaseRpPerKm ?? 1000} onChange={(e) => setCost({ tollBaseRpPerKm: Number(e.target.value) })} />
+            </Field>
+            {[1, 2, 3, 4].map((i) => (
+              <Field key={i} label={t('set.tollRatio', { n: i + 1 })}>
+                <input type="number" min="0.1" step="0.1" value={s.cost?.tollRatio?.[i] ?? 1} onChange={(e) => setRatio(i, e.target.value)} />
+              </Field>
+            ))}
+          </div>
         </div>
       </div>
 

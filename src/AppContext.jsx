@@ -328,6 +328,29 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
     [geotab],
   );
 
+  /** Konsumsi BBM aktual satu perangkat Geotab selama 30 hari terakhir (km/L dari jarak trip dan counter fuel). null bila tidak ada data. */
+  const ecoCache = useRef(new Map());
+  const vehicleEconomy = useCallback(
+    async (deviceId) => {
+      if (!deviceId) return null;
+      const hit = ecoCache.current.get(deviceId);
+      if (hit && Date.now() - hit.at < 10 * 60000) return hit.v;
+      let v = null;
+      try {
+        const to = Date.now();
+        const from = to - 30 * 86400e3;
+        const trips = await geotab.getTrips(from, to, [deviceId]);
+        const distKm = trips.reduce((a, x) => a + (x.distanceKm || 0), 0);
+        const r = await sensorWindows(deviceId, [{ from, to, distKm }]);
+        const it = r.items[0];
+        if (it?.kmPerL) v = { kmPerL: it.kmPerL, distKm, fuelL: it.fuelL, days: 30 };
+      } catch { v = null; }
+      ecoCache.current.set(deviceId, { at: Date.now(), v });
+      return v;
+    },
+    [geotab, sensorWindows],
+  );
+
   const ackAlert = useCallback(
     async (ids, note) => {
       const by = (await geotab.getUser().catch(() => '')) || '';
@@ -404,6 +427,7 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
     saveSettings,
     evaluate,
     sensorWindows,
+    vehicleEconomy,
     getRules,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

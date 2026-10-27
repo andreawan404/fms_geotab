@@ -166,8 +166,8 @@ function createMockOrdersApi() {
   const va = addM('vendors', { name: 'PT Angkut Sejahtera', email: 'ops@angkut.example', pic: 'Pak Dedi', phone: '081200000001', geotabGroup: '', notes: '' });
   const vb = addM('vendors', { name: 'CV Trans Mandiri', email: 'dispatch@transmandiri.example', pic: 'Bu Sari', phone: '081200000002', geotabGroup: '', notes: '' });
   const vi = addM('vendors', { name: 'Armada Internal SMA', email: '', pic: 'Dispatcher', phone: '', geotabGroup: '', notes: '', internal: true });
-  addM('vehicles', { vendorId: vi.id, plate: 'B 7001 SMA', type: 'cdd', hasGps: true, maxWeightKg: 2500, maxVolumeM3: 10, maxPallets: 6, lengthCm: 380, widthCm: 170, heightCm: 170 });
-  addM('vehicles', { vendorId: vi.id, plate: 'B 7002 SMA', type: 'fuso', hasGps: true, maxWeightKg: 8000, maxVolumeM3: 28, maxPallets: 14, lengthCm: 620, widthCm: 220, heightCm: 220 });
+  addM('vehicles', { vendorId: vi.id, plate: 'B 7001 SMA', type: 'cdd', hasGps: true, fuelKmPerL: 9.5, maxWeightKg: 2500, maxVolumeM3: 10, maxPallets: 6, lengthCm: 380, widthCm: 170, heightCm: 170 });
+  addM('vehicles', { vendorId: vi.id, plate: 'B 7002 SMA', type: 'fuso', hasGps: true, fuelKmPerL: 6.2, maxWeightKg: 8000, maxVolumeM3: 28, maxPallets: 14, lengthCm: 620, widthCm: 220, heightCm: 220 });
   addM('drivers', { vendorId: vi.id, name: 'Agus Pratama', phone: '081300000010', licenseNo: 'B2-010' });
   addM('vehicles', { vendorId: va.id, plate: 'B 9001 AA', type: 'cdd', hasGps: true, maxWeightKg: 2500, maxVolumeM3: 10, maxPallets: 6, lengthCm: 380, widthCm: 170, heightCm: 170 });
   addM('vehicles', { vendorId: va.id, plate: 'B 9002 AB', type: 'fuso', hasGps: false, maxWeightKg: 8000, maxVolumeM3: 28, maxPallets: 14, lengthCm: 620, widthCm: 220, heightCm: 220 });

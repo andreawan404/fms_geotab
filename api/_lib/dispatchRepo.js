@@ -16,7 +16,7 @@ const KINDS = {
     fields: [['vendor_id', 'vendorId', 'uuid', true], ['plate', 'plate', 'text', true], ['type', 'type', 'text'], ['geotab_device_id', 'geotabDeviceId', 'text'], ['has_gps', 'hasGps', 'bool'],
       ['max_weight_kg', 'maxWeightKg', 'num'], ['max_volume_m3', 'maxVolumeM3', 'num'], ['max_pallets', 'maxPallets', 'num'], ['max_colli', 'maxColli', 'num'],
       ['length_cm', 'lengthCm', 'num'], ['width_cm', 'widthCm', 'num'], ['height_cm', 'heightCm', 'num'], ['temp_controlled', 'tempControlled', 'bool'],
-      ['temp_min_c', 'tempMinC', 'num'], ['temp_max_c', 'tempMaxC', 'num'], ['allows_hazardous', 'allowsHazardous', 'bool'], ['notes', 'notes', 'text'], ['active', 'active', 'bool']],
+      ['temp_min_c', 'tempMinC', 'num'], ['temp_max_c', 'tempMaxC', 'num'], ['allows_hazardous', 'allowsHazardous', 'bool'], ['fuel_km_per_l', 'fuelKmPerL', 'num'], ['toll_class', 'tollClass', 'num'], ['notes', 'notes', 'text'], ['active', 'active', 'bool']],
   },
   drivers: {
     table: 'drivers', order: 'lower(name)', parent: true,

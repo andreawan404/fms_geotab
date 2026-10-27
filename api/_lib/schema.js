@@ -345,6 +345,14 @@ export const MIGRATIONS = [
     name: 'internal_fleet',
     statements: [`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS internal boolean NOT NULL DEFAULT false`],
   },
+  {
+    version: 13,
+    name: 'vehicle_cost',
+    statements: [
+      `ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS fuel_km_per_l numeric`,
+      `ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS toll_class int`,
+    ],
+  },
 ];
 
 const done = new WeakSet();

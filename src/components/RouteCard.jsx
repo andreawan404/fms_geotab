@@ -6,6 +6,7 @@ import { computeAlternatives, endpointsFar, manualCalc, routableStops } from '..
 import { findRoutes, offsetsFromPath } from '../services/routing.js';
 import { buildEta, withClock } from '../core/eta.js';
 import EtaTable from './EtaTable.jsx';
+import CostEstimate from './CostEstimate.jsx';
 import { simplifyToMax } from '../core/geometry.js';
 import { fmtDur, fmtKm } from '../core/time.js';
 
@@ -16,7 +17,13 @@ const vtxIcon = () => L.divIcon({ className: 'tms-vtx-wrap', iconSize: [12, 12],
  * atau Manual (dispatcher menggambar titik jalur sendiri di peta, bisa ditempel ke jalan).
  */
 export default function RouteCard({ stops, widthM, onWidth, ro, onCalc, existing }) {
-  const { t, settings } = useApp();
+  const { t, settings, ordersApi } = useApp();
+  const [fleet, setFleet] = useState([]);
+  useEffect(() => {
+    let dead = false;
+    ordersApi?.master?.list('vehicles').then((v) => { if (!dead) setFleet(v.map((x) => ({ id: x.id, label: `${x.plate} · ${x.type}`, type: x.type, geotabDeviceId: x.geotabDeviceId || '', fuelKmPerL: x.fuelKmPerL, tollClass: x.tollClass }))); }).catch(() => {});
+    return () => { dead = true; };
+  }, [ordersApi]);
   const [mapRef, map] = useMap(settings.tileUrl, { center: [-2.5, 118], zoom: 5 });
   const layer = useRef(null);
   const vtx = useRef(null);
@@ -173,6 +180,7 @@ export default function RouteCard({ stops, widthM, onWidth, ro, onCalc, existing
         )}
 
         <EtaTable eta={eta} departMs={departMs} />
+        {calc && <CostEstimate distanceM={calc.distanceM} tollM={mode === 'auto' && calc.tollKnown ? calc.tollM : null} vehicles={fleet} />}
 
         <div style={{ height: 320, marginTop: 8 }}><MapBox mapRef={mapRef} className="tms-map-fill" /></div>
         <div className="tms-sm tms-muted" style={{ marginTop: 6 }}>{t('ord.route.saveNote')}</div>

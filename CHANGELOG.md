@@ -2,6 +2,13 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.7.0 - 2026-10-27
+
+- Perkiraan biaya perjalanan (BBM + tol) di editor rute DO, menu Rute, dan dialog Alokasi (saat memilih kendaraan). Pilih kendaraan untuk memakai konsumsi BBM dan golongan tolnya.
+- Konsumsi BBM (km/L) diambil dari data aktual GPS Geotab 30 hari terakhir kendaraan tersebut; bila tidak ada, dari isian di data kendaraan (kolom baru "Konsumsi BBM (km/L)"), atau diisi manual.
+- Tol: ruas tol dideteksi dari mesin rute (OSRM dan OpenRouteService), dikalikan tarif per km menurut golongan kendaraan (kolom baru "Golongan tol", otomatis dari jenis kendaraan). Nilai tol dapat ditimpa manual. Harga BBM dan tarif tol diatur di Pengaturan > Perkiraan biaya perjalanan.
+- Tabel ETA dirapikan agar muat di panel sempit.
+
 ## v3.6.1 - 2026-10-27
 
 - Tabel ETA di editor Rute kini memakai ETA per checkpoint yang tersimpan dari mesin routing (sama dengan angka di daftar rute), bukan perkiraan kecepatan rata-rata. Perkiraan hanya dipakai bila checkpoint diubah atau rute digambar manual.
