@@ -357,9 +357,11 @@ function RouteEditor({ initial, onClose }) {
     if (cps.length < 2 || path.length < 2) return null;
     const avgKmh = settings.defaults.avgSpeedKmh;
     const legsOk = draft.mode === 'recommended' && !stale && draft.legs?.length === cps.length - 1;
-    const offsets = legsOk ? undefined : offsetsFromPath(simplifyToMax(path, 2500, 2), cps, avgKmh);
+    // rute tersimpan: pakai ETA hasil mesin routing yang tersimpan bila checkpoint belum diubah
+    const stored = !legsOk && draft.mode === 'recommended' && !stale && cps.every((c) => Number.isFinite(c.etaOffsetS)) && cps[cps.length - 1].etaOffsetS > 0 ? cps.map((c) => c.etaOffsetS) : null;
+    const offsets = legsOk ? undefined : stored || offsetsFromPath(simplifyToMax(path, 2500, 2), cps, avgKmh);
     const departMs = /^\d{2}:\d{2}$/.test(departAt) ? Date.parse(`${ymd(new Date())}T${departAt}`) : NaN;
-    return withClock(buildEta(cps, { legs: legsOk ? draft.legs : undefined, offsets, avgKmh }), departMs);
+    return withClock(buildEta(cps, { legs: legsOk ? draft.legs : undefined, offsets, avgKmh, exact: !!stored }), departMs);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path, draft.checkpoints, draft.legs, draft.mode, stale, departAt]);
   const etaS = draft.mode === 'recommended' && !stale ? draft.durationS : (dist / ((settings.defaults.avgSpeedKmh * 1000) / 3600));

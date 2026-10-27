@@ -2,6 +2,12 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.6.1',
+    date: '2026-10-27',
+    id: ['Tabel ETA di editor Rute kini memakai ETA per checkpoint yang tersimpan dari mesin routing (sama dengan angka di daftar rute), bukan perkiraan kecepatan rata-rata. Perkiraan hanya dipakai bila checkpoint diubah atau rute digambar manual.'],
+    en: ['The ETA table in the Route editor now uses the per-checkpoint ETA stored from the routing engine (matching the route list) instead of an average-speed estimate. The estimate is only used when checkpoints are edited or the route is drawn manually.'],
+  },
+  {
     v: '3.6.0',
     date: '2026-10-27',
     id: [

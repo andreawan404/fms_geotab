@@ -35,3 +35,11 @@ describe('ETA rute', () => {
     expect(e.rows[1].late).toBe(false);
   });
 });
+
+describe('ETA tersimpan', () => {
+  it('offset tersimpan dari mesin routing tidak ditandai perkiraan', () => {
+    const e = buildEta(pts, { offsets: [0, 600, 1500], exact: true });
+    expect(e.approx).toBe(false);
+    expect(e.totalS).toBe(1500);
+  });
+});

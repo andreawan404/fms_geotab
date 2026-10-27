@@ -2,6 +2,10 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.6.1 - 2026-10-27
+
+- Tabel ETA di editor Rute kini memakai ETA per checkpoint yang tersimpan dari mesin routing (sama dengan angka di daftar rute), bukan perkiraan kecepatan rata-rata. Perkiraan hanya dipakai bila checkpoint diubah atau rute digambar manual.
+
 ## v3.6.0 - 2026-10-27
 
 - Armada internal: vendor dapat ditandai "Armada internal" (kendaraan dan driver milik sendiri). Di dialog Alokasi ada pilihan baru "Armada internal" untuk mengalokasikan DO langsung ke kendaraan dan driver sendiri tanpa penawaran email.

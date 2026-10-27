@@ -7,7 +7,7 @@
  *   legs  = durasi per leg dari mesin rute; offsets = detik kumulatif per titik (perkiraan)
  * @returns {{rows:{i:number,name:string,legM:number,legS:number,offsetS:number,windowEnd:string}[], totalM:number, totalS:number, approx:boolean}|null}
  */
-export function buildEta(points, { legs, offsets, avgKmh = 40 } = {}) {
+export function buildEta(points, { legs, offsets, avgKmh = 40, exact = false } = {}) {
   const n = points?.length || 0;
   if (n < 2) return null;
   const v = (Math.max(1, Number(avgKmh) || 40) * 1000) / 3600;
@@ -17,7 +17,7 @@ export function buildEta(points, { legs, offsets, avgKmh = 40 } = {}) {
   if (useLegs) {
     for (let i = 1; i < n; i++) { legM.push(Number(legs[i - 1].distanceM) || 0); legS.push(Number(legs[i - 1].durationS) || 0); }
   } else if (Array.isArray(offsets) && offsets.length === n) {
-    approx = true;
+    approx = !exact;
     for (let i = 1; i < n; i++) { const s = Math.max(0, (offsets[i] || 0) - (offsets[i - 1] || 0)); legS.push(s); legM.push(s * v); }
   } else return null;
   let acc = 0; let accM = 0;
