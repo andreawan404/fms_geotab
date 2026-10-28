@@ -290,3 +290,24 @@ export async function logEmail(db, { orderId, offerId, to, subject, status, erro
     console.error('[email_log]', e.message);
   }
 }
+
+/** Simpan snapshot angka perkiraan biaya & BBM aktual untuk laporan DO (nilai dibersihkan; hanya angka/teks pendek). */
+export async function saveCalc(db, orderId, { cost, fuel } = {}) {
+  const n = (v, max = 1e12) => { const x = Number(v); return v != null && v !== '' && Number.isFinite(x) && x >= 0 && x <= max ? Math.round(x * 100) / 100 : null; };
+  const c = cost && typeof cost === 'object' ? {
+    distKm: n(cost.distKm, 1e5), fuelL: n(cost.fuelL, 1e5), fuelRp: n(cost.fuelRp), tollKm: n(cost.tollKm, 1e5), tollRp: n(cost.tollRp), totalRp: n(cost.totalRp),
+    tollSource: ['manual', 'route', 'unknown'].includes(cost.tollSource) ? cost.tollSource : 'unknown', kmPerL: n(cost.kmPerL, 1e3), fuelPriceRp: n(cost.fuelPriceRp),
+    tollClass: n(cost.tollClass, 5), durS: n(cost.durS, 1e7), at: new Date().toISOString(),
+  } : null;
+  const f = fuel && typeof fuel === 'object' ? {
+    fuelL: n(fuel.fuelL, 1e5), distKm: n(fuel.distKm, 1e5), kmPerL: n(fuel.kmPerL, 1e3), approx: !!fuel.approx, fromMs: Number(fuel.fromMs) || null, toMs: Number(fuel.toMs) || null,
+    source: ['sensor', 'estimate'].includes(fuel.source) ? fuel.source : 'sensor', at: new Date().toISOString(),
+  } : null;
+  if (!c && !f) throw new ApiError(422, 'validation', 'Tidak ada data untuk disimpan', [{ path: 'cost', code: 'required' }]);
+  if (f && f.fuelL == null) throw new ApiError(422, 'validation', 'Data BBM tidak valid', [{ path: 'fuel.fuelL', code: 'invalid' }]);
+  const r = await db.query(
+    `UPDATE orders SET cost = COALESCE($2::jsonb, cost), fuel = CASE WHEN source = 'external' THEN fuel ELSE COALESCE($3::jsonb, fuel) END WHERE id = $1 RETURNING id`,
+    [orderId, c ? JSON.stringify(c) : null, f ? JSON.stringify(f) : null]);
+  if (!r.length) throw new ApiError(404, 'not_found', 'DO tidak ditemukan');
+  return { ok: true };
+}

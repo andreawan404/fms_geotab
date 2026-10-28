@@ -225,4 +225,18 @@ describe('armada internal & tautan driver', () => {
     const r = await call(dispatchH, { method: 'POST', body: { orderId: o.id, action: 'link' } });
     expect(r.code).toBe(409);
   });
+  it('snapshot biaya & BBM tersimpan di DO dan dibersihkan', async () => {
+    const o = (await call(ordersH, { method: 'POST', body: mkOrder() })).body.order;
+    const r = await call(dispatchH, { method: 'POST', body: { orderId: o.id, action: 'save_calc', cost: { distKm: 120.456, fuelL: 14, fuelRp: 140000, tollRp: 50000, totalRp: 190000, tollSource: 'route', evil: 'x' }, fuel: { fuelL: 15.2, distKm: 121, kmPerL: 7.9, source: 'sensor' } } });
+    expect(r.code).toBe(200);
+    const g = (await call(orderH, { query: { id: o.id } })).body.order;
+    expect(g.cost).toMatchObject({ distKm: 120.46, totalRp: 190000, tollSource: 'route' });
+    expect(g.cost.evil).toBeUndefined();
+    expect(g.fuel).toMatchObject({ fuelL: 15.2, source: 'sensor' });
+  });
+  it('save_calc menolak data kosong atau BBM tidak valid', async () => {
+    const o = (await call(ordersH, { method: 'POST', body: mkOrder() })).body.order;
+    expect((await call(dispatchH, { method: 'POST', body: { orderId: o.id, action: 'save_calc' } })).code).toBe(422);
+    expect((await call(dispatchH, { method: 'POST', body: { orderId: o.id, action: 'save_calc', fuel: { fuelL: -3 } } })).code).toBe(422);
+  });
 });

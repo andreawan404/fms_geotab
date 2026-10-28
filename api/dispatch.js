@@ -2,7 +2,7 @@
 // POST /api/dispatch {orderId, action:'offer'|'assign'|'release', ...}
 import { route } from './_lib/http.js';
 import { ApiError } from './_lib/errors.js';
-import { assignDirect, createOffers, listOffers, logEmail, releaseOrder, reissueLink } from './_lib/dispatchRepo.js';
+import { assignDirect, createOffers, listOffers, logEmail, releaseOrder, reissueLink, saveCalc } from './_lib/dispatchRepo.js';
 import { getOrder } from './_lib/ordersRepo.js';
 import { dispatchBlockers, normalizeOrder } from '../src/core/orders.js';
 import { tripEvents } from './_lib/tripRepo.js';
@@ -52,6 +52,7 @@ export default route({
     const order = await getOrder(db, orderId);
     if (!order) throw new ApiError(404, 'not_found', 'DO tidak ditemukan');
     if (body.action === 'release') return releaseOrder(db, orderId, user.userName);
+    if (body.action === 'save_calc') return saveCalc(db, orderId, body);
     if (body.action === 'link') {
       const r = await reissueLink(db, orderId, user.userName);
       return { ok: true, ...(await tripLink(db, order, r.token, !!body.notify)) };

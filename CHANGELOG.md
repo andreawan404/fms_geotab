@@ -2,6 +2,12 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.8.0 - 2026-10-28
+
+- Laporan DO siap cetak (A4) per DO: tombol "Laporan" di daftar Order (status berjalan/selesai) dan di Bukti Pengiriman. Berisi kop SMA-TRACK, ringkasan DO, muatan per titik dengan jam tiba aktual, plot jalur rute (garis rute + nomor titik di atas kotak koordinat, tanpa peta), ETA, perkiraan biaya (BBM + tol), BBM terpakai aktual, linimasa perjalanan, kendala, kolom tanda tangan, dan satu halaman per POP/POD lengkap dengan foto yang diperkecil agar muat.
+- BBM terpakai dihitung dari sensor BBM Geotab selama perjalanan (kendaraan harus tertaut ke Geotab); bila tidak tersedia, laporan menampilkan keterangan. Angka biaya dan BBM disimpan sebagai snapshot di DO (tombol "Hitung ulang biaya & BBM" untuk memperbarui).
+- Database: kolom baru orders.cost (migrasi 14); aksi baru save_calc di /api/dispatch (tanpa menambah fungsi serverless).
+
 ## v3.7.0 - 2026-10-27
 
 - Perkiraan biaya perjalanan (BBM + tol) di editor rute DO, menu Rute, dan dialog Alokasi (saat memilih kendaraan). Pilih kendaraan untuk memakai konsumsi BBM dan golongan tolnya.

@@ -353,6 +353,11 @@ export const MIGRATIONS = [
       `ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS toll_class int`,
     ],
   },
+  {
+    version: 14,
+    name: 'order_calc',
+    statements: [`ALTER TABLE orders ADD COLUMN IF NOT EXISTS cost jsonb`],
+  },
 ];
 
 const done = new WeakSet();

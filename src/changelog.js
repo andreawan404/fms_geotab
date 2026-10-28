@@ -2,6 +2,20 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.8.0',
+    date: '2026-10-28',
+    id: [
+      'Laporan DO siap cetak (A4) per DO: tombol "Laporan" di daftar Order (status berjalan/selesai) dan di Bukti Pengiriman. Berisi kop SMA-TRACK, ringkasan DO, muatan per titik dengan jam tiba aktual, plot jalur rute (garis rute + nomor titik di atas kotak koordinat, tanpa peta), ETA, perkiraan biaya (BBM + tol), BBM terpakai aktual, linimasa perjalanan, kendala, kolom tanda tangan, dan satu halaman per POP/POD lengkap dengan foto yang diperkecil agar muat.',
+      'BBM terpakai dihitung dari sensor BBM Geotab selama perjalanan (kendaraan harus tertaut ke Geotab); bila tidak tersedia, laporan menampilkan keterangan. Angka biaya dan BBM disimpan sebagai snapshot di DO (tombol "Hitung ulang biaya & BBM" untuk memperbarui).',
+      'Database: kolom baru orders.cost (migrasi 14); aksi baru save_calc di /api/dispatch (tanpa menambah fungsi serverless).',
+    ],
+    en: [
+      'Printable A4 report per DO: "Report" button in the Orders list (running/done) and in Delivery Evidence. Includes the SMA-TRACK letterhead, DO summary, cargo per stop with actual arrival times, a route plot (route line + numbered stops on a coordinate grid, no map tiles), ETA, estimated cost (fuel + toll), actual fuel used, trip timeline, issues, signature block, and one page per POP/POD with photos resized to fit.',
+      'Fuel used comes from the Geotab fuel sensor during the trip (the vehicle must be linked to Geotab); when unavailable the report says so. Cost and fuel figures are stored as a snapshot on the DO ("Recalculate cost & fuel" refreshes them).',
+      'Database: new orders.cost column (migration 14); new save_calc action in /api/dispatch (no extra serverless function).',
+    ],
+  },
+  {
     v: '3.7.0',
     date: '2026-10-27',
     id: [

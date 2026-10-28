@@ -16,7 +16,7 @@ const ORDER_COLS = `o.corridor_m, o.source, o.ext_plate, o.ext_status, o.ext_syn
   (SELECT name FROM drivers WHERE id = o.driver_id) AS driver_name,
   (SELECT count(*) FROM offers f WHERE f.order_id = o.id AND f.status = 'offered')::int AS open_offers,
   (SELECT count(*) FROM offers f WHERE f.order_id = o.id)::int AS offer_count,
-  o.started_at, o.finished_at, (SELECT count(*) FROM trip_events t WHERE t.order_id = o.id)::int AS trip_events`;
+  o.cost, o.fuel, o.started_at, o.finished_at, (SELECT count(*) FROM trip_events t WHERE t.order_id = o.id)::int AS trip_events`;
 
 const iso = (v) => (v == null ? '' : v instanceof Date ? v.toISOString() : new Date(v).toISOString());
 
@@ -28,6 +28,7 @@ const mapHead = (r) => ({
   createdAt: iso(r.created_at), updatedAt: iso(r.updated_at),
   vendorId: r.vendor_id || null, vehicleId: r.vehicle_id || null, driverId: r.driver_id || null, assignedAt: r.assigned_at ? iso(r.assigned_at) : '', assignedVia: r.assigned_via || '',
   vendorName: r.vendor_name || '', plate: r.plate || r.ext_plate || '', driverName: r.driver_name || '', openOffers: Number(r.open_offers || 0), offerCount: Number(r.offer_count || 0),
+  cost: typeof r.cost === 'string' ? JSON.parse(r.cost) : r.cost || null, fuel: typeof r.fuel === 'string' ? JSON.parse(r.fuel) : r.fuel || null,
   startedAt: r.started_at ? iso(r.started_at) : '', finishedAt: r.finished_at ? iso(r.finished_at) : '', tripEvents: Number(r.trip_events || 0),
 });
 const mapItem = (r) => ({

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useApp } from '../AppContext.jsx';
 import { Empty, Kpi, Spinner } from '../components/ui.jsx';
 import DispatchDialog from '../components/DispatchDialog.jsx';
+import OrderReport from '../components/OrderReport.jsx';
 import OrderEditor from '../components/OrderEditor.jsx';
 import OrderImport, { downloadTemplate } from '../components/OrderImport.jsx';
 import { ORDER_STATUS } from '../core/orders.js';
@@ -38,6 +39,7 @@ export default function OrdersPage() {
   const [edit, setEdit] = useState(null); // null | 'new' | id
   const [imp, setImp] = useState(false);
   const [dsp, setDsp] = useState(null);
+  const [rpt, setRpt] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -135,6 +137,7 @@ export default function OrdersPage() {
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     {['draft', 'offered', 'assigned'].includes(o.status) && <button className="tms-btn sm pri" onClick={(e) => { e.stopPropagation(); setDsp(o.id); }}>{o.status === 'assigned' ? t('dsp.detail') : t('dsp.allocate')}</button>}{' '}
+                    {['running', 'done'].includes(o.status) && <button className="tms-btn sm" onClick={(e) => { e.stopPropagation(); setRpt(o.id); }}>{t('ordrep.open')}</button>}{' '}
                     {o.status === 'draft' && <button className="tms-btn sm danger" onClick={(e) => remove(o, e)}>{t('delete')}</button>}
                   </td>
                 </tr>
@@ -147,6 +150,7 @@ export default function OrdersPage() {
         <div style={{ marginTop: 8 }}><button className="tms-btn sm" onClick={() => setLimit(limit + PAGE)}>{t('hist.more', { n: data.total - data.orders.length })}</button></div>
       )}
 
+      {rpt && <OrderReport orderId={rpt} onClose={() => setRpt(null)} />}
       {dsp && <DispatchDialog orderId={dsp} onClose={() => setDsp(null)} onChanged={load} />}
       {edit && <OrderEditor id={edit === 'new' ? null : edit} onClose={() => setEdit(null)} onSaved={load} />}
       {imp && <OrderImport onClose={() => setImp(false)} onDone={load} existing={new Set(data.orders.map((o) => o.doNo))} />}

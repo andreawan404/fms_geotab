@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useApp } from '../AppContext.jsx';
 import { Empty, Spinner } from '../components/ui.jsx';
 import PodDocument from '../components/PodDocument.jsx';
+import OrderReport from '../components/OrderReport.jsx';
 import { fmtDateTime } from '../core/time.js';
 import { apiErrorText } from '../lib/orderView.js';
 
@@ -14,6 +15,7 @@ export default function EvidencePage() {
   const [q, setQ] = useState('');
   const [err, setErr] = useState('');
   const [open, setOpen] = useState(null);
+  const [rpt, setRpt] = useState(null);
 
   const load = useCallback(async () => {
     setErr('');
@@ -59,7 +61,7 @@ export default function EvidencePage() {
                       {r.amendments > 0 && <span className="tms-badge blue">{t('pod.nAmend', { n: r.amendments })}</span>}{' '}
                       {r.purged && <span className="tms-badge gray">{t('evd.purged')}</span>}
                     </td>
-                    <td><button className="tms-btn sm" onClick={(e) => { e.stopPropagation(); setOpen(r.id); }}>{t('pod.open')}</button></td>
+                    <td><button className="tms-btn sm" onClick={(e) => { e.stopPropagation(); setOpen(r.id); }}>{t('pod.open')}</button>{' '}<button className="tms-btn sm" onClick={(e) => { e.stopPropagation(); setRpt(r.orderId); }}>{t('ordrep.open')}</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -67,6 +69,7 @@ export default function EvidencePage() {
           </div>
         </>
       )}
+      {rpt && <OrderReport orderId={rpt} onClose={() => setRpt(null)} />}
       {open && <PodDocument podId={open} onClose={() => setOpen(null)} onChanged={load} />}
     </div>
   );

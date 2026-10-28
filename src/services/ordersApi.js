@@ -126,6 +126,7 @@ export function createOrdersApi({ geotab, isMock }) {
       assign: (orderId, vendorId, vehicleId, driverId, notify = false) => req('POST', '/dispatch', { orderId, action: 'assign', vendorId, vehicleId, driverId, notify }),
       link: (orderId, notify = false) => req('POST', '/dispatch', { orderId, action: 'link', notify }),
       release: (orderId) => req('POST', '/dispatch', { orderId, action: 'release' }),
+      saveCalc: (orderId, calc) => req('POST', '/dispatch', { orderId, action: 'save_calc', ...calc }),
       amendPod: (podId, note) => req('POST', '/dispatch', { action: 'pod_amend', podId, note }),
     },
   };
@@ -253,6 +254,7 @@ function createMockOrdersApi() {
     },
     dispatch: {
       async amendPod() { throw err(404, 'not_found'); },
+      async saveCalc(orderId, calc) { const o = need(orderId); if (calc.cost) o.cost = { ...calc.cost, at: now() }; if (calc.fuel) o.fuel = { ...calc.fuel, at: now() }; return { ok: true }; },
       async get(orderId) {
         return { pods: [], trip: { events: [], steps: [] }, offers: offers.filter((f) => f.orderId === orderId).map((f) => ({ ...f, status: f.status === 'offered' && new Date(f.expiresAt) <= new Date() ? 'expired' : f.status, vendorName: M.vendors.find((v) => v.id === f.vendorId)?.name || '' })), mail: { configured: false, from: 'aan@sumbermas-autorindo.com' } };
       },
