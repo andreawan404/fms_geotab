@@ -61,8 +61,8 @@ export default function OrderReport({ orderId, onClose }) {
   const html = useMemo(() => {
     if (!data) return '';
     const host = (typeof window !== 'undefined' && window.TMS_CONFIG && window.TMS_CONFIG.hostUrl) || '';
-    return buildOrderReportHtml({ ...data, base: portalBase() || location.origin, logoUrl: `${host || location.origin}/logo.svg`, t, excText: (e) => excDetail(t, e) });
-  }, [data, t]);
+    return buildOrderReportHtml({ ...data, base: portalBase() || location.origin, logoUrl: `${host || location.origin}/logo.svg`, tileUrl: settings.tileUrl || '', t, excText: (e) => excDetail(t, e) });
+  }, [data, t, settings.tileUrl]);
   const print = () => { const w = frame.current?.contentWindow; if (w) { w.focus(); w.print(); } };
 
   return (

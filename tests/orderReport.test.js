@@ -25,6 +25,14 @@ describe('routePlotSvg', () => {
     expect(svg).toMatch(/<text[^>]*class="mt"[^>]*>2<\/text>/);
     expect(svg.match(/class="g"/g).length).toBeGreaterThan(4);
   });
+  it('dengan tileUrl menempatkan tile peta di bawah garis rute', () => {
+    const svg = routePlotSvg({ path: [[-6.2, 106.8], [-6.9, 107.6]], points: [{ lat: -6.2, lng: 106.8 }, { lat: -6.9, lng: 107.6 }], tileUrl: 'https://t.test/{z}/{x}/{y}.png' });
+    const imgs = svg.match(/<image href="https:\/\/t\.test\/\d+\/\d+\/\d+\.png"/g);
+    expect(imgs.length).toBeGreaterThan(1);
+    expect(svg.indexOf('<image')).toBeLessThan(svg.indexOf('<polyline'));
+    expect(svg).toContain('OpenStreetMap');
+    expect(svg).not.toContain('class="g"');
+  });
   it('kosong tanpa data, dan tidak error untuk satu titik', () => {
     expect(routePlotSvg({ path: [], points: [] })).toBe('');
     expect(routePlotSvg({ points: [{ lat: -6, lng: 106 }] })).toContain('<svg');

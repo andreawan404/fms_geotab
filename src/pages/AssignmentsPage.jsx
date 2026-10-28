@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext.jsx';
 import { Empty, Field, Modal, Spinner } from '../components/ui.jsx';
 import InstanceDetail from '../components/InstanceDetail.jsx';
@@ -11,7 +11,7 @@ import { errMessage } from '../services/geotab.js';
 const SYMBOL = { completed: '✓', deviated: '⚠', in_progress: '▶', missed: '✗', planned: '' };
 
 export default function AssignmentsPage() {
-  const { t, lang, assignments, routes, routeMap, devices, driverMap, results, loading } = useApp();
+  const { t, lang, assignments, routes, routeMap, devices, driverMap, results, loading, refreshPlan } = useApp();
   const [anchor, setAnchor] = useState(() => new Date());
   const [view, setView] = useState('week'); // 'week' | 'month'
   const [q, setQ] = useState('');
@@ -19,6 +19,16 @@ export default function AssignmentsPage() {
   const [form, setForm] = useState(null);
   const [detail, setDetail] = useState(null);
   const [copyDay, setCopyDay] = useState(false);
+  // data penugasan dimuat sekali saat add-in dibuka: segarkan saat halaman dibuka, tab kembali aktif, dan tiap 2 menit
+  useEffect(() => {
+    if (!refreshPlan) return undefined;
+    refreshPlan();
+    const onVis = () => { if (document.visibilityState === 'visible') refreshPlan(); };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('focus', onVis);
+    const id = setInterval(onVis, 120000);
+    return () => { document.removeEventListener('visibilitychange', onVis); window.removeEventListener('focus', onVis); clearInterval(id); };
+  }, [refreshPlan]);
   const locale = lang === 'id' ? 'id-ID' : 'en-GB';
   const todayStr = ymd(new Date());
 

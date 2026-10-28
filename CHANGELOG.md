@@ -2,6 +2,11 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.8.1 - 2026-10-28
+
+- Laporan DO: jalur rute kini digambar di atas peta (tile OpenStreetMap, sesuai pengaturan "URL tile"), bukan kotak kosong. Bila tile gagal dimuat, kotak koordinat tetap tampil sebagai cadangan.
+- Kalender penugasan: rute dan penugasan dimuat ulang saat halaman dibuka, saat tab kembali aktif, dan tiap 2 menit. Sebelumnya data hanya dimuat saat add-in dibuka, sehingga rute yang dibuat dari perangkat lain (atau tautan DO otomatis) tidak muncul sampai halaman dimuat ulang.
+
 ## v3.8.0 - 2026-10-28
 
 - Laporan DO siap cetak (A4) per DO: tombol "Laporan" di daftar Order (status berjalan/selesai) dan di Bukti Pengiriman. Berisi kop SMA-TRACK, ringkasan DO, muatan per titik dengan jam tiba aktual, plot jalur rute (garis rute + nomor titik di atas kotak koordinat, tanpa peta), ETA, perkiraan biaya (BBM + tol), BBM terpakai aktual, linimasa perjalanan, kendala, kolom tanda tangan, dan satu halaman per POP/POD lengkap dengan foto yang diperkecil agar muat.

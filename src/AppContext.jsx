@@ -141,6 +141,14 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
     if (d && loaded.oldRids?.length) store.cleanup(loaded.oldRids, Number(loaded.settings?.alertRetentionDays) || 90).catch(() => {});
   }, [store, geotab, seed, monitor]);
 
+  /** Muat ulang rute + penugasan dari Geotab tanpa mengganggu alert/monitor (data bisa berubah dari perangkat lain atau tautan DO otomatis). */
+  const refreshPlan = useCallback(async () => {
+    try {
+      const l = await store.load();
+      setData((d) => ({ ...d, routes: l.routes, assignments: l.assignments }));
+    } catch { /* biarkan data lama */ }
+  }, [store]);
+
   useEffect(() => {
     reload();
   }, [reload]);
@@ -419,6 +427,7 @@ export function AppProvider({ api, addInId, active = true, seed, children }) {
     toasts,
     toast,
     reload,
+    refreshPlan,
     tick,
     saveRoute,
     deleteRoute,

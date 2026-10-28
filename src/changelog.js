@@ -2,6 +2,18 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.8.1',
+    date: '2026-10-28',
+    id: [
+      'Laporan DO: jalur rute kini digambar di atas peta (tile OpenStreetMap, sesuai pengaturan "URL tile"), bukan kotak kosong. Bila tile gagal dimuat, kotak koordinat tetap tampil sebagai cadangan.',
+      'Kalender penugasan: rute dan penugasan dimuat ulang saat halaman dibuka, saat tab kembali aktif, dan tiap 2 menit. Sebelumnya data hanya dimuat saat add-in dibuka, sehingga rute yang dibuat dari perangkat lain (atau tautan DO otomatis) tidak muncul sampai halaman dimuat ulang.',
+    ],
+    en: [
+      'DO report: the route is now drawn on a map (OpenStreetMap tiles, per the "tile URL" setting) instead of an empty box. If tiles fail to load, the coordinate grid remains as a fallback.',
+      'Assignments calendar: routes and assignments reload when the page opens, when the tab becomes active, and every 2 minutes. Previously data loaded only when the add-in opened, so routes created on another device (or by automatic DO linking) did not appear until a page reload.',
+    ],
+  },
+  {
     v: '3.8.0',
     date: '2026-10-28',
     id: [

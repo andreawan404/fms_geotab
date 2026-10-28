@@ -15,39 +15,59 @@ const dur = (sec) => { const m = Math.max(0, Math.round((sec || 0) / 60)); const
 
 const niceStep = (km) => { const raw = km / 6; const p = 10 ** Math.floor(Math.log10(Math.max(raw, 1e-6))); const f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; };
 
+const mercU = (lng) => (lng + 180) / 360;
+const mercV = (lat) => { const r = (Math.max(-85, Math.min(85, lat)) * Math.PI) / 180; return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2; };
+
 /**
- * Plot jalur rute di atas kotak berkoordinat (tanpa tile peta). Proyeksi equirectangular, skala sama di kedua sumbu.
- * @param {{path?:[number,number][], points:{lat:number,lng:number,type?:string}[], w?:number, h?:number}} i
+ * Plot jalur rute di atas peta (tile OSM, proyeksi Web Mercator). Tanpa tileUrl (atau tile gagal dimuat) yang tampil kotak koordinat.
+ * @param {{path?:[number,number][], points:{lat:number,lng:number,type?:string}[], w?:number, h?:number, tileUrl?:string}} i
  * @returns {string} elemen <svg>
  */
-export function routePlotSvg({ path, points, w = 700, h = 330 }) {
+export function routePlotSvg({ path, points, w = 700, h = 330, tileUrl = '' }) {
   const pts = (points || []).filter((p) => Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)));
   const line = (path || []).filter((p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]));
   const all = [...line.map((p) => ({ lat: p[0], lng: p[1] })), ...pts.map((p) => ({ lat: +p.lat, lng: +p.lng }))];
   if (!all.length) return '';
-  const lat0 = Math.min(...all.map((p) => p.lat)); const lat1 = Math.max(...all.map((p) => p.lat));
-  const lng0 = Math.min(...all.map((p) => p.lng)); const lng1 = Math.max(...all.map((p) => p.lng));
-  const kx = Math.cos((((lat0 + lat1) / 2) * Math.PI) / 180) * 111.32; // km per derajat bujur
-  const ky = 110.57; // km per derajat lintang
-  const wKm = Math.max((lng1 - lng0) * kx, 0.2); const hKm = Math.max((lat1 - lat0) * ky, 0.2);
-  const padL = 44; const padR = 14; const padT = 14; const padB = 26;
-  const s = Math.min((w - padL - padR) / wKm, (h - padT - padB) / hKm); // px per km
-  const ox = padL + ((w - padL - padR) - wKm * s) / 2; const oy = padT + ((h - padT - padB) - hKm * s) / 2;
-  const X = (lng) => ox + (lng - lng0) * kx * s; const Y = (lat) => oy + (lat1 - lat) * ky * s;
-  const step = niceStep(Math.max(wKm, hKm));
-  const g = [];
-  for (let k = 0; k * step <= wKm + 1e-9; k++) { const x = ox + k * step * s; g.push(`<line x1="${x.toFixed(1)}" y1="${padT}" x2="${x.toFixed(1)}" y2="${h - padB}" class="g"/>`); g.push(`<text x="${x.toFixed(1)}" y="${h - 12}" class="gt" text-anchor="middle">${num(k * step, step < 1 ? 1 : 0)}</text>`); }
-  for (let k = 0; k * step <= hKm + 1e-9; k++) { const y = oy + (hKm - k * step) * s; g.push(`<line x1="${padL}" y1="${y.toFixed(1)}" x2="${w - padR}" y2="${y.toFixed(1)}" class="g"/>`); g.push(`<text x="${padL - 5}" y="${(y + 3).toFixed(1)}" class="gt" text-anchor="end">${num(k * step, step < 1 ? 1 : 0)}</text>`); }
+  const us = all.map((p) => mercU(p.lng)); const vs = all.map((p) => mercV(p.lat));
+  let u0 = Math.min(...us); let u1 = Math.max(...us); let v0 = Math.min(...vs); let v1 = Math.max(...vs);
+  const minSpan = 0.3 / 40075; // kira-kira 300 m, agar satu titik tidak membagi nol
+  if (u1 - u0 < minSpan) { u0 -= minSpan / 2; u1 += minSpan / 2; }
+  if (v1 - v0 < minSpan) { v0 -= minSpan / 2; v1 += minSpan / 2; }
+  const pad = 22;
+  const W = Math.min((w - 2 * pad) / (u1 - u0), (h - 2 * pad) / (v1 - v0)); // lebar dunia dalam px
+  const ox = (w - (u1 - u0) * W) / 2 - u0 * W; const oy = (h - (v1 - v0) * W) / 2 - v0 * W;
+  const X = (lng) => mercU(lng) * W + ox; const Y = (lat) => mercV(lat) * W + oy;
+  const body = [];
+  if (tileUrl) {
+    const z = Math.max(1, Math.min(18, Math.ceil(Math.log2(Math.max(W, 256) / 256))));
+    const n = 2 ** z; const ts = W / n;
+    const tx0 = Math.max(0, Math.floor((0 - ox) / ts)); const tx1 = Math.min(n - 1, Math.floor((w - ox) / ts));
+    const ty0 = Math.max(0, Math.floor((0 - oy) / ts)); const ty1 = Math.min(n - 1, Math.floor((h - oy) / ts));
+    for (let x = tx0; x <= tx1; x++) for (let y = ty0; y <= ty1; y++) {
+      const url = tileUrl.replace('{z}', z).replace('{x}', x).replace('{y}', y).replace('{s}', 'a');
+      body.push(`<image href="${esc(url)}" x="${(x * ts + ox).toFixed(1)}" y="${(y * ts + oy).toFixed(1)}" width="${(ts + 0.6).toFixed(1)}" height="${(ts + 0.6).toFixed(1)}"/>`);
+    }
+  } else {
+    // kotak koordinat: garis grid tiap jarak "bulat" (km) dari pojok kiri-bawah area
+    const kmPerU = 40075 * Math.cos((all[0].lat * Math.PI) / 180);
+    const wKm = (u1 - u0) * kmPerU; const hKm = (v1 - v0) * kmPerU;
+    const step = niceStep(Math.max(wKm, hKm));
+    const gx = (u1 - u0 < 0) ? 0 : (w - (u1 - u0) * W) / 2; const gy = (h - (v1 - v0) * W) / 2;
+    for (let k = 0; k * step <= wKm + 1e-9; k++) { const x = gx + k * step * (W / kmPerU); body.push(`<line x1="${x.toFixed(1)}" y1="${gy.toFixed(1)}" x2="${x.toFixed(1)}" y2="${(h - gy).toFixed(1)}" class="g"/><text x="${x.toFixed(1)}" y="${(h - gy + 10).toFixed(1)}" class="gt" text-anchor="middle">${num(k * step, step < 1 ? 1 : 0)}</text>`); }
+    for (let k = 0; k * step <= hKm + 1e-9; k++) { const y = h - gy - k * step * (W / kmPerU); body.push(`<line x1="${gx.toFixed(1)}" y1="${y.toFixed(1)}" x2="${(w - gx).toFixed(1)}" y2="${y.toFixed(1)}" class="g"/><text x="${(gx - 4).toFixed(1)}" y="${(y + 3).toFixed(1)}" class="gt" text-anchor="end">${num(k * step, step < 1 ? 1 : 0)}</text>`); }
+    body.push(`<text x="${w - 4}" y="${h - 3}" class="gt" text-anchor="end">km</text>`);
+  }
   const stride = Math.max(1, Math.ceil(line.length / 700));
   const sampled = line.filter((_, i) => i % stride === 0 || i === line.length - 1);
-  const poly = sampled.length > 1 ? `<polyline points="${sampled.map((p) => `${X(p[1]).toFixed(1)},${Y(p[0]).toFixed(1)}`).join(' ')}" class="rt"/>` : '';
+  const poly = sampled.length > 1 ? sampled.map((p) => `${X(p[1]).toFixed(1)},${Y(p[0]).toFixed(1)}`).join(' ') : '';
   const dots = pts.map((p, i) => {
     const x = X(+p.lng).toFixed(1); const y = Y(+p.lat).toFixed(1);
-    return `<g><circle cx="${x}" cy="${y}" r="9" class="${p.type === 'pickup' ? 'mp' : 'md'}"/><text x="${x}" y="${(+y + 3.6).toFixed(1)}" class="mt" text-anchor="middle">${i + 1}</text></g>`;
+    return `<g><circle cx="${x}" cy="${y}" r="10" class="${p.type === 'pickup' ? 'mp' : 'md'}"/><text x="${x}" y="${(+y + 3.8).toFixed(1)}" class="mt" text-anchor="middle">${i + 1}</text></g>`;
   }).join('');
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="100%" class="plot"><style>.g{stroke:#d5d9de;stroke-width:.6}.gt{font:9px Arial;fill:#6b7280}.rt{fill:none;stroke:#1d4ed8;stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}.mp{fill:#1d4ed8;stroke:#fff;stroke-width:1.5}.md{fill:#15803d;stroke:#fff;stroke-width:1.5}.mt{font:bold 10px Arial;fill:#fff}</style>`
-    + `<rect x="${padL}" y="${padT}" width="${w - padL - padR}" height="${h - padT - padB}" fill="#fafbfc" stroke="#9aa3ad" stroke-width=".8"/>${g.join('')}${poly}${dots}`
-    + `<text x="${w - padR}" y="${h - 2}" class="gt" text-anchor="end">km</text></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="100%" class="plot"><style>.g{stroke:#d5d9de;stroke-width:.6}.gt{font:9px Arial;fill:#6b7280}.rt{fill:none;stroke:#1d4ed8;stroke-width:3;stroke-linejoin:round;stroke-linecap:round}.rh{fill:none;stroke:#fff;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;opacity:.9}.mp{fill:#1d4ed8;stroke:#fff;stroke-width:2}.md{fill:#15803d;stroke:#fff;stroke-width:2}.mt{font:bold 11px Arial;fill:#fff}.at{font:8px Arial;fill:#333}</style>`
+    + `<defs><clipPath id="c"><rect x="0" y="0" width="${w}" height="${h}"/></clipPath></defs><rect x="0" y="0" width="${w}" height="${h}" fill="#eef1f4"/><g clip-path="url(#c)">${body.join('')}`
+    + `${poly ? `<polyline points="${poly}" class="rh"/><polyline points="${poly}" class="rt"/>` : ''}${dots}</g>`
+    + `<rect x="0.5" y="0.5" width="${w - 1}" height="${h - 1}" fill="none" stroke="#9aa3ad"/>${tileUrl ? `<rect x="${w - 118}" y="${h - 13}" width="118" height="13" fill="#fff" opacity=".8"/><text x="${w - 4}" y="${h - 3}" class="at" text-anchor="end">© OpenStreetMap contributors</text>` : ''}</svg>`;
 }
 
 /** Ringkas titik tiba/mulai/selesai per stop dari event perjalanan (stopSeq 1-based). */
@@ -70,7 +90,7 @@ h1{font-size:17px;margin:0}h2{font-size:12px;margin:10px 0 4px;padding-bottom:2p
 table{border-collapse:collapse;width:100%}td,th{border:1px solid #c4c9cf;padding:3px 5px;text-align:left;vertical-align:top}th{background:#eef1f4;font-size:10px}tr{page-break-inside:avoid}
 .n{text-align:right;white-space:nowrap}.kv{display:grid;grid-template-columns:105px 1fr 105px 1fr;gap:2px 8px}.kv dt{color:#555}.kv dd{margin:0}
 .b{display:inline-block;padding:1px 7px;border-radius:9px;color:#fff;font-weight:700;font-size:10px}.muted{color:#666}.sm{font-size:10px}.late{color:#b91c1c;font-weight:700}
-.tot td{font-weight:700;background:#f6f8fa}.plot{display:block;border:0;max-height:78mm}
+.tot td{font-weight:700;background:#f6f8fa}.plot{display:block;border:0;max-height:88mm}
 .sev-high{color:#b91c1c;font-weight:700}.sev-medium{color:#b45309;font-weight:700}.sev-low{color:#555}
 .sig{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:22px}.sig div{text-align:center}.sig span{display:block;height:46px;border-bottom:1px solid #333;margin-bottom:3px}
 .ph{display:grid;grid-template-columns:1fr 1fr;gap:6px}.ph img{width:100%;height:58mm;object-fit:contain;border:1px solid #cfd4d9;background:#f4f5f7;page-break-inside:avoid}
@@ -105,7 +125,7 @@ export function buildOrderReportHtml(d) {
     + `<div class="sm" style="margin-top:3px">${esc(t('ordrep.peak'))}: <b>${esc(num(s.peakWeight, 1))} kg</b> · <b>${esc(num(s.peakVolume, 2))} m³</b> · <b>${esc(num(s.peakPallets, 1))}</b> ${esc(t('ordrep.pallets'))}</div>`;
 
   const pts = route?.checkpoints?.length ? route.checkpoints.map((c, i) => ({ lat: c.lat, lng: c.lng, type: stops[i]?.type })) : stops.map((x) => ({ lat: x.lat, lng: x.lng, type: x.type }));
-  const plot = routePlotSvg({ path: route?.path, points: pts });
+  const plot = routePlotSvg({ path: route?.path, points: pts, tileUrl: d.tileUrl || '' });
   const eta = d.eta;
   const etaTable = eta ? `<table style="margin-top:4px"><tr><th>#</th><th>${esc(t('ordrep.stop'))}</th><th class="n">${esc(t('ordrep.leg'))}</th><th class="n">${esc(t('ordrep.legTime'))}</th><th class="n">${esc(t('ordrep.cum'))}</th></tr>`
     + eta.rows.map((r) => `<tr><td class="n">${r.i + 1}</td><td>${esc(r.name)}</td><td class="n">${r.i === 0 ? '-' : `${esc(num(r.legM / 1000, 1))} km`}</td><td class="n">${r.i === 0 ? '-' : esc(dur(r.legS))}</td><td class="n">${r.i === 0 ? '-' : `+${esc(dur(r.offsetS))}`}</td></tr>`).join('')
