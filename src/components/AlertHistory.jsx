@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useApp } from '../AppContext.jsx';
 import { Empty, Kpi, download } from './ui.jsx';
 import AckDialog from './AckDialog.jsx';
+import EventEvidence from './EventEvidence.jsx';
 import { ACKABLE, SEVERITY, filterAlerts, groupByDay, groupByDevice, summarize } from '../lib/alertView.js';
 import { expand } from '../core/schedule.js';
 import { fmtDateTime, fmtTime, parseYmd, ymd } from '../core/time.js';
@@ -13,7 +14,7 @@ const PAGE = 300;
 const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
 /** Riwayat seluruh alert/kejadian: timeline per hari atau per kendaraan, dengan filter dan penanganan. */
-export default function AlertHistory({ onBack, onOpen }) {
+export default function AlertHistory({ onBack, onOpen, onOpenOrder }) {
   const { t, lang, feed, acks, unackAlert, deviceMap, routeMap, assignments, devices, settings } = useApp();
   const locale = lang === 'id' ? 'id-ID' : 'en-GB';
   const [preset, setPreset] = useState(7);
@@ -25,6 +26,7 @@ export default function AlertHistory({ onBack, onOpen }) {
   const [limit, setLimit] = useState(PAGE);
   const [open, setOpen] = useState(new Set());
   const [ackIds, setAckIds] = useState(null);
+  const [evid, setEvid] = useState(null);
 
   const dname = (id) => vehicleLabel(deviceMap.get(id) || { name: id }).name;
   const text = (e) => t(`ev.${e.type}`, { route: routeMap.get(e.routeId)?.name || '', cp: e.cpName || '', dist: Math.round(e.distM || 0), min: e.min ?? '' });
@@ -69,16 +71,17 @@ export default function AlertHistory({ onBack, onOpen }) {
   const Row = ({ e, showDay }) => {
     const a = acks.get(e.id);
     return (
-      <div className={`tms-alert-item hist ${SEVERITY[e.type] || 'mute'}`}>
+      <div className={`tms-alert-item hist ${SEVERITY[e.type] || 'mute'}`} onClick={() => setEvid(e)} role="button" tabIndex={0} onKeyDown={(k) => k.key === 'Enter' && setEvid(e)} title={t('evid.click')}>
         <span className="dot" />
-        <div className="body" onClick={() => canOpen(e) && openEvent(e)} style={{ cursor: canOpen(e) ? 'pointer' : 'default' }}>
+        <div className="body">
           <div className="ttl"><b>{dname(e.deviceId)}</b><span className="rel">{showDay ? fmtDateTime(e.at) : fmtTime(e.at)}</span></div>
           <div className="txt">{text(e)}</div>
           {a && <div className="tms-acked">✓ {t('ack.by', { by: a.by || '—' })} · {fmtDateTime(a.at)}{a.note ? ` · “${a.note}”` : ''}</div>}
         </div>
+        <span className="tms-evid-go">{t('evid.view')} ›</span>
         {ACKABLE.has(e.type) && (a
-          ? <button className="tms-btn sm ghost" onClick={() => unackAlert(e.id)}>{t('ack.undo')}</button>
-          : <button className="tms-btn sm" onClick={() => setAckIds([e.id])}>{t('ack.btn')}</button>)}
+          ? <button className="tms-btn sm ghost" onClick={(x) => { x.stopPropagation(); unackAlert(e.id); }}>{t('ack.undo')}</button>
+          : <button className="tms-btn sm" onClick={(x) => { x.stopPropagation(); setAckIds([e.id]); }}>{t('ack.btn')}</button>)}
       </div>
     );
   };
@@ -157,6 +160,7 @@ export default function AlertHistory({ onBack, onOpen }) {
       </div>
       <div className="tms-sm tms-muted" style={{ marginTop: 8 }}>{t('hist.retention', { d: settings.alertRetentionDays || 90 })}</div>
       {ackIds && <AckDialog ids={ackIds} onClose={() => setAckIds(null)} />}
+      {evid && <EventEvidence ev={evid} onClose={() => setEvid(null)} onOpenOrder={onOpenOrder ? (id) => { setEvid(null); onOpenOrder(id); } : undefined} onOpenInst={canOpen(evid) ? () => { const e = evid; setEvid(null); openEvent(e); } : undefined} />}
     </div>
   );
 }

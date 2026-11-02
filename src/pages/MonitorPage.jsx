@@ -3,6 +3,8 @@ import { useApp } from '../AppContext.jsx';
 import { Empty, Kpi, PhaseBadge, Spinner, StatusBadge } from '../components/ui.jsx';
 import InstanceDetail from '../components/InstanceDetail.jsx';
 import AlertHistory from '../components/AlertHistory.jsx';
+import EventEvidence from '../components/EventEvidence.jsx';
+import OrderReport from '../components/OrderReport.jsx';
 import AlertPanel from '../components/AlertPanel.jsx';
 import { fmtDateTime, fmtTime } from '../core/time.js';
 
@@ -12,6 +14,8 @@ export default function MonitorPage() {
   const { t, results, deviceMap, driverMap, loading, lastTick, tick, sound, setSound, errors } = useApp();
   const [filter, setFilter] = useState('all');
   const [detail, setDetail] = useState(null);
+  const [evid, setEvid] = useState(null);
+  const [rpt, setRpt] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
 
   const list = useMemo(() => [...results.values()].sort((a, b) => ORDER[a.result.status] - ORDER[b.result.status] || a.inst.startMs - b.inst.startMs), [results]);
@@ -26,8 +30,9 @@ export default function MonitorPage() {
   if (showHistory) {
     return (
       <>
-        <AlertHistory onBack={() => setShowHistory(false)} onOpen={setDetail} />
+        <AlertHistory onBack={() => setShowHistory(false)} onOpen={setDetail} onOpenOrder={setRpt} />
         {detail && <InstanceDetail inst={detail} onClose={() => setDetail(null)} />}
+        {rpt && <OrderReport orderId={rpt} onClose={() => setRpt(null)} />}
       </>
     );
   }
@@ -95,9 +100,11 @@ export default function MonitorPage() {
           </div>
         </div>
 
-        <AlertPanel onOpen={(inst) => inst && setDetail(inst)} onViewAll={() => setShowHistory(true)} />
+        <AlertPanel onOpen={(inst) => inst && setDetail(inst)} onEvidence={setEvid} onViewAll={() => setShowHistory(true)} />
       </div>
       {detail && <InstanceDetail inst={detail} onClose={() => setDetail(null)} />}
+      {rpt && <OrderReport orderId={rpt} onClose={() => setRpt(null)} />}
+      {evid && <EventEvidence ev={evid} onClose={() => setEvid(null)} onOpenOrder={(id) => { setEvid(null); setRpt(id); }} onOpenInst={results.get(evid.instKey)?.inst ? () => { const i2 = results.get(evid.instKey).inst; setEvid(null); setDetail(i2); } : undefined} />}
     </div>
   );
 }

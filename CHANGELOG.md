@@ -2,6 +2,12 @@
 
 Dibuat otomatis dari `src/changelog.js` (`npm run changelog`). Jangan diedit manual.
 
+## v3.9.0 - 2026-11-02
+
+- Riwayat alert & kejadian: setiap baris kini bisa diklik (seluruh baris, ada tulisan "Bukti ›" dan efek hover) dan membuka jendela Bukti kejadian: peta dengan rute rencana, jejak GPS ±20 menit di sekitar kejadian, penanda lokasi dan jam kejadian, serta penggeser putar ulang dengan kecepatan.
+- Bukti tetap bisa dibuka walau penugasan di kalender sudah tidak ada (sebelumnya baris tidak bisa diklik). Dari jendela bukti tersedia tombol "Detail penugasan" dan, untuk kejadian dari DO, "Laporan DO".
+- Panel alert di halaman Monitor juga membuka Bukti kejadian saat diklik.
+
 ## v3.8.1 - 2026-10-28
 
 - Laporan DO: jalur rute kini digambar di atas peta (tile OpenStreetMap, sesuai pengaturan "URL tile"), bukan kotak kosong. Bila tile gagal dimuat, kotak koordinat tetap tampil sebagai cadangan.

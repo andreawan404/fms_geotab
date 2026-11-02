@@ -27,7 +27,7 @@ export const useRel = () => {
 };
 
 /** Panel alert live: yang sedang berlangsung (tidak kedaluwarsa) + kejadian N menit terakhir. */
-export default function AlertPanel({ onOpen, onViewAll }) {
+export default function AlertPanel({ onOpen, onViewAll, onEvidence }) {
   const { t, results, feed, acks, deviceMap, routeMap } = useApp();
   const rel = useRel();
   const now = useNow();
@@ -87,7 +87,7 @@ export default function AlertPanel({ onOpen, onViewAll }) {
         <div className="tms-feed-sec">{t('panel.recent')} <b>{recent.length}</b></div>
         {recent.length === 0 && <Empty>{t('panel.emptyRecent', { n: win })}</Empty>}
         {recent.map((it) => (
-          <div key={it.id} className={`tms-alert-item ${SEVERITY[it.type] || 'mute'}`} onClick={() => open(it.instKey)} title={fmtDateTime(it.at)}>
+          <div key={it.id} className={`tms-alert-item ${SEVERITY[it.type] || 'mute'}`} onClick={() => (onEvidence ? onEvidence(it) : open(it.instKey))} title={fmtDateTime(it.at)}>
             <span className="dot" />
             <div className="body">
               <div className="ttl"><b>{dname(it.deviceId)}</b><span className="rel">{rel(it.at, now)}</span></div>

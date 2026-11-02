@@ -385,3 +385,5 @@ a.tms-btn{text-decoration:none;display:inline-flex;align-items:center;color:inhe
 .tms-cost-t td:nth-child(3){width:100px}
 .tms-cost-t td:nth-child(2){overflow-wrap:anywhere}
 .tms-cost-t td:nth-child(2){white-space:normal;word-break:break-word;padding-right:10px}
+
+.tms-alert-item.hist:hover{background:#eef4fb}.tms-alert-item.hist:focus-visible{outline:2px solid var(--c-pri,#0b5ea8);outline-offset:-2px}.tms-evid-go{align-self:center;color:var(--c-pri,#0b5ea8);font-size:12px;font-weight:600;white-space:nowrap;opacity:.75}.tms-alert-item.hist:hover .tms-evid-go{opacity:1;text-decoration:underline}.tms-map.tall{height:46vh;min-height:320px}

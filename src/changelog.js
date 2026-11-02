@@ -2,6 +2,20 @@
 // dan CHANGELOG.md (dibuat otomatis oleh `npm run changelog`). Entri terbaru di paling atas.
 export const CHANGELOG = [
   {
+    v: '3.9.0',
+    date: '2026-11-02',
+    id: [
+      'Riwayat alert & kejadian: setiap baris kini bisa diklik (seluruh baris, ada tulisan "Bukti ›" dan efek hover) dan membuka jendela Bukti kejadian: peta dengan rute rencana, jejak GPS ±20 menit di sekitar kejadian, penanda lokasi dan jam kejadian, serta penggeser putar ulang dengan kecepatan.',
+      'Bukti tetap bisa dibuka walau penugasan di kalender sudah tidak ada (sebelumnya baris tidak bisa diklik). Dari jendela bukti tersedia tombol "Detail penugasan" dan, untuk kejadian dari DO, "Laporan DO".',
+      'Panel alert di halaman Monitor juga membuka Bukti kejadian saat diklik.',
+    ],
+    en: [
+      'Alert & event history: every row is now clickable (whole row, with an "Evidence ›" hint and hover effect) and opens an Event evidence window: a map with the planned route, the GPS trail ±20 minutes around the event, the event location and time marker, and a replay slider showing speed.',
+      'Evidence can be opened even when the assignment no longer exists in the calendar (rows were previously not clickable). The window offers "Assignment detail" and, for DO events, "DO report".',
+      'The alert panel on the Monitor page also opens Event evidence when clicked.',
+    ],
+  },
+  {
     v: '3.8.1',
     date: '2026-10-28',
     id: [
